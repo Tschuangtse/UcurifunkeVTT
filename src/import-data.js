@@ -80,8 +80,15 @@ function equipment(character, row, group, container = "") {
     ...list(row.Items).flatMap(item => equipment(character, item, "Gegenstand", name))];
 }
 
+export function isPedipalpusCharacter(source) {
+  return Array.isArray(source?.PrimaryAttributes) && Object.hasOwn(source, "Version");
+}
+
 export function parseCharacter(text) {
-  const source = JSON.parse(text.replace(/^\uFEFF/, ""));
+  return convertCharacter(JSON.parse(text.replace(/^\uFEFF/, "")));
+}
+
+export function convertCharacter(source) {
   const name = string(source?.Name);
   if (!name || !Number.isInteger(source.Version) || !list(source.PrimaryAttributes).length) {
     throw new Error("Die Datei enthält keinen erkennbaren Pedipalpus-Charakter.");
@@ -96,7 +103,8 @@ export function parseCharacter(text) {
     if (!name) return [];
     const checkAttributes = ["FirstAttribute", "SecondAttribute", "ThirdAttribute"].map(key => row[key])
       .filter(attribute => string(attribute?.LongName)).map(attribute =>
-        attributesByKey.get(string(attribute.ShortName)) ?? { name: attribute.LongName, value: attributeValue(attribute) });
+        attributesByKey.get(string(attribute.ShortName)) ??
+        { name: string(attribute.LongName), key: string(attribute.ShortName), value: attributeValue(attribute) });
     const check = (name, value) => ({ name, group,
       value: theorist && ["BodySkills", "CraftingSkills"].includes(field)
         ? Math.sign(value) * Math.round(Math.abs(value) / 2) : value,
@@ -116,5 +124,5 @@ export function parseCharacter(text) {
   };
   const items = Object.entries(EQUIPMENT).flatMap(([field, group]) =>
     list(source[field]).flatMap(row => equipment(source, row, group)));
-  return { name, type: "character", system, items, prototypeToken: { actorLink: true } };
+  return { name, type: "character", system, items, prototypeToken: { name, actorLink: true } };
 }

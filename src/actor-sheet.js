@@ -50,7 +50,8 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
         hasSpeed: Number.isInteger(item.system.speed), hasReload: Number.isInteger(item.system.reload)
       };
     });
-    return { ...context, data, items, canEdit: this.isEditable, canRoll: this.actor.isOwner };
+    return { ...context, data, items, actorName: this.actor.name, actorImage: this.actor.img,
+      canEdit: this.isEditable, canRoll: this.actor.isOwner };
   }
 
   static async #roll(_event, target) {

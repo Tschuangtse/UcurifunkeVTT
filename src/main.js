@@ -1,9 +1,11 @@
 import "./tick/main.js";
 import "./actions/main.js";
+import { UcurifunkeActor } from "./actor.js";
 import { CharacterData, EquipmentData, WeaponData } from "./models.js";
 import { CharacterSheet, importPedipalpus } from "./actor-sheet.js";
 
 Hooks.once("init", () => {
+  CONFIG.Actor.documentClass = UcurifunkeActor;
   CONFIG.Actor.dataModels.character = CharacterData;
   CONFIG.Actor.dataModels.npc = CharacterData;
   CONFIG.Item.dataModels.equipment = EquipmentData;

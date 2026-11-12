@@ -1,7 +1,7 @@
 <div class="ucurifunke-character">
   <header class="ucurifunke-character-header">
-    <img src="{{actor.img}}" alt="">
-    <div><h2>{{actor.name}}</h2>{{#if data.race}}<p>{{data.race}}</p>{{/if}}</div>
+    {{#if actorImage}}<img src="{{actorImage}}" alt="">{{/if}}
+    <div><h2>{{actorName}}</h2>{{#if data.race}}<p>{{data.race}}</p>{{/if}}</div>
   </header>
 
   <section class="ucurifunke-combat-values" aria-label="Kampfwerte">
