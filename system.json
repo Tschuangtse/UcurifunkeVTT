@@ -2,7 +2,7 @@
   "id": "ucurifunke",
   "title": "Ucurifunke",
   "description": "Charakterimport aus Pedipalpus, Ucurifunke-Proben und Tickkampf.",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "authors": [
     {
       "name": "Tschuangtse"
@@ -17,6 +17,13 @@
     "distance": 1,
     "units": "m"
   },
+  "media": [
+    {
+      "type": "setup",
+      "url": "systems/ucurifunke/assets/ucurifunke-cover.jpg",
+      "thumbnail": "systems/ucurifunke/assets/ucurifunke-cover.jpg"
+    }
+  ],
   "esmodules": [
     "src/main.js"
   ],
@@ -49,5 +56,5 @@
   },
   "url": "https://github.com/Tschuangtse/UcurifunkeVTT",
   "manifest": "https://github.com/Tschuangtse/UcurifunkeVTT/releases/latest/download/system.json",
-  "download": "https://github.com/Tschuangtse/UcurifunkeVTT/releases/download/v0.1.7/ucurifunke-v0.1.7.zip"
+  "download": "https://github.com/Tschuangtse/UcurifunkeVTT/releases/download/v0.1.8/ucurifunke-v0.1.8.zip"
 }
