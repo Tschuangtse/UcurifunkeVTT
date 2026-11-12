@@ -1,4 +1,15 @@
 import { t } from "./i18n.js";
+
+export function sceneEncounters(combats, sceneId) {
+  return sceneId ? [...combats].filter(combat => combat.scene?.id === sceneId) : [];
+}
+
+export function activeEncounterForScene(combats, sceneId) {
+  return sceneEncounters(combats, sceneId).filter(combat => combat.active)
+    .sort((a, b) => Number(b.started) - Number(a.started)
+      || (b.getFlag("ucurifunke", "totalTicks") ?? 0) - (a.getFlag("ucurifunke", "totalTicks") ?? 0)
+      || a.id.localeCompare(b.id))[0];
+}
 export async function openTimeline(app) {
   if (!app) return;
   await app.render({ force: true });
@@ -16,7 +27,7 @@ export async function updateTimelineScale(app, value) {
 export function getEncounterChoices(combats) {
   return [...combats].map((combat, index) => {
     const label = combat.name?.trim() || combat.scene?.name?.trim() || t("encounter", { number: index + 1 });
-    const state = combat.started ? t("inProgress") : t("notStarted");
+    const state = combat.active === false ? t("inactiveEncounter") : combat.started ? t("inProgress") : t("notStarted");
     return { id: combat.id, label: `${label} (${state})` };
   });
 }

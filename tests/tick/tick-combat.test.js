@@ -233,8 +233,11 @@ test("initiative evaluates the requested formula and writes the initial tick val
   assert.deepEqual(values(), [17]);
 });
 
-test("all zero-tick battlemap tokens are highlighted without changing selection", () => {
+test("zero-tick outlines follow the timeline and restore native marker visibility", t => {
   const { combat } = encounter([0, 0, 5]);
+  const timeline = { rendered: true, minimized: false };
+  setTimelineApp(timeline);
+  t.after(() => setTimelineApp(null));
   globalThis.PIXI = { Graphics: class {
     clear() {} lineStyle() {} drawRoundedRect() {}
   } };
@@ -250,6 +253,12 @@ test("all zero-tick battlemap tokens are highlighted without changing selection"
   for (const token of tokens) refreshTokenHighlight(token);
   assert.deepEqual(tokens.map(token => Boolean(token.children[0]?.visible)), [true, true, false]);
   assert.ok(tokens.every(token => !token.controlled && !token.turnMarker.visible));
+  timeline.rendered = false;
+  for (const token of tokens) refreshTokenHighlight(token);
+  assert.ok(tokens.every(token => !token.children[0]?.visible && token.turnMarker.visible));
+  timeline.rendered = true;
+  for (const token of tokens) refreshTokenHighlight(token);
+  assert.deepEqual(tokens.map(token => Boolean(token.children[0]?.visible)), [true, true, false]);
   combat.combatants[0].data = JSON.stringify({ ticks: 3 });
   refreshTokenHighlight(tokens[0]);
   assert.equal(tokens[0].children[0].visible, false);

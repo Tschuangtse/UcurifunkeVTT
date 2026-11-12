@@ -3,10 +3,23 @@ import { clearEvents, getCombatantAndEventsList, isNormalizationAuthority, norma
 import { TimelineApp } from "./timeline.js";
 import { getTimelineApp, setTimelineApp } from "./state.js";
 import { refreshTokenHighlight, refreshTokenHighlights } from "./tokenHighlights.js";
-import { getEncounterChoices, openTimeline, updateTimelineScale } from "./timelineControls.js";
+import { activeEncounterForScene, getEncounterChoices, openTimeline, sceneEncounters, updateTimelineScale } from "./timelineControls.js";
 
 const MODULE_ID = "ucurifunke";
 const MODULE_TITLE = "Tick Combat";
+const pendingEncounters = new Set();
+
+async function reconcileActiveEncounter(sceneId, preferred) {
+  if (!sceneId || !isNormalizationAuthority()) return;
+  const encounters = sceneEncounters(game.combats, sceneId);
+  const active = preferred?.active ? preferred : activeEncounterForScene(encounters, sceneId);
+  const duplicates = encounters.filter(combat => combat.active && combat !== active);
+  if (duplicates.length) {
+    await foundry.documents.Combat.implementation.updateDocuments(
+      duplicates.map(combat => ({ _id: combat.id, active: false }))
+    );
+  }
+}
 
 function localizeActionMessage(message, element) {
   if (message?.isContentVisible === false) return;
@@ -82,7 +95,9 @@ function replaceCombatTracker(_app, element) {
 
   panel.append(button);
 
-  if (game.user?.isGM) {
+  const sceneId = globalThis.canvas?.scene?.id;
+  if (game.user?.isGM && sceneId) {
+    const sceneCombats = sceneEncounters(game.combats, sceneId);
     const encounterLabel = document.createElement("label");
     encounterLabel.className = "tick-combat-encounter-select";
     const caption = document.createElement("span");
@@ -96,7 +111,7 @@ function replaceCombatTracker(_app, element) {
     empty.disabled = true;
     empty.selected = !game.combat;
     encounters.append(empty);
-    for (const combat of getEncounterChoices(game.combats ?? [])) {
+    for (const combat of getEncounterChoices(sceneCombats)) {
       const option = document.createElement("option");
       option.value = combat.id;
       option.textContent = combat.label;
@@ -105,24 +120,30 @@ function replaceCombatTracker(_app, element) {
     }
     encounters.addEventListener("change", async () => {
       const combat = game.combats.get(encounters.value);
-      if (!combat || !game.user?.isGM) return;
+      if (!combat || !game.user?.isGM || combat.scene?.id !== globalThis.canvas?.scene?.id) return;
       await combat.activate();
       await refreshTimeline({ open: true });
     });
     encounterLabel.append(caption, encounters);
     // With only one encounter there is nothing to switch.
-    if ((game.combats?.size ?? 0) > 1) panel.append(encounterLabel);
+    if (sceneCombats.length > 1) panel.append(encounterLabel);
     const create = document.createElement("button");
     create.type = "button";
     create.textContent = t("createEncounter");
     create.addEventListener("click", async () => {
-      if (!game.user?.isGM) return;
-      await foundry.documents.Combat.implementation.create({
-        scene: globalThis.canvas?.scene?.id ?? null, active: true
-      });
-      await refreshTimeline({ open: true });
+      if (!game.user?.isGM || sceneId !== globalThis.canvas?.scene?.id || pendingEncounters.has(sceneId)) return;
+      pendingEncounters.add(sceneId);
+      try {
+        if (!activeEncounterForScene(game.combats, sceneId)) {
+          const combat = await foundry.documents.Combat.implementation.create({ scene: sceneId, active: false });
+          if (combat && !activeEncounterForScene(game.combats, sceneId)) await combat.activate();
+        }
+        await openTimeline(getTimelineApp());
+      } finally {
+        pendingEncounters.delete(sceneId);
+      }
     });
-    panel.append(create);
+    if (!activeEncounterForScene(sceneCombats, sceneId)) panel.append(create);
   }
   container.append(panel);
 }
@@ -165,6 +186,9 @@ Hooks.once("init", () => {
 
 Hooks.once("ready", async () => {
   try {
+    for (const sceneId of new Set(Array.from(game.combats ?? [], combat => combat.scene?.id))) {
+      await reconcileActiveEncounter(sceneId);
+    }
     // Resume encounters whose initial tick normalization did not run.
     await normalizeTicks();
   } finally {
@@ -176,19 +200,28 @@ Hooks.once("ready", async () => {
 
 Hooks.on("renderCombatTracker", replaceCombatTracker);
 Hooks.on("renderChatMessageHTML", localizeActionMessage);
-Hooks.on("canvasReady", refreshTokenHighlights);
-Hooks.on("refreshToken", refreshTokenHighlight);
+Hooks.on("canvasReady", () => refreshTimeline());
+Hooks.on("refreshToken", token => refreshTokenHighlight(token));
 Hooks.on("updateToken", () => refreshTimeline());
+
+Hooks.on("preCreateCombat", combat => {
+  const sceneId = combat.scene?.id;
+  if (combat.active && activeEncounterForScene(game.combats, sceneId)) combat.updateSource({ active: false });
+});
 
 Hooks.on("createCombat", async combat => {
   if (isNormalizationAuthority()) await clearEvents(combat);
-  await refreshTimeline({ open: true });
+  if (combat.active) await reconcileActiveEncounter(combat.scene?.id);
+  if (combat === game.combat) await refreshTimeline({ open: true });
 });
 
 Hooks.on("updateCombat", async (combat, changes, options) => {
+  if (combat.active && (changes.active === true || Object.hasOwn(changes, "scene"))) {
+    await reconcileActiveEncounter(combat.scene?.id, combat);
+  }
   const changedEvents = Object.hasOwn(changes ?? {}, "flags.ucurifunke.events")
     || foundry.utils.hasProperty(changes ?? {}, "flags.ucurifunke.events");
-  if (!options?.tickCombatNormalization
+  if (combat.active !== false && !options?.tickCombatNormalization
     && (changedEvents || Object.hasOwn(changes, "round") || Object.hasOwn(changes, "active"))) {
     await normalizeTicks(combat);
   }
@@ -200,6 +233,7 @@ Hooks.on("deleteCombat", async () => {
 });
 
 Hooks.on("createCombatant", async combatant => {
+  if (combatant.parent !== game.combat) return;
   await normalizeTicks(combatant.parent);
   await refreshTimeline({ open: true });
 });

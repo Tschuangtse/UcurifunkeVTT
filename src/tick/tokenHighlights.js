@@ -1,21 +1,29 @@
 import { getCombatantData } from "./data.js";
+import { getTimelineApp } from "./state.js";
 
 // Per-client overlays: never change token ownership, selection, or targeting.
 const highlights = new WeakMap();
-const suppressedMarkers = new WeakSet();
+const suppressedMarkers = new WeakMap();
 
-export function refreshTokenHighlight(token) {
+function timelineIsVisible() {
+  const timeline = getTimelineApp();
+  return Boolean(timeline?.rendered && !timeline.minimized);
+}
+
+export function refreshTokenHighlight(token, enabled = timelineIsVisible()) {
   if (!token || token.destroyed || token.isPreview) return;
   const combat = game.combat;
-  const combatant = combat?.combatants?.find(entry =>
+  const combatant = enabled && combat?.combatants?.find(entry =>
     entry.tokenId === token.id && entry.sceneId === token.document.parent?.id);
   const inTickCombat = Boolean(combatant);
   if (token.turnMarker) {
     if (inTickCombat) {
+      if (!suppressedMarkers.has(token.turnMarker)) {
+        suppressedMarkers.set(token.turnMarker, token.turnMarker.visible);
+      }
       token.turnMarker.visible = false;
-      suppressedMarkers.add(token.turnMarker);
     } else if (suppressedMarkers.has(token.turnMarker)) {
-      token.turnMarker.visible = true;
+      token.turnMarker.visible = suppressedMarkers.get(token.turnMarker);
       suppressedMarkers.delete(token.turnMarker);
     }
   }
@@ -40,6 +48,6 @@ export function refreshTokenHighlight(token) {
   highlight.visible = true;
 }
 
-export function refreshTokenHighlights() {
-  for (const token of globalThis.canvas?.tokens?.placeables ?? []) refreshTokenHighlight(token);
+export function refreshTokenHighlights(enabled = timelineIsVisible()) {
+  for (const token of globalThis.canvas?.tokens?.placeables ?? []) refreshTokenHighlight(token, enabled);
 }

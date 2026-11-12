@@ -16,6 +16,7 @@ import {
 import { editEvent } from "./editEvent.js";
 import { canRollInitiative, rollInitiative } from "./initiative.js";
 import { groupTimeline } from "./timelineView.js";
+import { refreshTokenHighlights } from "./tokenHighlights.js";
 import { advanceComplexAction, canAdvanceComplexAction, cancelComplexAction, canManageComplexAction, promptComplexAction } from "./complexAction.js";
 
 const MODULE_ID = "ucurifunke";
@@ -46,6 +47,7 @@ export class TimelineApp extends HandlebarsApplicationMixin(ApplicationV2) {
       minimizable: true
     },
     actions: {
+      timelineHelp: this._onHelp,
       addEvent: this._onAddEvent,
       beginComplexAction: this._onBeginComplexAction,
       advanceComplexAction: this._onAdvanceComplexAction,
@@ -66,6 +68,33 @@ export class TimelineApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   get title() {
     return t("timeline");
+  }
+
+  _getFrameButtons(options) {
+    return [
+      { action: "timelineHelp", icon: "fa-solid fa-question", label: t("helpTitle") },
+      ...super._getFrameButtons(options)
+    ];
+  }
+
+  async _renderFrameButtons(options) {
+    await super._renderFrameButtons(options);
+    const header = this.window.header;
+    const help = header.querySelector('[data-action="timelineHelp"]');
+    const controls = header.querySelector('[data-action="toggleControls"]');
+    if (help && controls) controls.before(help);
+  }
+
+  static async _onHelp() {
+    const keys = ["helpPing", game.user?.isGM ? "helpInitiativeGM" : "helpInitiativePlayer"];
+    if (game.user?.isGM) keys.push("helpEdit", "helpTickCost");
+    const content = "<ul>" + keys.map(key => `<li>${t(key)}</li>`).join("") + "</ul>";
+    await foundry.applications.api.DialogV2.prompt({
+      window: { title: t("helpTitle") },
+      content,
+      rejectClose: false,
+      ok: { label: t("ok") }
+    });
   }
 
   static PARTS = {
@@ -106,6 +135,7 @@ export class TimelineApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async _onRender(context, options) {
     await super._onRender(context, options);
+    refreshTokenHighlights(!this.minimized);
 
     for (const input of this.element.querySelectorAll("input.tick-combat-ticks")) {
       input.addEventListener("focus", event => event.currentTarget.select());
@@ -113,6 +143,11 @@ export class TimelineApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     this.fitToTimeline();
+  }
+
+  async _onClose(options) {
+    await super._onClose(options);
+    refreshTokenHighlights(false);
   }
 
   fitToTimeline() {

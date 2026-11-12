@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getEncounterChoices, openTimeline, updateTimelineScale } from "../../src/tick/timelineControls.js";
+import { activeEncounterForScene, getEncounterChoices, openTimeline, sceneEncounters, updateTimelineScale } from "../../src/tick/timelineControls.js";
 
 test("timeline redraws and closes without constructing or closing a context menu", async () => {
   let prepared = 0;
@@ -120,4 +120,19 @@ test("unnamed encounters use descriptive labels instead of internal IDs", () => 
     "Brückenkampf (in progress)", "Wald (not started)", "Encounter 3 (not started)"
   ]);
   assert.equal(choices[2].id, "secret-id-3");
+});
+test("only active encounters in the selected scene compete for the timeline", () => {
+  const combat = (id, scene, active, started, ticks = 0) => ({
+    id, scene: { id: scene }, active, started, getFlag: () => ticks
+  });
+  const entries = [
+    combat("archive", "a", false, true, 300),
+    combat("draft", "a", true, false),
+    combat("in-progress", "a", true, true, 200),
+    combat("other-scene", "b", true, true, 500)
+  ];
+  assert.deepEqual(sceneEncounters(entries, "a").map(entry => entry.id), ["archive", "draft", "in-progress"]);
+  assert.equal(activeEncounterForScene(entries, "a").id, "in-progress");
+  assert.equal(activeEncounterForScene(entries, "b").id, "other-scene");
+  assert.equal(activeEncounterForScene(entries, "c"), undefined);
 });
