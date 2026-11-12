@@ -1,0 +1,157 @@
+<section class="tick-combat-timeline">
+  <header class="tick-combat-toolbar">
+    <div class="tick-combat-status">
+      {{#if started}}
+        <span class="tick-combat-counter" title="{{labels.elapsed}}"><i class="fa-solid fa-stopwatch"></i> <strong>{{totalTicks}}</strong> {{labels.ticks}}</span>
+      {{else}}
+        <span>{{labels.notStartedStatus}}</span>
+      {{/if}}
+    </div>
+
+    <div class="tick-combat-toolbar-actions">
+      {{#if hasCombat}}
+        <button type="button" data-action="beginComplexAction" title="{{labels.complexActionTip}}">
+          <i class="fa-solid fa-hourglass-start"></i> {{labels.complexAction}}
+        </button>
+      {{/if}}
+      {{#if isGM}}
+        <button type="button" data-action="addEvent" title="{{labels.addEvent}}">
+          <i class="fa-solid fa-plus"></i> {{labels.event}}
+        </button>
+      {{/if}}
+
+      <button type="button" data-action="cycleScale" title="{{labels.cycleScale}}">
+        <i class="fa-solid fa-magnifying-glass"></i> {{scale}}×
+      </button>
+
+      <button type="button" data-action="toggleLanguage" title="{{labels.switchLanguage}}" aria-label="{{labels.switchLanguage}}">
+        <i class="fa-solid fa-language" aria-hidden="true"></i> {{language}}
+      </button>
+
+      <button type="button" data-action="toggleLimit" aria-pressed="{{#if limited}}true{{else}}false{{/if}}" title="{{labels.filterTip}}">
+        <i class="fa-solid fa-filter"></i> {{#if limited}}{{labels.nextThree}}{{else}}{{labels.all}}{{/if}}
+      </button>
+
+      {{#if isGM}}
+        {{#if started}}
+          <button type="button" data-action="endCombat" title="{{labels.endCombat}}">
+            <i class="fa-solid fa-flag-checkered"></i> {{labels.end}}
+          </button>
+        {{else}}
+          {{#if hasCombat}}
+            <button type="button" data-action="startCombat" title="{{labels.startCombat}}">
+              <i class="fa-solid fa-play"></i> {{labels.start}}
+            </button>
+          {{/if}}
+        {{/if}}
+      {{/if}}
+    </div>
+  </header>
+
+  <div class="tick-combat-track">
+    {{#each list}}
+      <section class="tick-combat-column">
+        <div class="tick-combat-marker" aria-label="{{@root.labels.tick}} {{this.ticks}}">
+          <span>{{this.ticks}}</span>
+        </div>
+
+        {{#each this.items}}
+          <article class="tick-combat-card {{#if this.tickBand}}tick-combat-card--{{this.tickBand}}{{/if}} {{#if this.isWaiting}}is-waiting{{/if}} {{#if this.isHidden}}is-hidden{{/if}}" {{#unless this.isEvent}}data-combatant-id="{{this.id}}"{{/unless}}>
+            <div class="tick-combat-card-heading">
+            <button
+              type="button"
+              class="tick-combat-name"
+              data-action="editItem"
+              data-id="{{this.id}}"
+              title="{{this.name}}{{#if this.notes}} — {{this.notes}}{{/if}}"
+            >
+              {{this.name}}
+            </button>
+            {{#if this.canRollInitiative}}
+              <button
+                type="button"
+                class="tick-combat-initiative"
+                data-action="rollInitiative"
+                data-id="{{this.id}}"
+                title="{{@root.labels.initiativeTip}}"
+                aria-label="{{@root.labels.initiativeAria}} {{this.name}}"
+              ><i class="fa-solid fa-dice-d6" aria-hidden="true"></i></button>
+            {{/if}}
+            </div>
+
+            {{#if this.complexAction}}
+              <div class="tick-combat-complex-name">{{this.complexAction.name}}</div>
+            {{/if}}
+
+            {{#if this.notes}}
+              <div class="tick-combat-notes">{{this.notes}}</div>
+            {{/if}}
+
+            {{#if this.isEvent}}
+              {{#if ../../isGM}}
+                <div class="tick-combat-card-actions">
+                  <button type="button" data-action="fastForward" data-id="{{this.id}}" title="{{@root.labels.advanceEvent}}">
+                    {{#if this.repeating}}
+                      {{this.ffwd}} <i class="fa-solid fa-arrows-turn-right"></i>
+                    {{else}}
+                      <i class="fa-solid fa-check"></i>
+                    {{/if}}
+                  </button>
+                  <button type="button" data-action="toggleHide" data-id="{{this.id}}" title="{{@root.labels.toggleEvent}}">
+                    {{#if this.isHidden}}
+                      <i class="fa-solid fa-eye-slash"></i>
+                    {{else}}
+                      <i class="fa-solid fa-eye"></i>
+                    {{/if}}
+                  </button>
+                  <button type="button" data-action="deleteEvent" data-id="{{this.id}}" title="{{@root.labels.deleteEvent}}">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </div>
+              {{/if}}
+            {{else}}
+              {{#if this.complexAction}}
+                <div class="tick-combat-complex-progress" aria-label="{{@root.labels.actionProgress}}">
+                  {{this.complexAction.spent}}/{{this.complexAction.duration}} {{@root.labels.ticks}}
+                </div>
+                {{#if this.canManageComplexAction}}
+                  <div class="tick-combat-card-actions tick-combat-complex-actions">
+                    <button type="button" class="tick-combat-complex-advance" data-action="advanceComplexAction" data-id="{{this.id}}" {{#unless this.canAdvanceComplexAction}}disabled{{/unless}} title="{{@root.labels.advanceActionTip}}">
+                      <i class="fa-solid fa-forward-step"></i> {{@root.labels.advanceAction}}
+                    </button>
+                    <button type="button" data-action="cancelComplexAction" data-id="{{this.id}}" title="{{@root.labels.cancelAction}}" aria-label="{{@root.labels.cancelAction}}">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </div>
+                {{/if}}
+              {{else}}
+                {{#if ../../isGM}}
+                  <label class="tick-combat-delta" title="{{@root.labels.tickCost}}">
+                    <span>+</span>
+                    <input class="tick-combat-ticks" data-id="{{this.id}}" type="number" step="1" value="0">
+                  </label>
+                {{/if}}
+
+                {{#if this.canWait}}
+                  <button type="button" class="tick-combat-wait" data-action="toggleWait" data-id="{{this.id}}">
+                    {{#if this.isWaiting}}
+                      <i class="fa-solid fa-play"></i> {{@root.labels.waiting}}
+                    {{else}}
+                      <i class="fa-solid fa-pause"></i> {{@root.labels.wait}}
+                    {{/if}}
+                  </button>
+                {{/if}}
+              {{/if}}
+            {{/if}}
+          </article>
+        {{/each}}
+      </section>
+    {{else}}
+      <div class="tick-combat-empty">{{@root.labels.empty}}</div>
+    {{/each}}
+  </div>
+
+  <footer class="tick-combat-help">
+    {{labels.help}}
+  </footer>
+</section>

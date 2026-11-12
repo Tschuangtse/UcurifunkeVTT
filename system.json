@@ -1,0 +1,48 @@
+{
+  "id": "ucurifunke",
+  "title": "Ucurifunke",
+  "description": "Charakterimport aus Pedipalpus, Ucurifunke-Proben und Tickkampf.",
+  "version": "0.1.0",
+  "authors": [
+    {
+      "name": "Tschuangtse"
+    }
+  ],
+  "compatibility": {
+    "minimum": "14",
+    "maximum": "14.999"
+  },
+  "esmodules": [
+    "src/main.js"
+  ],
+  "styles": [
+    "styles/system.css",
+    "styles/tick-combat.css",
+    "styles/actions.css"
+  ],
+  "languages": [
+    {
+      "lang": "de",
+      "name": "Deutsch",
+      "path": "lang/de.json"
+    },
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "documentTypes": {
+    "Actor": {
+      "character": {},
+      "npc": {}
+    },
+    "Item": {
+      "equipment": {},
+      "weapon": {}
+    }
+  },
+  "url": "https://github.com/Tschuangtse/UcurifunkeVTT",
+  "manifest": "https://github.com/Tschuangtse/UcurifunkeVTT/releases/latest/download/system.json",
+  "download": "https://github.com/Tschuangtse/UcurifunkeVTT/releases/download/v0.1.0/ucurifunke-v0.1.0.zip"
+}

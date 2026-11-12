@@ -1,0 +1,79 @@
+<div class="ucurifunke-character">
+  <header class="ucurifunke-character-header">
+    <img src="{{actor.img}}" alt="">
+    <div><h2>{{actor.name}}</h2>{{#if data.race}}<p>{{data.race}}</p>{{/if}}</div>
+  </header>
+
+  <section class="ucurifunke-combat-values" aria-label="Kampfwerte">
+    <label>BE <input type="number" name="impairment" min="0" step="1" value="{{data.impairment}}" {{#unless canEdit}}disabled{{/unless}}></label>
+    <label>RE <input type="number" name="reaction" min="0" step="1" value="{{data.reaction}}" {{#unless canEdit}}disabled{{/unless}}></label>
+    {{#if canEdit}}<button type="button" data-action="saveCombatValues">Speichern</button>{{/if}}
+    {{#each data.energies}}<span><strong>{{key}}</strong> {{value}}</span>{{/each}}
+  </section>
+
+  {{#if data.attributes.length}}
+  <details open>
+    <summary>Attribute</summary>
+    <div class="ucurifunke-attributes">
+      {{#each data.attributes}}
+        {{#if ../canRoll}}
+          <button type="button" data-action="rollCheck" data-kind="attribute" data-index="{{@index}}">
+            <span>{{name}}</span><strong>{{value}}</strong>
+          </button>
+        {{else}}
+          <span>{{name}} <strong>{{value}}</strong></span>
+        {{/if}}
+      {{/each}}
+    </div>
+  </details>
+  {{/if}}
+
+  {{#if data.skills.length}}
+  <details open>
+    <summary>Fertigkeiten und Spezialisierungen</summary>
+    <table>
+      <thead><tr><th>Fertigkeit</th><th>Bereich</th><th>Wert</th><th>Probe</th></tr></thead>
+      <tbody>{{#each data.skills}}
+        <tr><td>{{name}}</td><td>{{group}}</td><td>{{value}}</td><td>
+          {{#if rollable}}{{#if ../canRoll}}
+            <button type="button" data-action="rollCheck" data-kind="skill" data-index="{{@index}}" aria-label="{{name}} würfeln">
+              <i class="fa-solid fa-dice-d20" aria-hidden="true"></i>
+            </button>
+          {{/if}}{{/if}}
+        </td></tr>
+      {{/each}}</tbody>
+    </table>
+  </details>
+  {{/if}}
+
+  {{#if items.length}}
+  <details open>
+    <summary>Ausrüstung</summary>
+    <table>
+      <thead><tr><th>Gegenstand</th><th>Details</th><th>Probe</th></tr></thead>
+      <tbody>{{#each items}}
+        <tr>
+          <td title="{{data.description}}">{{name}} <small>×{{data.quantity}}</small></td>
+          <td>
+            {{data.group}}{{#if data.container}} · {{data.container}}{{/if}}
+            {{#if data.damage}} · {{data.damage}}{{/if}}{{#if data.reach}} · {{data.reach}}{{/if}}
+            {{#if hasSpeed}} · WGS {{data.speed}}{{/if}}{{#if hasReload}} · Laden {{data.reload}} Ticks{{/if}}
+            {{#if data.protection}} · RS {{data.protection}}{{/if}}
+          </td>
+          <td>{{#if ../canRoll}}
+            {{#if attack}}<button type="button" data-action="rollCheck" data-kind="weapon" data-item="{{id}}" data-mode="{{attackMode}}">{{attackMode}}</button>{{/if}}
+            {{#if parry}}<button type="button" data-action="rollCheck" data-kind="weapon" data-item="{{id}}" data-mode="PA">PA</button>{{/if}}
+          {{/if}}</td>
+        </tr>
+      {{/each}}</tbody>
+    </table>
+  </details>
+  {{/if}}
+
+  {{#if data.derived.length}}
+  <details>
+    <summary>Abgeleitete Werte</summary>
+    <dl>{{#each data.derived}}<dt>{{name}}</dt><dd>{{value}}</dd>{{/each}}</dl>
+  </details>
+  {{/if}}
+</div>

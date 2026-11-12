@@ -1,0 +1,9 @@
+{
+  "name": "ucurifunke",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "package": "node tools/package.mjs"
+  }
+}

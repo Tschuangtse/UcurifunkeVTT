@@ -1,0 +1,15 @@
+.ucurifunke-sheet .window-content { padding: 0; }
+.ucurifunke-character { display: grid; align-content: start; gap: 1rem; padding: 1rem; overflow: auto; }
+.ucurifunke-character-header { display: flex; align-items: center; gap: 1rem; }
+.ucurifunke-character-header img { width: 64px; height: 64px; object-fit: cover; border-radius: .4rem; }
+.ucurifunke-character-header h2, .ucurifunke-character-header p { margin: 0; }
+.ucurifunke-combat-values, .ucurifunke-modifiers { display: flex; align-items: center; flex-wrap: wrap; gap: .7rem; }
+.ucurifunke-combat-values input, .ucurifunke-modifiers input { width: 5rem; }
+.ucurifunke-character summary { font-weight: 700; padding: .45rem 0; cursor: pointer; }
+.ucurifunke-attributes { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .35rem; }
+.ucurifunke-attributes button { display: flex; justify-content: space-between; gap: .4rem; }
+.ucurifunke-character th, .ucurifunke-character td { text-align: start; padding: .3rem .4rem; }
+.ucurifunke-character td button { min-width: 2rem; }
+.ucurifunke-character dl { display: grid; grid-template-columns: 1fr auto; gap: .25rem 1rem; }
+.ucurifunke-character dd { margin: 0; }
+.ucurifunke-import { width: 100%; }

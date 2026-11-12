@@ -1,0 +1,28 @@
+<div class="tick-combat-fields">
+  <label class="tick-combat-field">
+    <span>{{labels.name}}</span>
+    <input name="name" type="text" value="{{name}}" autocomplete="off">
+  </label>
+
+  <label class="tick-combat-field">
+    <span>{{labels.notes}}</span>
+    <textarea name="notes" rows="3">{{notes}}</textarea>
+  </label>
+
+  <label class="tick-combat-field">
+    <span>{{#if isNew}}{{labels.startTicks}}{{else}}{{labels.currentTicks}}{{/if}}</span>
+    <input name="ticks" type="number" step="1" value="{{ticks}}">
+  </label>
+
+  {{#if isEvent}}
+    <label class="tick-combat-checkbox">
+      <input name="repeating" type="checkbox" {{#if repeating}}checked{{/if}}>
+      <span>{{labels.repeating}}</span>
+    </label>
+
+    <label class="tick-combat-field">
+      <span>{{labels.repeatInterval}}</span>
+      <input name="ffwd" type="number" step="1" value="{{ffwd}}">
+    </label>
+  {{/if}}
+</div>
