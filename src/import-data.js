@@ -124,6 +124,7 @@ export function convertCharacter(source) {
   const system = {
     sourceVersion: source.Version, sourceName: name, race: string(source.Race?.Name),
     reaction: positive(source.Re), impairment: positive(source.Be), attributes, skills,
+    offensiveFocus: integer(source.OffOffset), defensiveFocus: integer(source.DefOffset),
     derived: list(source.DerivedValues).filter(row => string(row.LongName))
       .map(row => ({ name: string(row.LongName), key: string(row.ShortName), value: number(row.TotalValue) })),
     energies: ["LE", "AE", "KE"].filter(key => key === "LE" || (key === "AE" ? source.HasMana : source.HasKarma))

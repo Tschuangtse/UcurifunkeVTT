@@ -1,9 +1,37 @@
 import { parseCharacter } from "./import-data.js";
 import { postRoll, prepareRoll, weaponCheck } from "./checks.js";
-import { attributeCheck, filterSheet, groupAttributes, groupItems, partitionSkills, skillCheck } from "./sheet-view.js";
+import { escapeHtml } from "./check-card.js";
+import { addActionTicks, assertSameSelection, getSelection } from "./actions/combat.js";
+import { readTechniqueSettings, techniqueCheck, techniqueFlag, techniqueSettings } from "./technique-check.js";
+import { attributeCheck, filterSheet, groupAttributes, groupItems, partitionSkills, perceptionAttributes,
+  perceptionCheck, skillCheck } from "./sheet-view.js";
 
 const { api, sheets } = foundry.applications;
 const path = "systems/ucurifunke/templates/actor.hbs";
+
+function perceptionFields(attributes, defaults) {
+  return defaults.map((attribute, index) => {
+    const options = attributes.map(row => {
+      const key = row.key.toUpperCase();
+      return `<option value="${escapeHtml(key)}"${row === attribute ? " selected" : ""}>${escapeHtml(row.name)}</option>`;
+    }).join("");
+    return `<div class="form-group"><label for="ucurifunke-attribute-${index}">Attribut ${index + 1}</label>
+      <select id="ucurifunke-attribute-${index}" name="attribute${index}">${options}</select></div>`;
+  }).join("");
+}
+
+function techniqueFields(settings, canBookTicks) {
+  const fields = [
+    ["tolerance", "Toleranz für Beeinträchtigung", "min=\"0\""],
+    ["ticks", "Tickkosten", "min=\"0\" max=\"32\""],
+    ["offensive", "Offensiver Bonus", ""],
+    ["defensive", "Defensiver Bonus", ""]
+  ].map(([key, label, range]) => `<div class="form-group"><label for="ucurifunke-${key}">${label}</label>
+    <input id="ucurifunke-${key}" name="${key}" type="number" value="${escapeHtml(settings[key])}" step="1" ${range} required></div>`).join("");
+  return fields + (canBookTicks ? `<div class="form-group">
+    <label for="ucurifunke-book-ticks">Tickkosten im laufenden Kampf buchen</label>
+    <input id="ucurifunke-book-ticks" name="bookTicks" type="checkbox"></div>` : "");
+}
 
 export async function importPedipalpus() {
   if (!game.user.can("ACTOR_CREATE")) return;
@@ -58,7 +86,8 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       weaponGroups: groupItems(items.filter(item => item.weapon)),
       armorGroups: groupItems(items.filter(item => item.data.group === "Rüstung")),
       derivedValues: data.derived.filter(row => !["LE", "AE", "KE"].includes(row.key.toUpperCase())),
-      canEdit: this.isEditable, canRoll: this.actor.isOwner };
+      canEdit: this.isEditable, canRoll: this.actor.isOwner,
+      canRollPerception: this.actor.isOwner && Boolean(perceptionCheck(data)) };
   }
 
   _onRender(context, options) {
@@ -118,14 +147,37 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
     if (!this.actor.isOwner) return;
     const { kind, index, item, mode } = target.dataset;
     const data = this.actor.system;
-    const check = kind === "weapon" ? weaponCheck(this.actor, this.actor.items.get(item), mode)
+    const skill = kind === "technique" ? data.skills[Number(index)] : null;
+    const settings = skill ? techniqueSettings(this.actor, skill) : null;
+    let check = kind === "weapon" ? weaponCheck(this.actor, this.actor.items.get(item), mode)
       : kind === "attribute" ? attributeCheck(data.attributes, Number(index))
-      : kind === "skill" ? skillCheck(data.skills, Number(index)) : null;
+      : kind === "skill" ? skillCheck(data.skills, Number(index))
+      : kind === "perception" ? perceptionCheck(data)
+      : skill ? techniqueCheck(this.actor, skill, mode, settings) : null;
     if (!check || !Number.isInteger(check.value)) return;
     target.disabled = true;
     try {
-      const modifier = await prepareRoll(check);
-      if (modifier !== null && this.actor.isOwner) await postRoll(this.actor, check, modifier);
+      const selection = skill ? getSelection(game, canvas) : null;
+      const canBookTicks = selection?.token?.actor?.uuid === this.actor.uuid;
+      const fields = skill ? techniqueFields(settings, canBookTicks)
+        : kind === "perception" ? perceptionFields(perceptionAttributes(data.attributes), check.attributes) : "";
+      const modifier = await prepareRoll(check, fields);
+      if (!modifier || !this.actor.isOwner) return;
+      let bookTicks = false;
+      if (skill) {
+        const updated = readTechniqueSettings(modifier.fields);
+        bookTicks = canBookTicks && [true, 1, "1", "true", "on"].includes(modifier.fields.bookTicks) && updated.ticks > 0;
+        if (bookTicks) assertSameSelection(selection, getSelection(game, canvas));
+        check = techniqueCheck(this.actor, skill, mode, updated);
+        if (Object.keys(updated).some(key => updated[key] !== settings[key])) {
+          await this.actor.update({ ["flags.ucurifunke.techniqueSettings." + techniqueFlag(skill)]: updated });
+        }
+      } else if (kind === "perception") {
+        check = perceptionCheck(this.actor.system, [0, 1, 2].map(i => modifier.fields["attribute" + i]));
+        if (!check) throw new Error("Bitte drei gültige Attribute auswählen.");
+      }
+      await postRoll(this.actor, check, modifier);
+      if (bookTicks) await addActionTicks(selection, check.ticks, { game, canvas });
     } catch (error) {
       ui.notifications.error(error.message);
     } finally {

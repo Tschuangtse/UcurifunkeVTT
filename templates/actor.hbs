@@ -1,4 +1,9 @@
 <div class="ucurifunke-character">
+  {{#*inline "searchField"}}
+    <label><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+      <input type="search" aria-label="{{label}}" placeholder="{{label}}">
+    </label>
+  {{/inline}}
   {{#*inline "skillRows"}}
     {{#each groups}}
       <section class="ucurifunke-group" data-filter-group="{{name}}">
@@ -18,6 +23,17 @@
                         title="{{name}} würfeln" aria-label="{{name}} würfeln">
                   <i class="fa-solid fa-dice-d20" aria-hidden="true"></i>
                 </button>
+              {{/if}}{{/if}}
+              {{#if technique}}{{#if @root.canRoll}}
+                {{#if ranged}}
+                  <button type="button" class="ucurifunke-roll" data-action="rollCheck" data-kind="technique"
+                    data-index="{{index}}" data-mode="FK" aria-label="Fernkampf mit {{name}} würfeln">FK</button>
+                {{else}}
+                  <button type="button" class="ucurifunke-roll" data-action="rollCheck" data-kind="technique"
+                    data-index="{{index}}" data-mode="AT" aria-label="Angriff mit {{name}} würfeln">AT</button>
+                  <button type="button" class="ucurifunke-roll" data-action="rollCheck" data-kind="technique"
+                    data-index="{{index}}" data-mode="PA" aria-label="Parade mit {{name}} würfeln">PA</button>
+                {{/if}}
               {{/if}}{{/if}}
             </li>
           {{/each}}
@@ -63,6 +79,10 @@
       <h2>{{actorName}}</h2>
       {{#if data.race}}<p>{{data.race}}</p>{{/if}}
     </div>
+    {{#if canRollPerception}}
+      <button type="button" class="ucurifunke-roll ucurifunke-perception" data-action="rollCheck" data-kind="perception"
+        title="Wahrnehmung würfeln" aria-label="Wahrnehmung würfeln"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>
+    {{/if}}
   </header>
   <nav class="ucurifunke-sheet-tabs" role="tablist" aria-label="Charakterbogen">
     <button type="button" role="tab" id="{{sheetId}}-tab-overview" aria-controls="{{sheetId}}-overview"
@@ -78,65 +98,78 @@
   </nav>
 
   <div class="ucurifunke-sheet-body">
-    <section role="tabpanel" id="{{sheetId}}-overview" aria-labelledby="{{sheetId}}-tab-overview" data-sheet-panel="overview">
+    <section role="tabpanel" id="{{sheetId}}-overview" aria-labelledby="{{sheetId}}-tab-overview" data-sheet-panel="overview" data-searchable>
+      <div class="ucurifunke-filter">{{> searchField label="Grundwerte suchen"}}</div>
       {{#each attributeGroups}}
-        <h3>{{name}}</h3>
-        <ul class="ucurifunke-attributes">
-          {{#each rows}}
-            <li>
-              <div>
-                <span>{{name}}</span><strong>{{value}}</strong>
-                {{#if rollable}}{{#if @root.canRoll}}
-                  <button type="button" class="ucurifunke-roll" data-action="rollCheck" data-kind="attribute"
-                    data-index="{{index}}" title="{{name}} würfeln" aria-label="{{name}} würfeln">
-                    <i class="fa-solid fa-dice-d20" aria-hidden="true"></i>
-                  </button>
-                {{/if}}{{/if}}
-              </div>
-            </li>
-          {{/each}}
-        </ul>
+        <section class="ucurifunke-overview-group" data-filter-group="{{name}}">
+          <h3>{{name}}</h3>
+          <ul class="ucurifunke-attributes">
+            {{#each rows}}
+              <li data-filter-row="{{../name}} {{name}} {{key}}">
+                <div>
+                  <span>{{name}}</span><strong>{{value}}</strong>
+                  {{#if rollable}}{{#if @root.canRoll}}
+                    <button type="button" class="ucurifunke-roll" data-action="rollCheck" data-kind="attribute"
+                      data-index="{{index}}" title="{{name}} würfeln" aria-label="{{name}} würfeln">
+                      <i class="fa-solid fa-dice-d20" aria-hidden="true"></i>
+                    </button>
+                  {{/if}}{{/if}}
+                </div>
+              </li>
+            {{/each}}
+          </ul>
+        </section>
       {{/each}}
       {{#if derivedValues.length}}
-        <h3>Abgeleitete Werte</h3>
-        <dl class="ucurifunke-derived">
-          {{#each derivedValues}}<div><dt>{{name}}</dt><dd>{{value}}</dd></div>{{/each}}
-        </dl>
+        <section class="ucurifunke-overview-group" data-filter-group="Abgeleitete Werte">
+          <h3>Abgeleitete Werte</h3>
+          <dl class="ucurifunke-derived">
+            {{#each derivedValues}}
+              <div data-filter-row="Abgeleitete Werte {{name}} {{key}}"><dt>{{name}}</dt><dd>{{value}}</dd></div>
+            {{/each}}
+          </dl>
+        </section>
       {{/if}}
-      {{#unless data.attributes.length}}<p class="ucurifunke-empty">Keine Attribute vorhanden.</p>{{/unless}}
+      <p class="ucurifunke-empty" role="status" data-no-results hidden>Keine passenden Grundwerte.</p>
     </section>
 
-    <section role="tabpanel" id="{{sheetId}}-combat" aria-labelledby="{{sheetId}}-tab-combat" data-sheet-panel="combat" hidden>
-      <section class="ucurifunke-group">
+    <section role="tabpanel" id="{{sheetId}}-combat" aria-labelledby="{{sheetId}}-tab-combat" data-sheet-panel="combat" data-searchable hidden>
+      <div class="ucurifunke-filter">{{> searchField label="Kampftechniken, Waffen und Rüstung suchen"}}</div>
+      <section class="ucurifunke-group" data-filter-group="Kampfwerte">
         <h3>Kampfwerte</h3>
-        <div class="ucurifunke-combat-values">
+        <div class="ucurifunke-combat-values" data-filter-row="Kampfwerte Beeinträchtigung Reaktionsvermögen BE RE">
           <label>BE <input type="number" name="impairment" min="0" step="1" value="{{data.impairment}}" {{#unless canEdit}}disabled{{/unless}}></label>
           <label>RE <input type="number" name="reaction" min="0" step="1" value="{{data.reaction}}" {{#unless canEdit}}disabled{{/unless}}></label>
           {{#if canEdit}}<button type="button" data-action="saveCombatValues">Speichern</button>{{/if}}
         </div>
       </section>
-      {{#if weaponGroups.length}}<h3>Waffen</h3>{{> itemRows groups=weaponGroups}}{{/if}}
-      {{> itemRows groups=armorGroups}}
-      {{#if combatGroups.length}}<h3>Kampftechniken</h3>{{> skillRows groups=combatGroups}}{{/if}}
+      {{#if weaponGroups.length}}
+        <section class="ucurifunke-combat-section"><h3>Waffen</h3>{{> itemRows groups=weaponGroups}}</section>
+      {{/if}}
+      {{#if armorGroups.length}}
+        <section class="ucurifunke-combat-section">{{> itemRows groups=armorGroups}}</section>
+      {{/if}}
+      {{#if combatGroups.length}}
+        <section class="ucurifunke-combat-section"><h3>Kampftechniken</h3>{{> skillRows groups=combatGroups}}</section>
+      {{/if}}
+      <p class="ucurifunke-empty" role="status" data-no-results hidden>Keine passenden Kampftechniken, Waffen oder Rüstungen.</p>
     </section>
     {{#each skillTabs}}
       <section role="tabpanel" id="{{@root.sheetId}}-{{id}}" aria-labelledby="{{@root.sheetId}}-tab-{{id}}"
-        data-sheet-panel="{{id}}" {{#if groups.length}}data-searchable{{/if}} hidden>
-        {{#if groups.length}}
-          <div class="ucurifunke-filter">
-            <label><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-              <input type="search" aria-label="Fertigkeiten suchen" placeholder="Fertigkeiten suchen">
-            </label>
+        data-sheet-panel="{{id}}" data-searchable hidden>
+        <div class="ucurifunke-filter">
+          {{> searchField label="Fertigkeiten suchen"}}
+          {{#if groups.length}}
             <select aria-label="Fertigkeitsbereich">
               <option value="">Alle Bereiche</option>
               {{#each groups}}<option value="{{name}}">{{name}}</option>{{/each}}
             </select>
-          </div>
-          {{> skillRows groups=groups}}
-          <p class="ucurifunke-empty" role="status" data-no-results hidden>Keine passenden Fertigkeiten.</p>
-        {{else}}
-          <p class="ucurifunke-empty">Keine Proben in diesem Bereich verfügbar.</p>
-        {{/if}}
+          {{/if}}
+        </div>
+        {{> skillRows groups=groups}}
+        <p class="ucurifunke-empty" role="status" data-no-results hidden>
+          {{#if groups.length}}Keine passenden Fertigkeiten.{{else}}Keine Proben in diesem Bereich verfügbar.{{/if}}
+        </p>
       </section>
     {{/each}}
   </div>

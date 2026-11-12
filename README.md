@@ -15,11 +15,13 @@ Für eine manuelle Installation den Inhalt des Release-ZIPs nach `Data/systems/u
 ## Erster Test
 
 1. Eine Welt mit dem Spielsystem Ucurifunke anlegen. Im Charakterverzeichnis **Pedipalpus importieren** wählen und eine gespeicherte Charakterdatei im JSON-Format öffnen. Der Button erzeugt einen neuen Actor. Über **Daten importieren** im Kontextmenü eines vorhandenen Actors kannst du stattdessen dessen Namen, Spielwerte und Inventar durch die Daten aus der Datei ersetzen.
-2. Im Bogen zwischen **Grundwerte**, **Kampf**, **Munda**, **Magie** und **Klerikal** wechseln. Suche und Bereichsfilter lassen sich in den drei Fertigkeitsreitern kombinieren. Waffen und Rüstung stehen im Reiter Kampf. Eine Probe würfeln und Ergebnis sowie Qualität im Chat ansehen. Beim Würfeln über den Bogen allein werden keine Ticks gebucht.
+2. Im Bogen zwischen **Grundwerte**, **Kampf**, **Munda**, **Magie** und **Klerikal** wechseln. Jeder Reiter hat eine Suche. In den drei Fertigkeitsreitern mit vorhandenen Proben lässt sich zusätzlich nach Bereich filtern. Über das Auge neben dem Charakternamen lässt sich Wahrnehmung würfeln. Der Dialog schlägt Klugheit, Intuition und Intuition vor.
 3. Zwei Tokens auf einer Szene platzieren, in einen Kampf aufnehmen und die Tickleiste öffnen. Das Fragezeichen im Fensterkopf zeigt die Hinweise für deine Rolle. Vor dem Start Initiative würfeln und die aus dem Bogen übernommenen Werte für BE und RE prüfen oder überschreiben. Beim Schließen der Zeitleiste verschwinden ihre Token-Markierungen.
 4. Im laufenden Kampf einen Token auswählen. Über **Offensiv → Nahkampfangriff** eine getragene Waffe wählen, den Waffentickwert prüfen und die Probe bestätigen. Die Ticks fallen unabhängig vom Würfelergebnis an. Wird der Modifikatordialog abgebrochen, werden keine Ticks verbucht.
 5. Den Ablauf mit einem Spieler wiederholen, der Besitzer des Actors ist. Ein Spieler ohne Besitzrechte darf dessen Aktionen nicht buchen.
 6. Im Probenfenster **Verdeckte Probe** wählen und aus Spieler- und Spielleitersicht prüfen. Das W20-Symbol unten in der linken Szenenleiste öffnet einen Dialog mit je einem Zahlenfeld für W3, W6 und W20. Die Chatkarte gruppiert die Einzelwürfe nach Würfelart und zeigt die Gesamtsumme.
+7. Im Reiter **Kampf** eine Kampftechnik über **AT**, **PA** oder **FK** würfeln. Toleranz, Tickkosten und Boni werden beim Würfeln je Charakter und Technik gespeichert. Mit einem passenden ausgewählten Token im laufenden Kampf können die Tickkosten im Dialog gebucht werden.
+8. Einen Pedipalpus-Befehl direkt in den Chat einfügen. `/attributecheck`, `/skillcheck`, `/AT`, `/PA` und `/FK` öffnen den gleichen Proben­dialog wie der Bogen.
 
 ## Umfang der Testversion
 

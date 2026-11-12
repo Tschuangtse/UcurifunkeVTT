@@ -6,10 +6,12 @@ import { UcurifunkeActor } from "./actor.js";
 import { CharacterData, EquipmentData, WeaponData } from "./models.js";
 import { CharacterSheet, importPedipalpus } from "./actor-sheet.js";
 import { renderHiddenCheck } from "./checks.js";
+import { registerCheckCommands } from "./chat-commands.js";
 
 Hooks.on("renderChatMessageHTML", renderHiddenCheck);
 
 Hooks.once("init", () => {
+  registerCheckCommands(foundry.applications.sidebar.tabs.ChatLog.CHAT_COMMANDS);
   CONFIG.Actor.documentClass = UcurifunkeActor;
   CONFIG.Actor.dataModels.character = CharacterData;
   CONFIG.Actor.dataModels.npc = CharacterData;

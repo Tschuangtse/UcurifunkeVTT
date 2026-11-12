@@ -1,4 +1,4 @@
-function escapeHtml(text) {
+export function escapeHtml(text) {
   const entities = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
   return String(text).replace(/[&<>"']/g, char => entities[char]);
 }
@@ -48,7 +48,7 @@ function renderCombat(check, dice, modifiers, confirmation) {
   const { weapon, technique, breakdown = [], impairment = 0, joints = 0, mode } = check;
   const target = check.value + modifiers.bonus - modifiers.penalty;
   const labels = ["Fertigkeitswert", { AT: "Offensive Basis", PA: "Defensive Basis", FK: "Fernkampf-Basis" }[mode],
-    { AT: "Offensiver Fokus", PA: "Defensiver Fokus" }[mode], "Waffenmodifikator"];
+    { AT: "Offensiver Fokus", PA: "Defensiver Fokus" }[mode], weapon ? "Waffenmodifikator" : "Bonus"];
   const rows = breakdown.length === 4
     ? breakdown.flatMap((value, index) => labels[index] ? [[labels[index], value]] : [])
     : [["Basiswert inkl. Waffe", check.value + impairment + joints]];
@@ -57,7 +57,9 @@ function renderCombat(check, dice, modifiers, confirmation) {
   rows.push(["Erschwernis", -modifiers.penalty], ["Erleichterung", modifiers.bonus]);
   const parts = rows.map(([label, value]) => `<div><dt>${label}</dt><dd>${signed(value)}</dd></div>`).join("");
   return {
-    summary: `Waffe: <strong>${escapeHtml(weapon)}</strong>${technique ? `<br>Fertigkeit: <strong>${escapeHtml(technique)}</strong>` : ""}`,
+    summary: [weapon && `Waffe: <strong>${escapeHtml(weapon)}</strong>`,
+      technique && `Fertigkeit: <strong>${escapeHtml(technique)}</strong>`,
+      check.ticks != null && `Tickkosten: <strong>${check.ticks}</strong>`].filter(Boolean).join("<br>"),
     detail: `<dl class="ucurifunke-card-breakdown">${parts}<div class="ucurifunke-card-target"><dt>Probenwert</dt><dd>${target}</dd></div></dl>
       <div class="ucurifunke-card-dice"><span class="ucurifunke-card-die is-selected">W20: <strong>${dice[0]}</strong></span>
       ${confirmation == null ? "" : `<span class="ucurifunke-card-die">Bestätigung: <strong>${confirmation}</strong></span>`}</div>`

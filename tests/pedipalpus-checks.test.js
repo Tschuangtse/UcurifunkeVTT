@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { convertCharacter } from "../src/import-data.js";
-import { attributeCheck, groupAttributes, skillCheck } from "../src/sheet-view.js";
+import { attributeCheck, groupAttributes, perceptionCheck, skillCheck } from "../src/sheet-view.js";
 import { evaluateCheck, postRoll, prepareRoll, renderHiddenCheck, weaponCheck } from "../src/checks.js";
 import { renderCheckCard } from "../src/check-card.js";
+import { parseCheckCommand } from "../src/chat-commands.js";
+import { readTechniqueSettings, techniqueCheck, techniqueFlag, techniqueSettings } from "../src/technique-check.js";
 
 const primary = ["MU", "KL", "IN", "CH", "FF", "GE", "KO", "KK"]
   .map((key, index) => ({ ShortName: key, LongName: key, BaseValue: 10 + index }));
@@ -19,6 +21,46 @@ const source = {
   Miracles: [{ ...links, Name: "Wunder", TotalValue: 6 }],
   Rituals: [{ ...links, Name: "Ohne Probe", HasCheck: false }, { ...links, Name: "Mit Probe", HasCheck: true }]
 };
+
+test("clipboard commands preserve prepared targets, signed values, and attribute order", () => {
+  assert.deepEqual(parseCheckCommand("/attributecheck Mut | -2"), { kind: "attribute", name: "Mut", value: -2 });
+  const skill = parseCheckCommand("/skillcheck Dauerbelastung | Gewandtheit 14 | Konstitution 15 | Körperkraft 18 | 6");
+  assert.equal(skill.value, 6);
+  assert.deepEqual(skill.attributes.map(attribute => attribute.value), [14, 15, 18]);
+  assert.deepEqual(parseCheckCommand("/skillcheck Dauerbelastung 14 15 18 6").attributes.map(row => row.value), [14, 15, 18]);
+  assert.equal(parseCheckCommand("/AT Schwert|Schwerter|8|10|-1|2|3").value, 16);
+  assert.equal(parseCheckCommand("/pa Schwert|Schwerter|8|9|0|-2|3").value, 12);
+  assert.deepEqual(parseCheckCommand("/FK Bogen|Bögen|5|9|-2|3").breakdown, [5, 9, 0, -2]);
+  assert.equal(parseCheckCommand("/FK Bogen|Bögen|5|9|x|3"), null);
+  assert.equal(parseCheckCommand("/attributecheck Mut"), null);
+});
+
+test("perception uses the derived value, allows repeated attributes, and starts each roll with KL/IN/IN", () => {
+  const { system } = convertCharacter({ ...source, DerivedValues: [{ ShortName: "WA", LongName: "Wahrnehmung", TotalValue: 7 }] });
+  assert.equal(perceptionCheck(system).value, 7);
+  assert.deepEqual(perceptionCheck(system, ["KK", "KO", "MU"]).attributes.map(row => row.key), ["KK", "KO", "MU"]);
+  assert.deepEqual(perceptionCheck(system).attributes.map(row => row.key), ["KL", "IN", "IN"]);
+  assert.equal(perceptionCheck(system, ["KK", "gMR", "MU"]), null);
+});
+
+test("technique checks use stored settings, weapon rules, and legacy focus values", () => {
+  const skill = { name: "Schwerter", group: "Nahkampf", value: 8 };
+  const settings = readTechniqueSettings({ tolerance: "2", ticks: "8", offensive: "+3", defensive: "-1" });
+  const actor = {
+    system: { derived: [{ key: "OFF", value: 10 }, { key: "DEF", value: 9 }, { key: "FKB", value: 7 }],
+      impairment: 5, hasJointPenalty: true, offensiveFocus: 2, defensiveFocus: null },
+    items: [{ type: "weapon", system: { group: "Nahkampf", parryBreakdown: [8, 9, 4, 0] } }],
+    getFlag: () => ({ [techniqueFlag(skill)]: settings })
+  };
+  assert.deepEqual(techniqueSettings(actor, skill), settings);
+  assert.equal(techniqueSettings(actor, { ...skill, name: "Dolche" }).ticks, 0);
+  assert.deepEqual(techniqueCheck(actor, skill, "AT", settings).breakdown, [8, 10, 2, 3]);
+  assert.equal(techniqueCheck(actor, skill, "AT", settings).value, 20);
+  assert.equal(techniqueCheck(actor, skill, "PA", settings).value, 15);
+  assert.equal(techniqueCheck(actor, { ...skill, group: "Fernkampf" }, "FK", settings).value, 15);
+  assert.equal(techniqueCheck(actor, skill, "FK", settings), null);
+  assert.throws(() => readTechniqueSettings({ ...settings, ticks: 33 }), /Tickkosten/);
+});
 
 test("only the Pedipalpus commands with a complete check can be rolled", () => {
   const { system } = convertCharacter(source);
@@ -36,7 +78,7 @@ test("secondary attributes use the Pedipalpus skill-command attribute triplets, 
   const attributes = convertCharacter(source).system.attributes.map(({ kind, ...row }) => row);
   const [first, second] = groupAttributes(attributes);
   assert.equal(first.rows.length, 8);
-  assert.deepEqual(second.rows[0], { name: "Geistige Magieresistenz", value: 2, index: 8, rollable: true });
+  assert.deepEqual(second.rows[0], { name: "Geistige Magieresistenz", key: "gMR", value: 2, index: 8, rollable: true });
   const check = attributeCheck(attributes, 8);
   assert.equal(check.kind, "skill");
   assert.deepEqual(check.attributes.map(row => row.key), ["MU", "KL", "IN"]);

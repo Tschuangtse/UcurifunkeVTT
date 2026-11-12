@@ -7,6 +7,17 @@ function isPrimary(attribute) {
   return attribute.kind ? attribute.kind === "primary" : PRIMARY_KEYS.has(attribute.key.toUpperCase());
 }
 
+export function perceptionCheck(data, keys = ["KL", "IN", "IN"]) {
+  const value = data.derived.find(row => row.key.toUpperCase() === "WA")?.value;
+  const attributes = keys.map(key => data.attributes.find(row => isPrimary(row) && row.key.toUpperCase() === key));
+  if (!Number.isFinite(value) || attributes.length !== 3 || !attributes.every(Boolean)) return null;
+  return { kind: "skill", name: "Wahrnehmung", value: Math.round(value), attributes };
+}
+
+export function perceptionAttributes(attributes) {
+  return attributes.filter(isPrimary);
+}
+
 export function attributeCheck(attributes, index) {
   const attribute = attributes[index];
   if (!attribute) return null;
@@ -21,7 +32,7 @@ export function groupAttributes(attributes) {
   const groups = [{ name: "Primäre Attribute", rows: [] }, { name: "Sekundäre Attribute", rows: [] }];
   for (const [index, attribute] of attributes.entries()) {
     groups[isPrimary(attribute) ? 0 : 1].rows.push({
-      name: attribute.name, value: attribute.value, index, rollable: Boolean(attributeCheck(attributes, index))
+      name: attribute.name, key: attribute.key, value: attribute.value, index, rollable: Boolean(attributeCheck(attributes, index))
     });
   }
   return groups.filter(group => group.rows.length);
@@ -75,7 +86,9 @@ export function partitionSkills(skills) {
       return { ...group, rows };
     }).filter(group => group.rows.length > 0);
   return {
-    combatGroups: groups.filter(group => ["Nahkampf", "Fernkampf"].includes(group.name)),
+    combatGroups: groups.filter(group => ["Nahkampf", "Fernkampf"].includes(group.name)).map(group => ({
+      ...group, rows: group.rows.map(row => ({ ...row, technique: true, ranged: group.name === "Fernkampf" }))
+    })),
     skillTabs: [
       { id: "munda", label: "Munda", icon: "fa-book-open", groups: select([...MUNDANE_GROUPS, "Hobby"], true) },
       { id: "magic", label: "Magie", icon: "fa-wand-sparkles", groups: select(["Zauber", "Rituale"]) },

@@ -39,11 +39,12 @@ export function weaponCheck(actor, weapon, mode) {
     impairment, joints, value: base - impairment - joints };
 }
 
-export async function prepareRoll(check) {
+export async function prepareRoll(check, fields = "") {
   const type = { attribute: "Attributsprobe", skill: "Fertigkeitsprobe" }[check.kind];
   const options = await foundry.applications.api.DialogV2.input({
     window: { title: type ? type + ": " + check.name : check.name },
     content: `<div class="ucurifunke-modifier-dialog">
+      ${fields}
       <div class="form-group">
         <label for="ucurifunke-difficulty">Erschwernis</label>
         <input id="ucurifunke-difficulty" name="difficulty" type="number" min="0" step="1" value="0" autofocus>
@@ -72,11 +73,12 @@ export async function prepareRoll(check) {
   return {
     penalty: nonNegativeInteger(options.difficulty),
     bonus: nonNegativeInteger(options.relief),
-    blind: [true, 1, "1", "true", "on"].includes(options.blind)
+    blind: [true, 1, "1", "true", "on"].includes(options.blind),
+    ...(fields ? { fields: options } : {})
   };
 }
 
-export async function postRoll(actor, check, modifiers) {
+export async function postRoll(actor, check, modifiers, speaker) {
   const Roll = foundry.dice.Roll;
   const combat = check.kind === "combat";
   const roll = await new Roll(combat ? "1d20" : "3d20").evaluate();
@@ -85,10 +87,9 @@ export async function postRoll(actor, check, modifiers) {
   const result = evaluateCheck(check, dice, modifiers.bonus - modifiers.penalty, confirmation?.total);
   const content = renderCheckCard(check, dice, modifiers, result, confirmation?.total);
   const rolls = confirmation ? [roll, confirmation] : [roll];
-  const hiddenCheck = { characterName: actor.name, subject: combat ? check.technique || check.weapon : check.name };
   await postDiceMessage(content, rolls, {
-    actor, mode: modifiers.blind ? "blind" : undefined,
-    flags: modifiers.blind ? { ucurifunke: { hiddenCheck } } : undefined
+    actor, speaker, mode: modifiers.blind ? "blind" : undefined,
+    hiddenSubject: check.name
   });
 }
 

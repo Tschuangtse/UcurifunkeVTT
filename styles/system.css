@@ -21,6 +21,10 @@
 .ucurifunke-identity { flex: 1 1 12rem; min-width: 0; }
 .ucurifunke-identity h2 { margin: 0; border: 0; font-size: 1.65rem; overflow-wrap: anywhere; }
 .ucurifunke-identity p { margin: .25rem 0 0; }
+.ucurifunke-character-header .ucurifunke-perception { flex: 0 0 2.6rem; min-height: 2.6rem; align-self: flex-start; font-size: 1.1rem; }
+.ucurifunke-overview-group { margin-bottom: .85rem; }
+.ucurifunke-combat-section:not(:has([data-filter-group]:not([hidden]))) { display: none; }
+.ucurifunke-combat-section { margin-bottom: .85rem; }
 
 .ucurifunke-sheet-tabs {
   display: grid;
@@ -97,6 +101,8 @@
 .ucurifunke-row:not(.is-item) .ucurifunke-row-meta { grid-column: 2; }
 .ucurifunke-row:not(.is-item) .ucurifunke-row-value { grid-column: 3; }
 .ucurifunke-row:not(.is-item) .ucurifunke-roll { grid-column: 4; }
+.ucurifunke-row:has([data-kind="technique"]) { grid-template-columns: minmax(0, 1fr) auto 1.75rem 2.1rem 2.1rem; }
+.ucurifunke-row:not(.is-item) [data-kind="technique"][data-mode="PA"] { grid-column: 5; }
 .ucurifunke-row-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .ucurifunke-row:not(.is-specialization) .ucurifunke-row-name { font-weight: 650; }
 .ucurifunke-row.is-specialization .ucurifunke-row-name { padding-inline-start: .6rem; }

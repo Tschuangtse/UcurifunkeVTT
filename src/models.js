@@ -12,6 +12,7 @@ export class CharacterData extends foundry.abstract.TypeDataModel {
     return {
       sourceVersion: optionalInteger(), sourceName: text(), race: text(),
       reaction: integer(0), impairment: integer(0), hasJointPenalty: flag(),
+      offensiveFocus: optionalInteger(), defensiveFocus: optionalInteger(),
       attributes: rows({ ...attribute(), kind: text() }), derived: rows(attribute()), energies: rows({ key: text(), value: number() }),
       skills: rows({ name: text(), group: text(), rollName: text(), value: number(), rollable: flag(), attributes: rows(attribute()) })
     };
