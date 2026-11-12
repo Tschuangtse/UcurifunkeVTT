@@ -90,7 +90,7 @@ export function partitionSkills(skills) {
       ...group, rows: group.rows.map(row => ({ ...row, technique: true, ranged: group.name === "Fernkampf" }))
     })),
     skillTabs: [
-      { id: "munda", label: "Munda", icon: "fa-book-open", groups: select([...MUNDANE_GROUPS, "Hobby"], true) },
+      { id: "munda", label: "Mundan", icon: "fa-book-open", groups: select([...MUNDANE_GROUPS, "Hobby"], true) },
       { id: "magic", label: "Magie", icon: "fa-wand-sparkles", groups: select(["Zauber", "Rituale"]) },
       { id: "clerical", label: "Klerikal", icon: "fa-sun", groups: select(["Wunder"]) }
     ]
