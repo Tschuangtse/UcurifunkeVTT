@@ -135,6 +135,42 @@
 .ucurifunke-conditions { margin: 0; }
 .ucurifunke-conditions :is(th, td) { padding: .25rem; }
 .ucurifunke-conditions th[scope="row"] button { justify-content: flex-start; padding-inline: .25rem; text-align: left; }
+.ucurifunke-conditions input[data-condition-field] {
+  border: 1px solid #a39384;
+  background-color: #302a33;
+  color: #fff1dc;
+}
+.ucurifunke-conditions input[type="checkbox"] {
+  appearance: none;
+  display: inline-grid;
+  place-items: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0;
+  vertical-align: middle;
+  border-radius: 3px;
+}
+.ucurifunke-conditions input[type="checkbox"]::before {
+  content: none;
+}
+.ucurifunke-conditions input[type="checkbox"]:checked {
+  background-color: #efd6ae;
+  border-color: #efd6ae;
+  color: #211a15;
+}
+.ucurifunke-conditions input[type="checkbox"]:checked::before {
+  content: "";
+  width: .32rem;
+  height: .57rem;
+  border: solid currentColor;
+  border-width: 0 2px 2px 0;
+  transform: translateY(-1px) rotate(45deg);
+}
+.ucurifunke-conditions input[data-condition-field]:focus-visible {
+  outline: 2px solid #e0a46e;
+  outline-offset: 2px;
+}
+.ucurifunke-conditions input[data-condition-field]:disabled { opacity: .8; }
 .ucurifunke-conditions input[type="number"] { width: 3.15rem; }
 .ucurifunke-conditions td { text-align: center; }
 .ucurifunke-exchange { display: flex; flex-wrap: wrap; gap: .35rem; }
