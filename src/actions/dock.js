@@ -126,10 +126,10 @@ export class ActionDock {
       if (cost === null || cost === undefined) return;
       const mode = id === "ranged" ? "FK" : id.startsWith("parry") ? "PA" : "AT";
       const check = weaponAction && cost.weaponId ? weaponCheck(actor, actor.items.get(cost.weaponId), mode) : null;
-      const modifier = check ? await prepareRoll(check) : 0;
-      if (modifier === null) return;
+      const modifiers = check ? await prepareRoll(check) : null;
+      if (check && modifiers === null) return;
       await this.applyTicks(selection, parseCost(cost.ticks ?? cost), { game: this.getGame(), canvas: this.getCanvas() });
-      if (check) await postRoll(actor, check, modifier);
+      if (check) await postRoll(actor, check, modifiers);
       this.collapse();
     } catch (error) {
       console.error(`${MODULE_ID} | Handlung fehlgeschlagen`, error);

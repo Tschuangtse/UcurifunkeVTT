@@ -21,14 +21,10 @@
 .ucurifunke-identity { flex: 1 1 12rem; min-width: 0; }
 .ucurifunke-identity h2 { margin: 0; border: 0; font-size: 1.65rem; overflow-wrap: anywhere; }
 .ucurifunke-identity p { margin: .25rem 0 0; }
-.ucurifunke-energies { display: flex; gap: .35rem; margin: 0; }
-.ucurifunke-energies div { min-width: 3rem; text-align: center; padding: .35rem .55rem; border: 1px solid var(--uc-line); border-radius: 6px; }
-.ucurifunke-energies dt { font-size: .72rem; }
-.ucurifunke-energies dd { margin: 0; font-size: 1.15rem; font-weight: 700; }
 
 .ucurifunke-sheet-tabs {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: .25rem;
   padding: 0 .9rem;
   border-bottom: 1px solid var(--uc-line);
@@ -58,10 +54,10 @@
 
 .ucurifunke-character .ucurifunke-attributes {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: .4rem;
 }
-.ucurifunke-attributes button, .ucurifunke-attributes li > div {
+.ucurifunke-attributes li > div {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -75,8 +71,8 @@
   border-radius: 6px;
   background: var(--uc-surface);
 }
-.ucurifunke-attributes li > :is(button, div) > span { display: grid; gap: .15rem; }
-.ucurifunke-attributes small { opacity: .8; font-size: .7rem; }
+.ucurifunke-attributes li > div > span { flex: 1; }
+.ucurifunke-attributes .ucurifunke-roll { flex: 0 0 1.8rem; min-height: 1.7rem; padding: .1rem; }
 .ucurifunke-attributes strong { font-size: 1.12rem; font-variant-numeric: tabular-nums; }
 .ucurifunke-derived { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: .3rem 1rem; margin: 0; }
 .ucurifunke-derived div { display: flex; justify-content: space-between; gap: .5rem; padding: .45rem 0; border-bottom: 1px solid var(--uc-line); }
@@ -97,6 +93,10 @@
   border-top: 1px solid var(--uc-line);
 }
 .ucurifunke-row:hover { background: var(--uc-surface); }
+.ucurifunke-row:not(.is-item) { display: grid; grid-template-columns: minmax(0, 1fr) auto 1.75rem 2.1rem; }
+.ucurifunke-row:not(.is-item) .ucurifunke-row-meta { grid-column: 2; }
+.ucurifunke-row:not(.is-item) .ucurifunke-row-value { grid-column: 3; }
+.ucurifunke-row:not(.is-item) .ucurifunke-roll { grid-column: 4; }
 .ucurifunke-row-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .ucurifunke-row:not(.is-specialization) .ucurifunke-row-name { font-weight: 650; }
 .ucurifunke-row.is-specialization .ucurifunke-row-name { padding-inline-start: .6rem; }
@@ -111,3 +111,22 @@
 .ucurifunke-combat-values, .ucurifunke-modifiers { display: flex; align-items: center; flex-wrap: wrap; gap: .7rem; }
 .ucurifunke-combat-values input, .ucurifunke-modifiers input { width: 5rem; }
 .ucurifunke-import { width: 100%; }
+
+.ucurifunke-check-card { display: grid; gap: .48rem; }
+.ucurifunke-check-card > header { font-size: 1.04em; border-bottom: 1px solid currentColor; padding-bottom: .35rem; }
+.ucurifunke-card-summary span { margin-inline-start: .55rem; }
+.ucurifunke-card-dice { display: flex; flex-wrap: wrap; gap: .3rem; }
+.ucurifunke-card-die { border: 1px solid transparent; border-radius: 4px; padding: .25rem .35rem; }
+.ucurifunke-card-die.is-selected { border-color: currentColor; }
+.ucurifunke-check-card .ucurifunke-card-table { width: 100%; margin: .15rem 0; border-collapse: collapse; }
+.ucurifunke-card-table th, .ucurifunke-card-table td { padding: .22rem .18rem; text-align: center; }
+.ucurifunke-card-table thead, .ucurifunke-card-table tbody tr:nth-child(even) { background: color-mix(in srgb, currentColor 8%, transparent); }
+.ucurifunke-card-table th[scope="row"] { font-weight: normal; }
+.ucurifunke-card-breakdown { margin: 0; }
+.ucurifunke-card-breakdown > div, .ucurifunke-check-card footer { display: flex; justify-content: space-between; gap: .5rem; }
+.ucurifunke-card-breakdown dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ucurifunke-card-target { margin-top: .3rem; padding-top: .3rem; border-top: 1px solid currentColor; }
+.ucurifunke-check-card footer { align-items: baseline; border-top: 1px solid currentColor; padding-top: .35rem; }
+.ucurifunke-check-card footer > span { font-size: 1.2em; }
+.ucurifunke-card-outcome { text-transform: uppercase; }
+.ucurifunke-card-outcome.is-success { text-decoration: underline; }

@@ -15,7 +15,8 @@ test("both language dictionaries cover the same texts", () => {
 
 test("switching language preserves actor and action names in chat text", () => {
   let language = "en";
-  globalThis.game = { settings: { get: () => language } };
+  globalThis.game = { settings: { settings: new Map([["ucurifunke.language", {}]]),
+    get: (scope, key) => scope === "ucurifunke" && key === "language" ? language : undefined } };
   const values = { actor: "Lene", action: "Ritual {actor}" };
   assert.equal(t("actionFinished", values), "Lene finished the action Ritual {actor}.");
   language = "de";

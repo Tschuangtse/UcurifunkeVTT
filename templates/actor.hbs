@@ -63,11 +63,6 @@
       <h2>{{actorName}}</h2>
       {{#if data.race}}<p>{{data.race}}</p>{{/if}}
     </div>
-    {{#if data.energies.length}}
-      <dl class="ucurifunke-energies">
-        {{#each data.energies}}<div><dt>{{key}}</dt><dd>{{value}}</dd></div>{{/each}}
-      </dl>
-    {{/if}}
   </header>
   <nav class="ucurifunke-sheet-tabs" role="tablist" aria-label="Charakterbogen">
     <button type="button" role="tab" id="{{sheetId}}-tab-overview" aria-controls="{{sheetId}}-overview"
@@ -76,32 +71,32 @@
             aria-selected="false" tabindex="-1" data-action="openSheetTab" data-sheet-tab="skills"><i class="fa-solid fa-book-open" aria-hidden="true"></i> Fertigkeiten</button>
     <button type="button" role="tab" id="{{sheetId}}-tab-combat" aria-controls="{{sheetId}}-combat"
             aria-selected="false" tabindex="-1" data-action="openSheetTab" data-sheet-tab="combat"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Kampf</button>
-    <button type="button" role="tab" id="{{sheetId}}-tab-equipment" aria-controls="{{sheetId}}-equipment"
-            aria-selected="false" tabindex="-1" data-action="openSheetTab" data-sheet-tab="equipment"><i class="fa-solid fa-box-open" aria-hidden="true"></i> Ausrüstung</button>
   </nav>
 
   <div class="ucurifunke-sheet-body">
     <section role="tabpanel" id="{{sheetId}}-overview" aria-labelledby="{{sheetId}}-tab-overview" data-sheet-panel="overview">
-      {{#if data.attributes.length}}
-        <h3>Attribute</h3>
+      {{#each attributeGroups}}
+        <h3>{{name}}</h3>
         <ul class="ucurifunke-attributes">
-          {{#each data.attributes}}
+          {{#each rows}}
             <li>
-              {{#if ../canRoll}}
-                <button type="button" data-action="rollCheck" data-kind="attribute" data-index="{{@index}}" title="{{name}} würfeln">
-                  <span><small>{{key}}</small><span>{{name}}</span></span><strong>{{value}}</strong>
-                </button>
-              {{else}}
-                <div><span><small>{{key}}</small><span>{{name}}</span></span><strong>{{value}}</strong></div>
-              {{/if}}
+              <div>
+                <span>{{name}}</span><strong>{{value}}</strong>
+                {{#if rollable}}{{#if @root.canRoll}}
+                  <button type="button" class="ucurifunke-roll" data-action="rollCheck" data-kind="attribute"
+                    data-index="{{index}}" title="{{name}} würfeln" aria-label="{{name}} würfeln">
+                    <i class="fa-solid fa-dice-d20" aria-hidden="true"></i>
+                  </button>
+                {{/if}}{{/if}}
+              </div>
             </li>
           {{/each}}
         </ul>
-      {{/if}}
-      {{#if data.derived.length}}
+      {{/each}}
+      {{#if derivedValues.length}}
         <h3>Abgeleitete Werte</h3>
         <dl class="ucurifunke-derived">
-          {{#each data.derived}}<div><dt>{{name}}</dt><dd>{{value}}</dd></div>{{/each}}
+          {{#each derivedValues}}<div><dt>{{name}}</dt><dd>{{value}}</dd></div>{{/each}}
         </dl>
       {{/if}}
       {{#unless data.attributes.length}}<p class="ucurifunke-empty">Keine Attribute vorhanden.</p>{{/unless}}
@@ -135,25 +130,8 @@
         </div>
       </section>
       {{#if weaponGroups.length}}<h3>Waffen</h3>{{> itemRows groups=weaponGroups}}{{/if}}
+      {{> itemRows groups=armorGroups}}
       {{#if combatGroups.length}}<h3>Kampftechniken</h3>{{> skillRows groups=combatGroups}}{{/if}}
-    </section>
-
-    <section role="tabpanel" id="{{sheetId}}-equipment" aria-labelledby="{{sheetId}}-tab-equipment" data-sheet-panel="equipment" data-searchable hidden>
-      {{#if equipmentGroups.length}}
-        <div class="ucurifunke-filter">
-          <label><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-            <input type="search" aria-label="Ausrüstung suchen" placeholder="Ausrüstung suchen">
-          </label>
-          <select aria-label="Ausrüstungskategorie">
-            <option value="">Alle Kategorien</option>
-            {{#each equipmentGroups}}<option value="{{name}}">{{name}}</option>{{/each}}
-          </select>
-        </div>
-      {{else}}
-        <input type="search" hidden aria-label="Ausrüstung suchen">
-      {{/if}}
-      {{> itemRows groups=equipmentGroups}}
-      <p class="ucurifunke-empty" role="status" data-no-results hidden>{{#if equipmentGroups.length}}Keine passende Ausrüstung.{{else}}Keine Ausrüstung vorhanden.{{/if}}</p>
     </section>
   </div>
 </div>

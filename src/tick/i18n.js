@@ -169,7 +169,7 @@ const messages = {
 
 export function getLanguage() {
   const settings = globalThis.game?.settings;
-  if (settings?.settings && !settings.settings.has("tick-combat.language")) return "en";
+  if (settings?.settings && !settings.settings.has("ucurifunke.language")) return "en";
   return settings?.get?.("ucurifunke", "language") === "de" ? "de" : "en";
 }
 

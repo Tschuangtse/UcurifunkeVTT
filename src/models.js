@@ -12,8 +12,8 @@ export class CharacterData extends foundry.abstract.TypeDataModel {
     return {
       sourceVersion: optionalInteger(), sourceName: text(), race: text(),
       reaction: integer(0), impairment: integer(0), hasJointPenalty: flag(),
-      attributes: rows(attribute()), derived: rows(attribute()), energies: rows({ key: text(), value: number() }),
-      skills: rows({ name: text(), group: text(), value: number(), rollable: flag(), attributes: rows(attribute()) })
+      attributes: rows({ ...attribute(), kind: text() }), derived: rows(attribute()), energies: rows({ key: text(), value: number() }),
+      skills: rows({ name: text(), group: text(), rollName: text(), value: number(), rollable: flag(), attributes: rows(attribute()) })
     };
   }
 }
@@ -32,7 +32,9 @@ export class WeaponData extends EquipmentData {
     return {
       ...super.defineSchema(),
       speed: optionalInteger(), reload: optionalInteger(), damage: text(), reach: text(), technique: text(),
-      mobilityTolerance: integer(0), attack: optionalInteger(), parry: optionalInteger()
+      mobilityTolerance: integer(0), attack: optionalInteger(), parry: optionalInteger(),
+      attackBreakdown: new ArrayField(integer(), { initial: [] }),
+      parryBreakdown: new ArrayField(integer(), { initial: [] })
     };
   }
 }

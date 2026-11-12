@@ -1,3 +1,5 @@
+import { medianDie, renderCheckCard, skillDice } from "./check-card.js";
+
 export function evaluateCheck(check, dice, modifier = 0, confirmation) {
   const target = check.value + modifier;
   let quality;
@@ -12,11 +14,10 @@ export function evaluateCheck(check, dice, modifier = 0, confirmation) {
     success = succeeds(dice[0]) && (dice[0] === 1 || Math.min(quality, modifier > 0 ? check.value : Infinity) >= 0);
   } else {
     if (check.kind === "skill") {
-      const deficits = dice.reduce((sum, roll, index) =>
-        sum + Math.max(0, roll - check.attributes[index].value - Math.min(0, target)), 0);
+      const deficits = skillDice(check, dice, target).reduce((sum, die) => sum + die.difference, 0);
       quality = Math.max(0, target) - deficits;
     } else {
-      quality = target - [...dice].sort((left, right) => left - right)[1];
+      quality = target - medianDie(dice).value;
     }
     critical = dice.filter(roll => roll === 1).length >= 2;
     fumble = dice.filter(roll => roll === 20).length >= 2;
@@ -32,7 +33,9 @@ export function weaponCheck(actor, weapon, mode) {
   if (!Number.isInteger(base)) return null;
   const impairment = Math.max(0, actor.system.impairment - data.mobilityTolerance);
   const joints = mode === "PA" && actor.system.hasJointPenalty ? 2 : 0;
-  return { kind: "combat", name: mode + " · " + weapon.name, value: base - impairment - joints };
+  return { kind: "combat", name: mode + " · " + weapon.name, mode, weapon: weapon.name,
+    technique: data.technique, breakdown: mode === "PA" ? data.parryBreakdown : data.attackBreakdown,
+    impairment, joints, value: base - impairment - joints };
 }
 
 export async function prepareRoll(check) {
@@ -47,28 +50,20 @@ export async function prepareRoll(check) {
   if (!modifiers.every(value => Number.isSafeInteger(value) && value >= 0 && value <= 10000)) {
     throw new Error("Bitte gültige ganzzahlige Modifikatoren eingeben.");
   }
-  return modifiers[1] - modifiers[0];
+  return { penalty: modifiers[0], bonus: modifiers[1] };
 }
 
-export async function postRoll(actor, check, modifier) {
+export async function postRoll(actor, check, modifiers) {
   const Roll = foundry.dice.Roll;
   const combat = check.kind === "combat";
   const roll = await new Roll(combat ? "1d20" : "3d20").evaluate();
   const dice = roll.dice[0].results.map(die => die.result);
   const confirmation = combat && [1, 20].includes(dice[0]) ? await new Roll("1d20").evaluate() : null;
-  const result = evaluateCheck(check, dice, modifier, confirmation?.total);
-  const outcome = result.critical ? "Kritischer Erfolg" : result.fumble ? "Patzer" : result.success ? "Gelungen" : "Misslungen";
-  const flavor = document.createElement("div");
-  const title = document.createElement("strong");
-  title.textContent = check.name;
-  const details = document.createElement("p");
-  const targets = check.attributes?.map(attribute => attribute.name + " " + attribute.value).join(" · ");
-  details.textContent = [targets, "Probenwert " + check.value, "Modifikator " + modifier,
-    "Würfel " + dice.join(", "), confirmation && "Bestätigung " + confirmation.total,
-    outcome + " · Qualität " + result.quality].filter(Boolean).join(" | ");
-  flavor.append(title, details);
+  const result = evaluateCheck(check, dice, modifiers.bonus - modifiers.penalty, confirmation?.total);
   const ChatMessage = foundry.documents.ChatMessage;
-  const message = { speaker: ChatMessage.getSpeaker({ actor }), flavor: flavor.innerHTML,
+  const message = { speaker: ChatMessage.getSpeaker({ actor }),
+    content: renderCheckCard(check, dice, modifiers, result, confirmation?.total),
+    style: CONST.CHAT_MESSAGE_STYLES.OTHER,
     rolls: (confirmation ? [roll, confirmation] : [roll]).map(result => result.toJSON()),
     sound: CONFIG.sounds.dice };
   await ChatMessage.create(ChatMessage.applyMode(message));

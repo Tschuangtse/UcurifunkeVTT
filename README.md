@@ -15,7 +15,7 @@ Für eine manuelle Installation den Inhalt des Release-ZIPs nach `Data/systems/u
 ## Erster Test
 
 1. Eine Welt mit dem Spielsystem Ucurifunke anlegen. Im Charakterverzeichnis **Pedipalpus importieren** wählen und eine gespeicherte Charakterdatei im JSON-Format öffnen. Der Button erzeugt einen neuen Actor. Über **Daten importieren** im Kontextmenü eines vorhandenen Actors kannst du stattdessen dessen Namen, Spielwerte und Inventar durch die Daten aus der Datei ersetzen.
-2. Im Bogen zwischen **Übersicht**, **Fertigkeiten**, **Kampf** und **Ausrüstung** wechseln. In den Reitern Fertigkeiten und Ausrüstung lassen sich Suche und Kategorienfilter kombinieren. Eine Probe würfeln und Ergebnis sowie Qualität im Chat ansehen. Beim Würfeln über den Bogen allein werden keine Ticks gebucht.
+2. Im Bogen zwischen **Übersicht**, **Fertigkeiten** und **Kampf** wechseln. Im Reiter Fertigkeiten lassen sich Suche und Bereichsfilter kombinieren. Waffen und Rüstung stehen im Reiter Kampf. Eine Probe würfeln und Ergebnis sowie Qualität im Chat ansehen. Beim Würfeln über den Bogen allein werden keine Ticks gebucht.
 3. Zwei Tokens auf einer Szene platzieren, in einen Kampf aufnehmen und die Tickleiste öffnen. Vor dem Start Initiative würfeln und die aus dem Bogen übernommenen Werte für BE und RE prüfen oder überschreiben.
 4. Im laufenden Kampf einen Token auswählen. Über **Offensiv → Nahkampfangriff** eine getragene Waffe wählen, den Waffentickwert prüfen und die Probe bestätigen. Die Ticks fallen unabhängig vom Würfelergebnis an. Wird der Modifikatordialog abgebrochen, werden keine Ticks verbucht.
 5. Den Ablauf mit einem Spieler wiederholen, der Besitzer des Actors ist. Ein Spieler ohne Besitzrechte darf dessen Aktionen nicht buchen.
@@ -23,6 +23,8 @@ Für eine manuelle Installation den Inhalt des Release-ZIPs nach `Data/systems/u
 ## Umfang der Testversion
 
 Der Import liest Pedipalpus-Speicherdateien direkt. Er übernimmt gespeicherte Spielwerte und berechnet unterstützte Waffenwerte und Ladezeiten aus den enthaltenen Daten. Automatische Pedipalpus-Zustandsfolgen und vollständige Sonderfallregeln sind noch nicht enthalten. Situative Abzüge und Zuschläge lassen sich im Würfeldialog angeben.
+
+Ein erneuter Import aus Pedipalpus ergänzt bei älteren Foundry-Charakteren die Einzelwerte für Kampfproben und stellt Ritualproben und Wunder anhand der Quelldatei bereit.
 
 Die Tickleiste basiert auf TickBasedCombat 0.3.12 von Tschuangtse und Phil Reif. Die Aktionsleiste basiert auf Ucurifunke Quick Combat Actions 0.2.1 von Tschuangtse.
 

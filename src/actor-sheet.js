@@ -1,6 +1,6 @@
 import { parseCharacter } from "./import-data.js";
 import { postRoll, prepareRoll, weaponCheck } from "./checks.js";
-import { filterSheet, groupItems, groupSkills } from "./sheet-view.js";
+import { attributeCheck, filterSheet, groupAttributes, groupItems, groupSkills, skillCheck } from "./sheet-view.js";
 
 const { api, sheets } = foundry.applications;
 const path = "systems/ucurifunke/templates/actor.hbs";
@@ -59,7 +59,10 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
     const combatGroups = skillGroups.filter(group => ["Nahkampf", "Fernkampf"].includes(group.name));
     return { ...context, data, sheetId: this.id, actorName: this.actor.name, actorImage: this.actor.img,
       skillGroups: skillGroups.filter(group => !combatGroups.includes(group)), combatGroups,
-      equipmentGroups: groupItems(items), weaponGroups: groupItems(items.filter(item => item.weapon)),
+      attributeGroups: groupAttributes(data.attributes),
+      weaponGroups: groupItems(items.filter(item => item.weapon)),
+      armorGroups: groupItems(items.filter(item => item.data.group === "Rüstung")),
+      derivedValues: data.derived.filter(row => !["LE", "AE", "KE"].includes(row.key.toUpperCase())),
       canEdit: this.isEditable, canRoll: this.actor.isOwner };
   }
 
@@ -121,8 +124,8 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
     const { kind, index, item, mode } = target.dataset;
     const data = this.actor.system;
     const check = kind === "weapon" ? weaponCheck(this.actor, this.actor.items.get(item), mode)
-      : kind === "attribute" ? { ...data.attributes[index], kind }
-      : data.skills[index]?.rollable ? { ...data.skills[index], kind } : null;
+      : kind === "attribute" ? attributeCheck(data.attributes, Number(index))
+      : kind === "skill" ? skillCheck(data.skills, Number(index)) : null;
     if (!check || !Number.isInteger(check.value)) return;
     target.disabled = true;
     try {

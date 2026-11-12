@@ -1,4 +1,49 @@
 const SPECIALIZATION_SEPARATOR = " – ";
+const MUNDANE_GROUPS = new Set(["Körper", "Gesellschaft", "Natur", "Wissen", "Handwerk"]);
+const PRIMARY_KEYS = new Set(["MU", "KL", "IN", "CH", "FF", "GE", "KO", "KK"]);
+const SECONDARY_CHECKS = { GMR: ["MU", "KL", "IN"], KMR: ["GE", "KO", "KK"], RE: ["MU", "IN", "GE"] };
+
+function isPrimary(attribute) {
+  return attribute.kind ? attribute.kind === "primary" : PRIMARY_KEYS.has(attribute.key.toUpperCase());
+}
+
+export function attributeCheck(attributes, index) {
+  const attribute = attributes[index];
+  if (!attribute) return null;
+  if (isPrimary(attribute)) return { kind: "attribute", name: attribute.name, value: attribute.value };
+  const keys = SECONDARY_CHECKS[attribute.key.toUpperCase()];
+  const related = keys?.map(key => attributes.find(row => isPrimary(row) && row.key.toUpperCase() === key));
+  if (!related?.every(Boolean)) return null;
+  return { kind: "skill", name: attribute.name, value: attribute.value, attributes: related };
+}
+
+export function groupAttributes(attributes) {
+  const groups = [{ name: "Primäre Attribute", rows: [] }, { name: "Sekundäre Attribute", rows: [] }];
+  for (const [index, attribute] of attributes.entries()) {
+    groups[isPrimary(attribute) ? 0 : 1].rows.push({
+      name: attribute.name, value: attribute.value, index, rollable: Boolean(attributeCheck(attributes, index))
+    });
+  }
+  return groups.filter(group => group.rows.length);
+}
+
+function specializationRoot(skills, index) {
+  const skill = skills[index];
+  if (!MUNDANE_GROUPS.has(skill.group)) return undefined;
+  // Pedipalpus exports each complex skill directly before its specializations.
+  return skills.slice(0, index).find(row => row.group === skill.group &&
+    skill.name.startsWith(row.name + SPECIALIZATION_SEPARATOR));
+}
+
+export function skillCheck(skills, index) {
+  const skill = skills[index];
+  if (!skill?.rollable || skill.attributes.length !== 3) return null;
+  const root = specializationRoot(skills, index);
+  const name = root ? skill.name.slice(root.name.length + SPECIALIZATION_SEPARATOR.length)
+    : ["Hobby", "Zauber", "Wunder"].includes(skill.group) || (skill.group === "Rituale" && skill.rollName)
+      ? skill.name : "";
+  return name ? { ...skill, kind: "skill", name: skill.rollName || name } : null;
+}
 
 export function groupSkills(skills) {
   const groups = new Map();
@@ -6,12 +51,13 @@ export function groupSkills(skills) {
     const group = skill.group || "Weitere Fertigkeiten";
     if (!groups.has(group)) groups.set(group, { name: group, rows: [] });
     const rows = groups.get(group).rows;
-    const root = rows.find(row => !row.specialization && skill.name.startsWith(row.name + SPECIALIZATION_SEPARATOR));
+    const root = specializationRoot(skills, index);
     rows.push({
       ...skill,
       index,
       label: root ? skill.name.slice(root.name.length + SPECIALIZATION_SEPARATOR.length) : skill.name,
       specialization: Boolean(root),
+      rollable: Boolean(skillCheck(skills, index)),
       attributeLabel: skill.attributes.map(attribute => attribute.key || attribute.name).join(" · ")
     });
   }
