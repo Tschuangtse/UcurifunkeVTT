@@ -1,9 +1,13 @@
 import "./tick/main.js";
 import "./actions/main.js";
 import "./creation-defaults.js";
+import "./dice-menu.js";
 import { UcurifunkeActor } from "./actor.js";
 import { CharacterData, EquipmentData, WeaponData } from "./models.js";
 import { CharacterSheet, importPedipalpus } from "./actor-sheet.js";
+import { renderHiddenCheck } from "./checks.js";
+
+Hooks.on("renderChatMessageHTML", renderHiddenCheck);
 
 Hooks.once("init", () => {
   CONFIG.Actor.documentClass = UcurifunkeActor;

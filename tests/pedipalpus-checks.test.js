@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { convertCharacter } from "../src/import-data.js";
 import { attributeCheck, groupAttributes, skillCheck } from "../src/sheet-view.js";
-import { evaluateCheck, postRoll, weaponCheck } from "../src/checks.js";
+import { evaluateCheck, postRoll, prepareRoll, renderHiddenCheck, weaponCheck } from "../src/checks.js";
 import { renderCheckCard } from "../src/check-card.js";
 
 const primary = ["MU", "KL", "IN", "CH", "FF", "GE", "KO", "KK"]
@@ -62,16 +62,20 @@ test("check cards expose the actual dice and calculation without interpreting im
   assert.match(combatCard, /Bestätigung: <strong>5/);
 });
 
-test("the custom card is the message content and the roll remains attached", async () => {
+test("the custom card keeps its roll and only the checkbox forces Foundry blind mode", async () => {
   class Roll {
     dice = [{ results: [3, 20, 8].map(result => ({ result })) }];
     async evaluate() { return this; }
     toJSON() { return { formula: "3d20" }; }
   }
   let data;
+  let mode;
   globalThis.foundry = { dice: { Roll }, documents: { ChatMessage: {
     getSpeaker: ({ actor }) => ({ alias: actor.name }),
-    applyMode: message => ({ ...message, whisper: ["gm"] }),
+    applyMode: (message, selection) => {
+      mode = selection;
+      return { ...message, whisper: ["gm"], blind: selection === "blind" };
+    },
     create: async message => { data = message; }
   } } };
   globalThis.CONST = { CHAT_MESSAGE_STYLES: { OTHER: 0 } };
@@ -81,4 +85,39 @@ test("the custom card is the message content and the roll remains attached", asy
   assert.equal(data.flavor, undefined);
   assert.deepEqual(data.rolls, [{ formula: "3d20" }]);
   assert.deepEqual(data.whisper, ["gm"]);
+  assert.equal(mode, undefined);
+  assert.equal(data.flags, undefined);
+  await postRoll({ name: "Rondrik" }, { kind: "attribute", name: "Mut", value: 14 }, { penalty: 0, bonus: 0, blind: true });
+  assert.equal(mode, "blind");
+  assert.equal(data.blind, true);
+  assert.deepEqual(data.flags.ucurifunke.hiddenCheck, { characterName: "Rondrik", subject: "Mut" });
+});
+
+test("the check dialog matches the reference module's three input options", async () => {
+  let options;
+  globalThis.foundry = { applications: { api: { DialogV2: { input: async config => {
+    options = config;
+    return { difficulty: "", relief: 2, blind: "on" };
+  } } } } };
+  const modifiers = await prepareRoll({ kind: "attribute", name: "Mut" });
+  assert.match(options.content, /name="difficulty"/);
+  assert.match(options.content, /name="relief"/);
+  assert.match(options.content, /Verdeckte Probe/);
+  assert.match(options.content, /name="blind" type="checkbox"/);
+  assert.deepEqual(modifiers, { penalty: 0, bonus: 2, blind: true });
+});
+
+test("only the author of a hidden result gets the check-name notice", () => {
+  const hidden = { characterName: "Rondrik", subject: "<Probe>" };
+  const message = { isContentVisible: false, isAuthor: false, getFlag: () => hidden };
+  let rendered;
+  globalThis.document = { createElement: () => ({}) };
+  const content = { replaceChildren: (...children) => { rendered = children; } };
+  const html = { querySelector: selector => selector === ".message-flavor" ? null : content };
+  renderHiddenCheck(message, html);
+  renderHiddenCheck({ ...message, isContentVisible: true, isAuthor: true }, html);
+  assert.equal(rendered, undefined);
+  renderHiddenCheck({ ...message, isAuthor: true }, html);
+  assert.equal(rendered[0].textContent, "Rondrik");
+  assert.equal(rendered[2].textContent, "<Probe>");
 });

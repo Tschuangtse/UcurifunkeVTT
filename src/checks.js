@@ -1,4 +1,5 @@
 import { medianDie, renderCheckCard, skillDice } from "./check-card.js";
+import { postDiceMessage } from "./dice-message.js";
 
 export function evaluateCheck(check, dice, modifier = 0, confirmation) {
   const target = check.value + modifier;
@@ -39,18 +40,40 @@ export function weaponCheck(actor, weapon, mode) {
 }
 
 export async function prepareRoll(check) {
-  const content = document.createElement("div");
-  content.innerHTML = '<div class="ucurifunke-modifiers"><label>Erschwernis <input type="number" name="penalty" value="0" min="0" max="10000" required></label><label>Erleichterung <input type="number" name="bonus" value="0" min="0" max="10000" required></label></div>';
+  const type = { attribute: "Attributsprobe", skill: "Fertigkeitsprobe" }[check.kind];
   const options = await foundry.applications.api.DialogV2.input({
-    window: { title: check.name }, content, rejectClose: false, modal: true,
-    ok: { label: "Würfeln", icon: "fa-solid fa-dice-d20" }
+    window: { title: type ? type + ": " + check.name : check.name },
+    content: `<div class="ucurifunke-modifier-dialog">
+      <div class="form-group">
+        <label for="ucurifunke-difficulty">Erschwernis</label>
+        <input id="ucurifunke-difficulty" name="difficulty" type="number" min="0" step="1" value="0" autofocus>
+      </div>
+      <div class="form-group">
+        <label for="ucurifunke-relief">Erleichterung</label>
+        <input id="ucurifunke-relief" name="relief" type="number" min="0" step="1" value="0">
+      </div>
+      <div class="form-group">
+        <label for="ucurifunke-blind">Verdeckte Probe</label>
+        <input id="ucurifunke-blind" name="blind" type="checkbox">
+      </div>
+    </div>`,
+    rejectClose: false, modal: true,
+    ok: { label: "Würfeln", icon: "fa-solid fa-dice-d20" },
+    render: (_event, dialog) => {
+      for (const input of dialog.element.querySelectorAll('input[name="difficulty"], input[name="relief"]')) {
+        const clearZero = () => { if (input.value === "0") input.value = ""; };
+        input.addEventListener("focus", clearZero);
+        input.addEventListener("click", clearZero);
+      }
+    }
   });
   if (!options) return null;
-  const modifiers = [Number(options.penalty), Number(options.bonus)];
-  if (!modifiers.every(value => Number.isSafeInteger(value) && value >= 0 && value <= 10000)) {
-    throw new Error("Bitte gültige ganzzahlige Modifikatoren eingeben.");
-  }
-  return { penalty: modifiers[0], bonus: modifiers[1] };
+  const nonNegativeInteger = value => Number.isFinite(Number(value)) ? Math.max(0, Math.trunc(Number(value))) : 0;
+  return {
+    penalty: nonNegativeInteger(options.difficulty),
+    bonus: nonNegativeInteger(options.relief),
+    blind: [true, 1, "1", "true", "on"].includes(options.blind)
+  };
 }
 
 export async function postRoll(actor, check, modifiers) {
@@ -60,11 +83,25 @@ export async function postRoll(actor, check, modifiers) {
   const dice = roll.dice[0].results.map(die => die.result);
   const confirmation = combat && [1, 20].includes(dice[0]) ? await new Roll("1d20").evaluate() : null;
   const result = evaluateCheck(check, dice, modifiers.bonus - modifiers.penalty, confirmation?.total);
-  const ChatMessage = foundry.documents.ChatMessage;
-  const message = { speaker: ChatMessage.getSpeaker({ actor }),
-    content: renderCheckCard(check, dice, modifiers, result, confirmation?.total),
-    style: CONST.CHAT_MESSAGE_STYLES.OTHER,
-    rolls: (confirmation ? [roll, confirmation] : [roll]).map(result => result.toJSON()),
-    sound: CONFIG.sounds.dice };
-  await ChatMessage.create(ChatMessage.applyMode(message));
+  const content = renderCheckCard(check, dice, modifiers, result, confirmation?.total);
+  const rolls = confirmation ? [roll, confirmation] : [roll];
+  const hiddenCheck = { characterName: actor.name, subject: combat ? check.technique || check.weapon : check.name };
+  await postDiceMessage(content, rolls, {
+    actor, mode: modifiers.blind ? "blind" : undefined,
+    flags: modifiers.blind ? { ucurifunke: { hiddenCheck } } : undefined
+  });
+}
+
+export function renderHiddenCheck(message, html) {
+  if (!message.isAuthor || message.isContentVisible !== false) return;
+  const hidden = message.getFlag("ucurifunke", "hiddenCheck");
+  if (!hidden) return;
+  const content = html.querySelector(".message-content, .chat-message-content");
+  if (!content) return;
+  const character = document.createElement("strong");
+  character.textContent = hidden.characterName ?? "Charakter";
+  const subject = document.createElement("strong");
+  subject.textContent = hidden.subject ?? "Probe";
+  content.replaceChildren(character, " hat eine verborgene Probe abgelegt auf: ", subject);
+  html.querySelector(".message-flavor")?.remove();
 }

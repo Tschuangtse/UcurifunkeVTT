@@ -108,8 +108,8 @@
 .ucurifunke-row .ucurifunke-roll { flex: 0 0 2.1rem; min-height: 1.65rem; padding: .12rem .2rem; }
 .ucurifunke-empty { padding: .75rem 0; }
 .ucurifunke-group .ucurifunke-combat-values { padding: .6rem; }
-.ucurifunke-combat-values, .ucurifunke-modifiers { display: flex; align-items: center; flex-wrap: wrap; gap: .7rem; }
-.ucurifunke-combat-values input, .ucurifunke-modifiers input { width: 5rem; }
+.ucurifunke-combat-values { display: flex; align-items: center; flex-wrap: wrap; gap: .7rem; }
+.ucurifunke-combat-values input { width: 5rem; }
 .ucurifunke-import { width: 100%; }
 
 .ucurifunke-check-card { display: grid; gap: .48rem; }
@@ -130,3 +130,8 @@
 .ucurifunke-check-card footer > span { font-size: 1.2em; }
 .ucurifunke-card-outcome { text-transform: uppercase; }
 .ucurifunke-card-outcome.is-success { text-decoration: underline; }
+.ucurifunke-free-roll .ucurifunke-card-die { border-color: color-mix(in srgb, currentColor 28%, transparent); }
+.ucurifunke-free-roll footer > strong { font-size: 1.2em; }
+.ucurifunke-modifier-dialog { display: grid; gap: .65rem; }
+.ucurifunke-modifier-dialog .form-group { display: grid; grid-template-columns: 1fr 7rem; align-items: center; }
+.ucurifunke-modifier-dialog input[type="checkbox"] { justify-self: start; }

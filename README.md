@@ -19,6 +19,7 @@ Für eine manuelle Installation den Inhalt des Release-ZIPs nach `Data/systems/u
 3. Zwei Tokens auf einer Szene platzieren, in einen Kampf aufnehmen und die Tickleiste öffnen. Vor dem Start Initiative würfeln und die aus dem Bogen übernommenen Werte für BE und RE prüfen oder überschreiben.
 4. Im laufenden Kampf einen Token auswählen. Über **Offensiv → Nahkampfangriff** eine getragene Waffe wählen, den Waffentickwert prüfen und die Probe bestätigen. Die Ticks fallen unabhängig vom Würfelergebnis an. Wird der Modifikatordialog abgebrochen, werden keine Ticks verbucht.
 5. Den Ablauf mit einem Spieler wiederholen, der Besitzer des Actors ist. Ein Spieler ohne Besitzrechte darf dessen Aktionen nicht buchen.
+6. Im Probenfenster **Verdeckte Probe** wählen und aus Spieler- und Spielleitersicht prüfen. Über das W20-Symbol unten in der linken Szenenleiste lassen sich auch freie Würfe mit W3, W6 und W20 ausführen. Die Chatkarte zeigt alle Einzelwürfe und ihre Summe.
 
 ## Umfang der Testversion
 
