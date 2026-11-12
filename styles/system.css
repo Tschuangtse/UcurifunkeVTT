@@ -24,7 +24,7 @@
 
 .ucurifunke-sheet-tabs {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: .25rem;
   padding: 0 .9rem;
   border-bottom: 1px solid var(--uc-line);

@@ -1,6 +1,6 @@
 import { parseCharacter } from "./import-data.js";
 import { postRoll, prepareRoll, weaponCheck } from "./checks.js";
-import { attributeCheck, filterSheet, groupAttributes, groupItems, groupSkills, skillCheck } from "./sheet-view.js";
+import { attributeCheck, filterSheet, groupAttributes, groupItems, partitionSkills, skillCheck } from "./sheet-view.js";
 
 const { api, sheets } = foundry.applications;
 const path = "systems/ucurifunke/templates/actor.hbs";
@@ -52,10 +52,8 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
         hasSpeed: Number.isInteger(item.system.speed), hasReload: Number.isInteger(item.system.reload)
       };
     });
-    const skillGroups = groupSkills(data.skills);
-    const combatGroups = skillGroups.filter(group => ["Nahkampf", "Fernkampf"].includes(group.name));
     return { ...context, data, sheetId: this.id, actorName: this.actor.name, actorImage: this.actor.img,
-      skillGroups: skillGroups.filter(group => !combatGroups.includes(group)), combatGroups,
+      ...partitionSkills(data.skills),
       attributeGroups: groupAttributes(data.attributes),
       weaponGroups: groupItems(items.filter(item => item.weapon)),
       armorGroups: groupItems(items.filter(item => item.data.group === "Rüstung")),

@@ -57,11 +57,31 @@ export function groupSkills(skills) {
       index,
       label: root ? skill.name.slice(root.name.length + SPECIALIZATION_SEPARATOR.length) : skill.name,
       specialization: Boolean(root),
+      parentName: root?.name,
       rollable: Boolean(skillCheck(skills, index)),
       attributeLabel: skill.attributes.map(attribute => attribute.key || attribute.name).join(" · ")
     });
   }
   return [...groups.values()];
+}
+
+export function partitionSkills(skills) {
+  const groups = groupSkills(skills);
+  const select = (names, keepParents = false) => groups.filter(group => names.includes(group.name))
+    .map(group => {
+      const rollable = group.rows.filter(row => row.rollable);
+      const parents = new Set(rollable.map(row => row.parentName).filter(Boolean));
+      const rows = keepParents ? group.rows.filter(row => row.rollable || parents.has(row.name)) : rollable;
+      return { ...group, rows };
+    }).filter(group => group.rows.length > 0);
+  return {
+    combatGroups: groups.filter(group => ["Nahkampf", "Fernkampf"].includes(group.name)),
+    skillTabs: [
+      { id: "munda", label: "Munda", icon: "fa-book-open", groups: select([...MUNDANE_GROUPS, "Hobby"], true) },
+      { id: "magic", label: "Magie", icon: "fa-wand-sparkles", groups: select(["Zauber", "Rituale"]) },
+      { id: "clerical", label: "Klerikal", icon: "fa-sun", groups: select(["Wunder"]) }
+    ]
+  };
 }
 
 export function groupItems(items) {

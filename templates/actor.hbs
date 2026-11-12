@@ -66,11 +66,15 @@
   </header>
   <nav class="ucurifunke-sheet-tabs" role="tablist" aria-label="Charakterbogen">
     <button type="button" role="tab" id="{{sheetId}}-tab-overview" aria-controls="{{sheetId}}-overview"
-            aria-selected="true" data-action="openSheetTab" data-sheet-tab="overview"><i class="fa-solid fa-id-card" aria-hidden="true"></i> Übersicht</button>
-    <button type="button" role="tab" id="{{sheetId}}-tab-skills" aria-controls="{{sheetId}}-skills"
-            aria-selected="false" tabindex="-1" data-action="openSheetTab" data-sheet-tab="skills"><i class="fa-solid fa-book-open" aria-hidden="true"></i> Fertigkeiten</button>
+            aria-selected="true" data-action="openSheetTab" data-sheet-tab="overview"><i class="fa-solid fa-id-card" aria-hidden="true"></i> Grundwerte</button>
     <button type="button" role="tab" id="{{sheetId}}-tab-combat" aria-controls="{{sheetId}}-combat"
             aria-selected="false" tabindex="-1" data-action="openSheetTab" data-sheet-tab="combat"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Kampf</button>
+    {{#each skillTabs}}
+      <button type="button" role="tab" id="{{@root.sheetId}}-tab-{{id}}" aria-controls="{{@root.sheetId}}-{{id}}"
+        aria-selected="false" tabindex="-1" data-action="openSheetTab" data-sheet-tab="{{id}}">
+        <i class="fa-solid {{icon}}" aria-hidden="true"></i> {{label}}
+      </button>
+    {{/each}}
   </nav>
 
   <div class="ucurifunke-sheet-body">
@@ -102,24 +106,6 @@
       {{#unless data.attributes.length}}<p class="ucurifunke-empty">Keine Attribute vorhanden.</p>{{/unless}}
     </section>
 
-    <section role="tabpanel" id="{{sheetId}}-skills" aria-labelledby="{{sheetId}}-tab-skills" data-sheet-panel="skills" data-searchable hidden>
-      {{#if skillGroups.length}}
-        <div class="ucurifunke-filter">
-          <label><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-            <input type="search" aria-label="Fertigkeiten suchen" placeholder="Fertigkeiten oder Spezialisierungen suchen">
-          </label>
-          <select aria-label="Fertigkeitsbereich">
-            <option value="">Alle Bereiche</option>
-            {{#each skillGroups}}<option value="{{name}}">{{name}}</option>{{/each}}
-          </select>
-        </div>
-      {{else}}
-        <input type="search" hidden aria-label="Fertigkeiten suchen">
-      {{/if}}
-      {{> skillRows groups=skillGroups}}
-      <p class="ucurifunke-empty" role="status" data-no-results hidden>{{#if skillGroups.length}}Keine passenden Fertigkeiten.{{else}}Keine Fertigkeiten vorhanden.{{/if}}</p>
-    </section>
-
     <section role="tabpanel" id="{{sheetId}}-combat" aria-labelledby="{{sheetId}}-tab-combat" data-sheet-panel="combat" hidden>
       <section class="ucurifunke-group">
         <h3>Kampfwerte</h3>
@@ -133,5 +119,25 @@
       {{> itemRows groups=armorGroups}}
       {{#if combatGroups.length}}<h3>Kampftechniken</h3>{{> skillRows groups=combatGroups}}{{/if}}
     </section>
+    {{#each skillTabs}}
+      <section role="tabpanel" id="{{@root.sheetId}}-{{id}}" aria-labelledby="{{@root.sheetId}}-tab-{{id}}"
+        data-sheet-panel="{{id}}" {{#if groups.length}}data-searchable{{/if}} hidden>
+        {{#if groups.length}}
+          <div class="ucurifunke-filter">
+            <label><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <input type="search" aria-label="Fertigkeiten suchen" placeholder="Fertigkeiten suchen">
+            </label>
+            <select aria-label="Fertigkeitsbereich">
+              <option value="">Alle Bereiche</option>
+              {{#each groups}}<option value="{{name}}">{{name}}</option>{{/each}}
+            </select>
+          </div>
+          {{> skillRows groups=groups}}
+          <p class="ucurifunke-empty" role="status" data-no-results hidden>Keine passenden Fertigkeiten.</p>
+        {{else}}
+          <p class="ucurifunke-empty">Keine Proben in diesem Bereich verfügbar.</p>
+        {{/if}}
+      </section>
+    {{/each}}
   </div>
 </div>
