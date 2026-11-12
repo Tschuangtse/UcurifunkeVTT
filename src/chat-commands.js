@@ -1,4 +1,5 @@
 import { postRoll, prepareRoll } from "./checks.js";
+import { linkAttack, selectedAttackTarget } from "./combat-workflow.js";
 
 const COMMAND = /^\/(attributecheck|skillcheck|at|pa|fk)(?=\s|$)\s*([^\r\n]*)$/i;
 const INTEGER = /^[+-]?\d+$/;
@@ -43,13 +44,19 @@ export function registerCheckCommands(commands) {
     commands[command] = {
       rgx: new RegExp(`^/${command}(?=\\s|$)\\s*([^\\r\\n]*)$`, "i"),
       fn: async (_command, match, chatData) => {
-        const check = parseCheckCommand(match[0]);
+        let check = parseCheckCommand(match[0]);
         if (!check) {
           ui.notifications.warn(`Ungültige Probe. Bitte den vollständigen Befehl /${command} aus Pedipalpus einfügen.`);
           return false;
         }
+        const actor = check.kind === "combat" && foundry.documents.ChatMessage.getSpeakerActor(chatData.speaker);
+        const target = actor?.isOwner && selectedAttackTarget(actor, check);
+        if (target) {
+          const weapon = actor.items.find(item => item.type === "weapon" && item.name === check.weapon);
+          check = linkAttack(actor, check, target, weapon?.system.damage, 0);
+        }
         const modifiers = await prepareRoll(check);
-        if (modifiers) await postRoll(null, check, modifiers, chatData.speaker);
+        if (modifiers) await postRoll(actor || null, check, modifiers, chatData.speaker);
         return false;
       }
     };

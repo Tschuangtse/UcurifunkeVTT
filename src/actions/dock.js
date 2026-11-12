@@ -2,6 +2,8 @@ import { ACTIONS, CATEGORIES, parseCost } from "./actions.js";
 import { MODULE_ID, SETTINGS_SCOPE, OWNERSHIP_ERROR, getSelection, addActionTicks } from "./combat.js";
 import { requestCost } from "./cost-dialog.js";
 import { postRoll, prepareRoll, weaponCheck } from "../checks.js";
+import { applyConditionEffects } from "../conditions.js";
+import { linkAttack, selectedAttackTarget } from "../combat-workflow.js";
 
 export class ActionDock {
   constructor({ getGame = () => game, getCanvas = () => globalThis.canvas, notify = message => ui.notifications.warn(message),
@@ -129,11 +131,16 @@ export class ActionDock {
         ? await this.costPrompt(action, selection) : action.ticks;
       if (cost === null || cost === undefined) return;
       const mode = id === "ranged" ? "FK" : id.startsWith("parry") ? "PA" : "AT";
-      const check = weaponAction && cost.weaponId ? weaponCheck(actor, actor.items.get(cost.weaponId), mode) : null;
+      const weapon = weaponAction && cost.weaponId ? actor.items.get(cost.weaponId) : null;
+      const check = weapon ? weaponCheck(actor, weapon, mode) : null;
+      const target = check && selectedAttackTarget(actor, check);
+      if (check) applyConditionEffects(actor, check);
       const modifiers = check ? await prepareRoll(check) : null;
       if (check && modifiers === null) return;
-      await this.applyTicks(selection, parseCost(cost.ticks ?? cost), { game: this.getGame(), canvas: this.getCanvas() });
-      if (check) await postRoll(actor, check, modifiers);
+      const adjusted = check && applyConditionEffects(actor, check);
+      const ticks = parseCost(cost.ticks ?? cost);
+      await this.applyTicks(selection, ticks, { game: this.getGame(), canvas: this.getCanvas() });
+      if (adjusted) await postRoll(actor, linkAttack(actor, adjusted, target, weapon.system.damage, ticks), modifiers);
       this.collapse();
     } catch (error) {
       console.error(`${MODULE_ID} | Handlung fehlgeschlagen`, error);

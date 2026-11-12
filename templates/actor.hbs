@@ -1,4 +1,4 @@
-<div class="ucurifunke-character">
+<div class="ucurifunke-character {{#if companion}}is-companion{{/if}}">
   {{#*inline "searchField"}}
     <label><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
       <input type="search" aria-label="{{label}}" placeholder="{{label}}">
@@ -21,6 +21,12 @@
               {{#if rollable}}{{#if @root.canRoll}}
                 <button type="button" class="ucurifunke-roll" data-action="rollCheck" data-kind="skill" data-index="{{index}}"
                         title="{{name}} würfeln" aria-label="{{name}} würfeln">
+                  <i class="fa-solid fa-dice-d20" aria-hidden="true"></i>
+                </button>
+              {{/if}}{{/if}}
+              {{#if companionAbility}}{{#if @root.canRoll}}
+                <button type="button" class="ucurifunke-roll" data-action="rollCheck" data-kind="companionAbility"
+                  data-index="{{index}}" title="{{name}} würfeln" aria-label="{{name}} würfeln">
                   <i class="fa-solid fa-dice-d20" aria-hidden="true"></i>
                 </button>
               {{/if}}{{/if}}
@@ -54,7 +60,8 @@
                   {{#if data.container}}<span>{{data.container}}</span>{{/if}}
                   {{#if data.damage}}<span>{{data.damage}}</span>{{/if}}
                   {{#if data.reach}}<span>{{data.reach}}</span>{{/if}}
-                  {{#if hasSpeed}}<span>WGS {{data.speed}}</span>{{/if}}
+                  {{#if hasSpeed}}<span>{{#if @root.companion}}Angriff {{data.speed}} Ticks{{else}}WGS {{data.speed}}{{/if}}</span>{{/if}}
+                  {{#if hasParrySpeed}}<span>Parade {{data.parryTicks}} Ticks</span>{{/if}}
                   {{#if hasReload}}<span>Laden {{data.reload}} Ticks</span>{{/if}}
                   {{#if data.protection}}<span>RS {{data.protection}}</span>{{/if}}
                 </small>
@@ -77,8 +84,15 @@
     {{#if actorImage}}<img src="{{actorImage}}" alt="">{{/if}}
     <div class="ucurifunke-identity">
       <h2>{{actorName}}</h2>
-      {{#if data.race}}<p>{{data.race}}</p>{{/if}}
+      {{#if companion}}<p>{{data.companionKind}}{{#if data.race}} · {{data.race}}{{/if}}</p>
+      {{else}}{{#if data.race}}<p>{{data.race}}</p>{{/if}}{{/if}}
     </div>
+    {{#if canImport}}
+      <button type="button" class="ucurifunke-roll ucurifunke-header-action" data-action="updatePedipalpus"
+        title="Aus Pedipalpus aktualisieren" aria-label="Aus Pedipalpus aktualisieren">
+        <i class="fa-solid fa-file-import" aria-hidden="true"></i>
+      </button>
+    {{/if}}
     {{#if canRollPerception}}
       <button type="button" class="ucurifunke-roll ucurifunke-perception" data-action="rollCheck" data-kind="perception"
         title="Wahrnehmung würfeln" aria-label="Wahrnehmung würfeln"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>
@@ -95,6 +109,10 @@
         <i class="fa-solid {{icon}}" aria-hidden="true"></i> {{label}}
       </button>
     {{/each}}
+    <button type="button" role="tab" id="{{sheetId}}-tab-conditions" aria-controls="{{sheetId}}-conditions"
+      aria-selected="false" tabindex="-1" data-action="openSheetTab" data-sheet-tab="conditions">
+      <i class="fa-solid fa-heart-pulse" aria-hidden="true"></i> Zustände
+    </button>
   </nav>
 
   <div class="ucurifunke-sheet-body">
@@ -130,6 +148,34 @@
           </dl>
         </section>
       {{/if}}
+      {{#if data.companionDetails.length}}
+        <section class="ucurifunke-overview-group" data-filter-group="Gefolgedaten">
+          <h3>Gefolgedaten</h3>
+          <dl class="ucurifunke-derived ucurifunke-companion-details">
+            {{#each data.companionDetails}}
+              <div data-filter-row="{{name}} {{value}}"><dt>{{name}}</dt><dd>{{value}}</dd></div>
+            {{/each}}
+          </dl>
+        </section>
+      {{/if}}
+      {{#if retinue.length}}
+        <section class="ucurifunke-group" data-filter-group="Gefolge">
+          <h3>Gefolge</h3>
+          <ul>
+            {{#each retinue}}
+              <li class="ucurifunke-row" data-filter-row="Gefolge {{name}} {{kind}}">
+                <button type="button" data-action="openCompanion" data-companion-id="{{id}}">{{name}}</button>
+                <small>{{kind}}</small>
+              </li>
+            {{/each}}
+          </ul>
+        </section>
+      {{/if}}
+      {{#if canImportRetinue}}
+        <button type="button" data-action="importRetinue">Gefolge übernehmen ({{pendingRetinue}})</button>
+      {{else}}{{#if pendingRetinue}}
+        <p>Gefolge zur Übernahme durch die Spielleitung vorgemerkt ({{pendingRetinue}}).</p>
+      {{/if}}{{/if}}
       <p class="ucurifunke-empty" role="status" data-no-results hidden>Keine passenden Grundwerte.</p>
     </section>
 
@@ -144,7 +190,7 @@
         </div>
       </section>
       {{#if weaponGroups.length}}
-        <section class="ucurifunke-combat-section"><h3>Waffen</h3>{{> itemRows groups=weaponGroups}}</section>
+        <section class="ucurifunke-combat-section"><h3>{{#if companion}}Angriffe{{else}}Waffen{{/if}}</h3>{{> itemRows groups=weaponGroups}}</section>
       {{/if}}
       {{#if armorGroups.length}}
         <section class="ucurifunke-combat-section">{{> itemRows groups=armorGroups}}</section>
@@ -172,5 +218,52 @@
         </p>
       </section>
     {{/each}}
+    <section role="tabpanel" id="{{sheetId}}-conditions" aria-labelledby="{{sheetId}}-tab-conditions"
+      data-sheet-panel="conditions" data-searchable hidden>
+      <div class="ucurifunke-filter">{{> searchField label="Zustände suchen"}}</div>
+      {{#if conditionSummary.length}}
+        <ul class="ucurifunke-condition-summary">
+          {{#each conditionSummary}}<li>{{this}}</li>{{/each}}
+        </ul>
+      {{/if}}
+      <div class="ucurifunke-condition-layout">
+        <section class="ucurifunke-group" data-filter-group="Stufenlose Zustände">
+          <h3>Stufenlose Zustände</h3>
+          <table class="ucurifunke-conditions">
+            <thead><tr><th>Zustand</th><th>Vorhanden?</th><th>Unterdrückt?</th></tr></thead>
+            <tbody>{{#each simpleConditions}}
+              <tr data-condition="{{key}}" data-filter-row="{{name}}">
+                <th scope="row"><button type="button" data-action="showCondition">{{name}}</button></th>
+                <td><input type="checkbox" data-condition-field="active" aria-label="{{name}} vorhanden"
+                  {{#if active}}checked{{/if}} {{#unless @root.canEdit}}disabled{{/unless}}></td>
+                <td><input type="checkbox" data-condition-field="suppressed" aria-label="{{name}} unterdrückt"
+                  {{#if suppressed}}checked{{/if}} {{#unless @root.canEdit}}disabled{{/unless}}></td>
+              </tr>
+            {{/each}}</tbody>
+          </table>
+        </section>
+        <section class="ucurifunke-group" data-filter-group="Abgestufte Zustände">
+          <h3>Abgestufte Zustände</h3>
+          <table class="ucurifunke-conditions">
+            <thead><tr><th>Zustand</th><th>Stufe</th><th>Unterdrückt?</th></tr></thead>
+            <tbody>{{#each stagedConditions}}
+              <tr data-condition="{{key}}" data-filter-row="{{name}}">
+                <th scope="row"><button type="button" data-action="showCondition">{{name}}</button></th>
+                <td><input type="number" data-condition-field="level" aria-label="{{name}} Stufe"
+                  min="0" max="{{max}}" step="1" value="{{level}}" {{#unless @root.canEdit}}disabled{{/unless}}></td>
+                <td><button type="button" data-action="cycleCondition" aria-label="{{name}} unterdrücken ({{suppressionLabel}})"
+                  title="Unterdrückung ändern" {{#unless @root.canEdit}}disabled{{/unless}}>{{suppressionLabel}}</button></td>
+              </tr>
+            {{/each}}</tbody>
+          </table>
+        </section>
+        <section class="ucurifunke-group" data-condition-rule>
+          <h3>Regeln zum Zustand</h3>
+          <h4>{{conditionRule.name}}</h4>
+          <p>{{#if conditionRule.description}}{{conditionRule.description}}{{else}}Wähle einen Zustand aus.{{/if}}</p>
+        </section>
+      </div>
+      <p class="ucurifunke-empty" role="status" data-no-results hidden>Keine passenden Zustände.</p>
+    </section>
   </div>
 </div>

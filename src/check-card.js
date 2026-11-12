@@ -51,15 +51,21 @@ function renderCombat(check, dice, modifiers, confirmation) {
     { AT: "Offensiver Fokus", PA: "Defensiver Fokus" }[mode], weapon ? "Waffenmodifikator" : "Bonus"];
   const rows = breakdown.length === 4
     ? breakdown.flatMap((value, index) => labels[index] ? [[labels[index], value]] : [])
-    : [["Basiswert inkl. Waffe", check.value + impairment + joints]];
+    : [[check.attackName ? "Hinterlegter Probenwert" : "Basiswert inkl. Waffe",
+      check.value + impairment + joints + (check.conditionPenalties ?? [])
+      .reduce((sum, entry) => sum + entry.value, 0)]];
   rows.push(["Beeinträchtigung", -impairment]);
   if (joints) rows.push(["Schlechte Gelenke", -joints]);
+  for (const { name, value } of check.conditionPenalties ?? []) rows.push([escapeHtml(name), -value]);
   rows.push(["Erschwernis", -modifiers.penalty], ["Erleichterung", modifiers.bonus]);
   const parts = rows.map(([label, value]) => `<div><dt>${label}</dt><dd>${signed(value)}</dd></div>`).join("");
   return {
     summary: [weapon && `Waffe: <strong>${escapeHtml(weapon)}</strong>`,
+      check.attackName && `Angriff: <strong>${escapeHtml(check.attackName)}</strong>`,
       technique && `Fertigkeit: <strong>${escapeHtml(technique)}</strong>`,
-      check.ticks != null && `Tickkosten: <strong>${check.ticks}</strong>`].filter(Boolean).join("<br>"),
+      check.targetName && `Ziel: <strong>${escapeHtml(check.targetName)}</strong>`,
+      check.bookedTicks != null && `Gebuchte Ticks: <strong>${check.bookedTicks}</strong>`,
+      check.ticks != null && check.bookedTicks == null && `Tickkosten: <strong>${check.ticks}</strong>`].filter(Boolean).join("<br>"),
     detail: `<dl class="ucurifunke-card-breakdown">${parts}<div class="ucurifunke-card-target"><dt>Probenwert</dt><dd>${target}</dd></div></dl>
       <div class="ucurifunke-card-dice"><span class="ucurifunke-card-die is-selected">W20: <strong>${dice[0]}</strong></span>
       ${confirmation == null ? "" : `<span class="ucurifunke-card-die">Bestätigung: <strong>${confirmation}</strong></span>`}</div>`
@@ -79,6 +85,8 @@ export function renderCheckCard(check, dice, modifiers, result, confirmation) {
     <header>${title}</header>
     <div class="ucurifunke-card-summary">${summary}</div>
     ${combat ? "" : `<div>Erschwernis: <strong>${modifiers.penalty}</strong> · Erleichterung: <strong>${modifiers.bonus}</strong> · Netto: <strong>${signed(net)}</strong></div>`}
+    ${!combat && check.conditionPenalties?.length ? `<div>Zustandsabzüge: ${check.conditionPenalties
+      .map(({ name, value }) => escapeHtml(name) + " −" + value).join(" · ")}</div>` : ""}
     ${detail}
     <footer><span>Qualität: <strong>${result.quality}</strong></span>
       <strong class="ucurifunke-card-outcome${result.success ? " is-success" : ""}">${outcome}</strong></footer>

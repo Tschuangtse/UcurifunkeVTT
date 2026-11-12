@@ -3,16 +3,16 @@ import { VARIABLE_COST, parseCost } from "./actions.js";
 export function weaponChoices(action, items = []) {
   return [...items].flatMap(item => {
     if (item.type !== "weapon" || !item.system.carried) return [];
-    const { group, speed, reload, attack, parry } = item.system;
+    const { group, speed, reload, attack, parry, preparedCheck, parryTicks } = item.system;
     const melee = group !== "Fernkampf";
     const costs = {
       melee: melee ? speed : null,
       opportunity: melee && Number.isInteger(speed) ? Math.ceil(speed / 2) : null,
       approach: melee ? speed : null,
       reload: melee ? null : reload,
-      ranged: !melee && Number.isInteger(attack) ? action.ticks : null,
-      parry: melee && Number.isInteger(parry) ? action.ticks : null,
-      "parry-maneuver": melee && Number.isInteger(parry) ? action.ticks : null
+      ranged: !melee && Number.isInteger(attack) ? (preparedCheck ? speed : action.ticks) : null,
+      parry: melee && Number.isInteger(parry) ? (preparedCheck ? parryTicks : action.ticks) : null,
+      "parry-maneuver": melee && Number.isInteger(parry) ? (preparedCheck ? (parryTicks ?? 4) + 4 : action.ticks) : null
     };
     const cost = costs[action.id];
     return Number.isInteger(cost) && cost >= VARIABLE_COST.min && cost <= VARIABLE_COST.max

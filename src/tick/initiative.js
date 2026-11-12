@@ -1,5 +1,6 @@
 import { t } from "./i18n.js";
 import { getCombatantData, setCombatantData } from "./data.js";
+import { conditionEffects } from "../conditions.js";
 
 export function canRollInitiative(combatant) {
   return Boolean(combatant?.parent && !combatant.parent.started
@@ -14,8 +15,10 @@ export function validateInitiativeValues(reaction, impairment) {
 export async function rollInitiative(combatant) {
   if (!canRollInitiative(combatant)) return;
   const combat = combatant.parent;
-  const { reaction: actorReaction, impairment: actorImpairment } = combatant.actor?.system ?? {};
-  const initialReaction = Number.isSafeInteger(actorReaction) && actorReaction >= 0 ? actorReaction : 0;
+  const data = combatant.actor?.system;
+  const { reaction: actorReaction, impairment: actorImpairment } = data ?? {};
+  const reactionPenalty = data ? conditionEffects(data).reactionPenalty : 0;
+  const initialReaction = Number.isSafeInteger(actorReaction) ? Math.max(0, actorReaction - reactionPenalty) : 0;
   const initialImpairment = Number.isSafeInteger(actorImpairment) && actorImpairment >= 0 ? actorImpairment : 0;
   const content = document.createElement("div");
   content.innerHTML = `

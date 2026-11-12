@@ -32,6 +32,9 @@ export function weaponCheck(actor, weapon, mode) {
   const data = weapon?.system;
   const base = mode === "PA" ? data?.parry : data?.attack;
   if (!Number.isInteger(base)) return null;
+  if (data.preparedCheck) return { kind: "combat", name: mode + " · " + weapon.name, mode,
+    attackName: weapon.name, value: base,
+    ticks: mode === "PA" ? data.parryTicks : data.speed };
   const impairment = Math.max(0, actor.system.impairment - data.mobilityTolerance);
   const joints = mode === "PA" && actor.system.hasJointPenalty ? 2 : 0;
   return { kind: "combat", name: mode + " · " + weapon.name, mode, weapon: weapon.name,
@@ -39,7 +42,7 @@ export function weaponCheck(actor, weapon, mode) {
     impairment, joints, value: base - impairment - joints };
 }
 
-export async function prepareRoll(check, fields = "") {
+export async function prepareRoll(check, fields = "", { allowBlind = true } = {}) {
   const type = { attribute: "Attributsprobe", skill: "Fertigkeitsprobe" }[check.kind];
   const options = await foundry.applications.api.DialogV2.input({
     window: { title: type ? type + ": " + check.name : check.name },
@@ -53,10 +56,10 @@ export async function prepareRoll(check, fields = "") {
         <label for="ucurifunke-relief">Erleichterung</label>
         <input id="ucurifunke-relief" name="relief" type="number" min="0" step="1" value="0">
       </div>
-      <div class="form-group">
+      ${allowBlind ? `<div class="form-group">
         <label for="ucurifunke-blind">Verdeckte Probe</label>
         <input id="ucurifunke-blind" name="blind" type="checkbox">
-      </div>
+      </div>` : ""}
     </div>`,
     rejectClose: false, modal: true,
     ok: { label: "Würfeln", icon: "fa-solid fa-dice-d20" },
@@ -73,7 +76,7 @@ export async function prepareRoll(check, fields = "") {
   return {
     penalty: nonNegativeInteger(options.difficulty),
     bonus: nonNegativeInteger(options.relief),
-    blind: [true, 1, "1", "true", "on"].includes(options.blind),
+    blind: allowBlind && [true, 1, "1", "true", "on"].includes(options.blind),
     ...(fields ? { fields: options } : {})
   };
 }
@@ -87,9 +90,9 @@ export async function postRoll(actor, check, modifiers, speaker) {
   const result = evaluateCheck(check, dice, modifiers.bonus - modifiers.penalty, confirmation?.total);
   const content = renderCheckCard(check, dice, modifiers, result, confirmation?.total);
   const rolls = confirmation ? [roll, confirmation] : [roll];
-  await postDiceMessage(content, rolls, {
-    actor, speaker, mode: modifiers.blind ? "blind" : undefined,
-    hiddenSubject: check.name
+  return postDiceMessage(content, rolls, {
+    actor, speaker, mode: modifiers.blind ? "blind" : modifiers.mode,
+    hiddenSubject: check.name, exchange: check.exchange && { ...check.exchange, success: result.success }
   });
 }
 

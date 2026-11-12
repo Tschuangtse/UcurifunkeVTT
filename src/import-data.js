@@ -85,6 +85,13 @@ function equipment(character, row, group, container = "") {
     ...list(row.Items).flatMap(item => equipment(character, item, "Gegenstand", name))];
 }
 
+export function assignedRetinueEquipment(source, id) {
+  if (!id) return [];
+  return Object.entries(EQUIPMENT).filter(([field]) => !field.endsWith("Weapons"))
+    .flatMap(([field, group]) => list(source[field]).filter(row => string(row.CarrierAnimalId) === id)
+      .flatMap(row => equipment(source, { ...row, CarrierAnimalId: "" }, group)));
+}
+
 export function isPedipalpusCharacter(source) {
   return Array.isArray(source?.PrimaryAttributes) && Object.hasOwn(source, "Version");
 }
@@ -104,6 +111,14 @@ export function convertCharacter(source) {
       .filter(row => row.name));
   const attributesByKey = new Map(attributes.map(row => [row.key, row]));
   const theorist = list(source.Disadvantages).some(row => germanKey(row.Name) === "theoretiker");
+  const advantages = new Set(list(source.Advantages).map(row => germanKey(row.Name)));
+  const conditions = [
+    ...list(source.SimpleConditions).map(row => ({ name: string(row.Name), staged: false,
+      active: row.IsActive === true, suppressed: row.IsSuppressed === true })),
+    ...list(source.ComplexConditions).map(row => ({ name: string(row.Name), staged: true,
+      level: positive(row.Level), suppression: typeof row.Suppression === "string"
+        ? Math.max(0, ["None", "All", "OneLevel", "TwoLevels"].indexOf(row.Suppression)) : positive(row.Suppression) }))
+  ].filter(row => row.name);
   const skills = Object.entries(SKILLS).flatMap(([field, group]) => list(source[field]).flatMap(row => {
     const name = string(row.Name);
     if (!name) return [];
@@ -125,6 +140,8 @@ export function convertCharacter(source) {
     sourceVersion: source.Version, sourceName: name, race: string(source.Race?.Name),
     reaction: positive(source.Re), impairment: positive(source.Be), attributes, skills,
     offensiveFocus: integer(source.OffOffset), defensiveFocus: integer(source.DefOffset),
+    conditions, hasIron: advantages.has("eisern"), hasEndurance: advantages.has("ausdauernd"),
+    naturalArmor: Number(advantages.has("dichter pelz")) + Number(advantages.has("schuppenkleid")),
     derived: list(source.DerivedValues).filter(row => string(row.LongName))
       .map(row => ({ name: string(row.LongName), key: string(row.ShortName), value: number(row.TotalValue) })),
     energies: ["LE", "AE", "KE"].filter(key => key === "LE" || (key === "AE" ? source.HasMana : source.HasKarma))

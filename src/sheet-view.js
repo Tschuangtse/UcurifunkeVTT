@@ -21,11 +21,11 @@ export function perceptionAttributes(attributes) {
 export function attributeCheck(attributes, index) {
   const attribute = attributes[index];
   if (!attribute) return null;
-  if (isPrimary(attribute)) return { kind: "attribute", name: attribute.name, value: attribute.value };
+  if (isPrimary(attribute)) return { kind: "attribute", name: attribute.name, key: attribute.key, value: attribute.value };
   const keys = SECONDARY_CHECKS[attribute.key.toUpperCase()];
   const related = keys?.map(key => attributes.find(row => isPrimary(row) && row.key.toUpperCase() === key));
   if (!related?.every(Boolean)) return null;
-  return { kind: "skill", name: attribute.name, value: attribute.value, attributes: related };
+  return { kind: "skill", name: attribute.name, key: attribute.key, value: attribute.value, attributes: related };
 }
 
 export function groupAttributes(attributes) {
@@ -76,8 +76,10 @@ export function groupSkills(skills) {
   return [...groups.values()];
 }
 
-export function partitionSkills(skills) {
+export function partitionSkills(skills, companion = false) {
   const groups = groupSkills(skills);
+  if (companion) return { combatGroups: [], skillTabs: [{ id: "abilities", label: "Fähigkeiten", icon: "fa-book-open",
+    groups: groups.map(group => ({ ...group, rows: group.rows.map(row => ({ ...row, companionAbility: true })) })) }] };
   const select = (names, keepParents = false) => groups.filter(group => names.includes(group.name))
     .map(group => {
       const rollable = group.rows.filter(row => row.rollable);

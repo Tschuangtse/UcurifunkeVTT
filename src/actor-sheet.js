@@ -1,6 +1,10 @@
 import { parseCharacter } from "./import-data.js";
 import { postRoll, prepareRoll, weaponCheck } from "./checks.js";
 import { escapeHtml } from "./check-card.js";
+import { chooseCharacterFile, updatePedipalpusActor } from "./import-preview.js";
+import { applyConditionEffects, conditionEffects, conditionRows, conditionSummary, SUPPRESSIONS } from "./conditions.js";
+import { linkAttack, selectedAttackTarget } from "./combat-workflow.js";
+import { convertRetinue, retinueSource, syncRetinue } from "./retinue.js";
 import { addActionTicks, assertSameSelection, getSelection } from "./actions/combat.js";
 import { readTechniqueSettings, techniqueCheck, techniqueFlag, techniqueSettings } from "./technique-check.js";
 import { attributeCheck, filterSheet, groupAttributes, groupItems, partitionSkills, perceptionAttributes,
@@ -13,10 +17,11 @@ function perceptionFields(attributes, defaults) {
   return defaults.map((attribute, index) => {
     const options = attributes.map(row => {
       const key = row.key.toUpperCase();
-      return `<option value="${escapeHtml(key)}"${row === attribute ? " selected" : ""}>${escapeHtml(row.name)}</option>`;
+      return `<option value="${escapeHtml(key)}"${key === attribute?.key?.toUpperCase() ? " selected" : ""}>${escapeHtml(row.name)}</option>`;
     }).join("");
     return `<div class="form-group"><label for="ucurifunke-attribute-${index}">Attribut ${index + 1}</label>
-      <select id="ucurifunke-attribute-${index}" name="attribute${index}">${options}</select></div>`;
+      <select id="ucurifunke-attribute-${index}" name="attribute${index}" required>
+      ${attribute?.key ? "" : '<option value="" selected>Attribut wählen</option>'}${options}</select></div>`;
   }).join("");
 }
 
@@ -35,20 +40,17 @@ function techniqueFields(settings, canBookTicks) {
 
 export async function importPedipalpus() {
   if (!game.user.can("ACTOR_CREATE")) return;
-  const content = document.createElement("div");
-  content.innerHTML = '<label>Pedipalpus-Charakterdatei <input type="file" name="character" accept=".json,application/json" required></label>';
   try {
-    const file = await api.DialogV2.prompt({
-      window: { title: "Pedipalpus-Charakter importieren" },
-      content, modal: true, rejectClose: false,
-      ok: {
-        label: "Neuen Charakter erstellen",
-        callback: (_event, button) => button.form.elements.namedItem("character").files[0]
-      }
-    });
+    const file = await chooseCharacterFile("Neuen Charakter erstellen");
     if (!file) return;
-    const character = parseCharacter(await file.text());
+    const json = await file.text();
+    const character = parseCharacter(json);
     const actor = await foundry.documents.Actor.implementation.create(character);
+    const retinue = retinueSource(JSON.parse(json.replace(/^\uFEFF/, "")));
+    if (actor && Object.values(retinue).some(rows => rows.length)) {
+      const pending = await syncRetinue(actor, retinue);
+      if (pending.length) ui.notifications.warn("Gefolge zur Übernahme vorgemerkt: " + pending.join(", "));
+    }
     await actor?.sheet.render({ force: true });
   } catch (error) {
     ui.notifications.error(error.message);
@@ -58,11 +60,14 @@ export async function importPedipalpus() {
 export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorSheetV2) {
   #activeTab = "overview";
   #filters = {};
+  #selectedCondition = "";
 
   static DEFAULT_OPTIONS = {
     classes: ["ucurifunke-sheet"], position: { width: 710, height: 720 },
     actions: { rollCheck: CharacterSheet.#roll, saveCombatValues: CharacterSheet.#saveCombatValues,
-      openSheetTab: CharacterSheet.#openTab }
+      openSheetTab: CharacterSheet.#openTab, updatePedipalpus: CharacterSheet.#updatePedipalpus,
+      showCondition: CharacterSheet.#showCondition, cycleCondition: CharacterSheet.#cycleCondition,
+      openCompanion: CharacterSheet.#openCompanion, importRetinue: CharacterSheet.#importRetinue }
   };
 
   static PARTS = { character: { template: path, scrollable: [".ucurifunke-sheet-body"] } };
@@ -70,6 +75,15 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
     const data = this.actor.system;
+    const companion = this.actor.type === "retinue";
+    const retinue = companion ? [] : (globalThis.game?.actors?.filter(actor => actor.type === "retinue" && actor.visible
+      && actor.getFlag("ucurifunke", "retinueOwner") === this.actor.id)
+      .map(actor => ({ id: actor.id, name: actor.name, kind: actor.system.companionKind })) ?? []);
+    const pending = !companion && this.actor.getFlag?.("ucurifunke", "retinuePending");
+    const effects = conditionEffects(data);
+    const conditions = conditionRows(data).map(row => ({ ...row,
+      suppressionLabel: !row.suppression && row.automatic ? "1 (Vorteil)" : SUPPRESSIONS[row.suppression]
+    }));
     const items = this.actor.items.map(item => {
       const weapon = item.type === "weapon";
       return {
@@ -77,16 +91,25 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
         attack: weapon && Number.isInteger(item.system.attack),
         parry: weapon && Number.isInteger(item.system.parry),
         attackMode: item.system.group === "Fernkampf" ? "FK" : "AT",
-        hasSpeed: Number.isInteger(item.system.speed), hasReload: Number.isInteger(item.system.reload)
+        hasSpeed: Number.isInteger(item.system.speed), hasReload: Number.isInteger(item.system.reload),
+        hasParrySpeed: Number.isInteger(item.system.parryTicks)
       };
     });
     return { ...context, data, sheetId: this.id, actorName: this.actor.name, actorImage: this.actor.img,
-      ...partitionSkills(data.skills),
-      attributeGroups: groupAttributes(data.attributes),
+      ...partitionSkills(data.skills, companion),
+      attributeGroups: groupAttributes(data.attributes).map(group => ({ ...group, rows: group.rows.map(row => ({
+        ...row, value: row.value - (effects.modifiers[row.key.toUpperCase()] ?? []).reduce((sum, modifier) => sum + modifier.value, 0)
+      })) })),
       weaponGroups: groupItems(items.filter(item => item.weapon)),
       armorGroups: groupItems(items.filter(item => item.data.group === "Rüstung")),
-      derivedValues: data.derived.filter(row => !["LE", "AE", "KE"].includes(row.key.toUpperCase())),
-      canEdit: this.isEditable, canRoll: this.actor.isOwner,
+      derivedValues: data.derived.filter(row => !["LE", "AE", "KE"].includes(row.key.toUpperCase()))
+        .map(row => row.key.toUpperCase() === "GS" ? { name: row.name, key: row.key, value: effects.effectiveSpeed } : row),
+      conditionSummary: conditionSummary(effects), simpleConditions: conditions.filter(row => !row.staged),
+      stagedConditions: conditions.filter(row => row.staged),
+      conditionRule: conditions.find(row => row.key === this.#selectedCondition),
+      companion, retinue, canImportRetinue: Boolean(pending && globalThis.game?.user?.isGM),
+      pendingRetinue: pending ? convertRetinue(pending).length : 0,
+      canEdit: this.isEditable, canRoll: this.actor.isOwner, canImport: this.actor.isOwner && !this.actor.isToken && !companion,
       canRollPerception: this.actor.isOwner && Boolean(perceptionCheck(data)) };
   }
 
@@ -106,7 +129,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
     };
     for (const panel of root.querySelectorAll("[data-searchable]")) {
       const input = panel.querySelector('input[type="search"]');
-      const category = panel.querySelector("select");
+      const category = panel.querySelector(".ucurifunke-filter select");
       const key = panel.dataset.sheetPanel;
       const saved = this.#filters[key];
       input.value = saved?.query ?? "";
@@ -123,7 +146,79 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       if (category) category.onchange = apply;
       apply();
     }
+    const conditions = root.querySelector('[data-sheet-panel="conditions"]');
+    conditions.onchange = async event => {
+      const { conditionField } = event.target.dataset;
+      if (!conditionField) return;
+      const value = conditionField === "level" ? event.target.valueAsNumber : event.target.checked;
+      await this.#updateCondition(event.target, conditionField, value);
+    };
     this.#selectTab(this.#activeTab);
+  }
+
+  static async #updatePedipalpus() {
+    try { await updatePedipalpusActor(this.actor); }
+    catch (error) { ui.notifications.error(error.message); }
+  }
+
+  static #openCompanion(_event, target) {
+    const actor = game.actors.get(target.dataset.companionId);
+    if (actor?.visible && actor.getFlag("ucurifunke", "retinueOwner") === this.actor.id) actor.sheet.render({ force: true });
+  }
+
+  static async #importRetinue(_event, target) {
+    if (!game.user.isGM) return;
+    const source = this.actor.getFlag("ucurifunke", "retinuePending");
+    if (!source) return;
+    target.disabled = true;
+    try {
+      const names = convertRetinue(source).map(({ data }) => escapeHtml(data.name));
+      const confirmed = await api.DialogV2.confirm({ window: { title: "Gefolge übernehmen" },
+        content: `<p>${names.join(", ")}</p>`, modal: true, rejectClose: false });
+      if (!confirmed) return;
+      if (this.actor.getFlag("ucurifunke", "retinuePending") !== source) throw new Error("Die Gefolgedaten wurden zwischenzeitlich geändert.");
+      const pending = await syncRetinue(this.actor, source);
+      if (pending.length) ui.notifications.warn("Weiterhin vorgemerkt: " + pending.join(", "));
+      else ui.notifications.info("Gefolge übernommen.");
+    } catch (error) { ui.notifications.error(error.message); }
+    finally { target.disabled = false; }
+  }
+
+  static #showCondition(_event, target) {
+    const row = conditionRows(this.actor.system).find(entry => entry.key === target.closest("tr").dataset.condition);
+    if (!row) return;
+    this.#selectedCondition = row.key;
+    const rule = this.element.querySelector("[data-condition-rule]");
+    rule.querySelector("h4").textContent = row.name;
+    rule.querySelector("p").textContent = row.description || "Für diesen Zustand ist keine Regelbeschreibung hinterlegt.";
+  }
+
+  static async #cycleCondition(_event, target) {
+    const row = conditionRows(this.actor.system).find(entry => entry.key === target.closest("tr").dataset.condition);
+    if (row) await this.#updateCondition(target, "suppression", (row.suppression + 1) % SUPPRESSIONS.length);
+  }
+
+  async #updateCondition(target, field, value) {
+    if (!this.isEditable || !this.actor.isOwner) return;
+    const rows = conditionRows(this.actor.system);
+    const row = rows.find(entry => entry.key === target.closest("tr").dataset.condition);
+    if (!row) return;
+    if (field === "level" && (!Number.isInteger(value) || value < 0 || value > row.max)) {
+      target.value = row.level;
+      ui.notifications.warn("Die Stufe muss zwischen 0 und " + row.max + " liegen.");
+      return;
+    }
+    row[field] = value;
+    target.disabled = true;
+    try {
+      await this.actor.update({ "system.conditions": rows.map(({ name, staged, active, suppressed, level, suppression }) =>
+        ({ name, staged, active, suppressed, level, suppression })) });
+    } catch (error) {
+      ui.notifications.error(error.message);
+      await this.render();
+    } finally {
+      target.disabled = false;
+    }
   }
 
   #selectTab(name, resetScroll = false) {
@@ -148,19 +243,34 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
     const { kind, index, item, mode } = target.dataset;
     const data = this.actor.system;
     const skill = kind === "technique" ? data.skills[Number(index)] : null;
+    const companionAbility = kind === "companionAbility" ? data.skills[Number(index)] : null;
     const settings = skill ? techniqueSettings(this.actor, skill) : null;
+    const companionPerception = kind === "perception" && this.actor.type === "retinue";
     let check = kind === "weapon" ? weaponCheck(this.actor, this.actor.items.get(item), mode)
       : kind === "attribute" ? attributeCheck(data.attributes, Number(index))
       : kind === "skill" ? skillCheck(data.skills, Number(index))
       : kind === "perception" ? perceptionCheck(data)
+      : companionAbility && this.actor.type === "retinue" ? { ...companionAbility, kind: "skill" }
       : skill ? techniqueCheck(this.actor, skill, mode, settings) : null;
+    if (check && companionPerception) check = { kind: "attribute", name: check.name, value: check.value };
     if (!check || !Number.isInteger(check.value)) return;
     target.disabled = true;
     try {
-      const selection = skill ? getSelection(game, canvas) : null;
+      const attackTarget = selectedAttackTarget(this.actor, check);
+      const weaponDamage = kind === "weapon" ? this.actor.items.get(item)?.system.damage : "";
+      if (kind !== "perception" || companionPerception) applyConditionEffects(this.actor, check);
+      const companionAttack = kind === "weapon" && this.actor.type === "retinue";
+      const selection = skill || companionAttack ? getSelection(game, canvas) : null;
       const canBookTicks = selection?.token?.actor?.uuid === this.actor.uuid;
+      const abilityFlag = companionAbility && techniqueFlag(companionAbility);
+      const remembered = abilityFlag && this.actor.getFlag("ucurifunke", "companionAbilityAttributes")?.[abilityFlag];
+      const primary = perceptionAttributes(data.attributes);
+      const abilityDefaults = remembered?.map(key => primary.find(row => row.key === key)) ?? check.attributes;
       const fields = skill ? techniqueFields(settings, canBookTicks)
-        : kind === "perception" ? perceptionFields(perceptionAttributes(data.attributes), check.attributes) : "";
+        : kind === "perception" && !companionPerception ? perceptionFields(primary, check.attributes)
+        : companionAbility ? perceptionFields(primary, abilityDefaults)
+        : companionAttack && canBookTicks && check.ticks > 0 && check.ticks <= 32
+          ? `<label><input type="checkbox" name="bookTicks"> ${check.ticks} Ticks im laufenden Kampf buchen</label>` : "";
       const modifier = await prepareRoll(check, fields);
       if (!modifier || !this.actor.isOwner) return;
       let bookTicks = false;
@@ -172,12 +282,24 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
         if (Object.keys(updated).some(key => updated[key] !== settings[key])) {
           await this.actor.update({ ["flags.ucurifunke.techniqueSettings." + techniqueFlag(skill)]: updated });
         }
-      } else if (kind === "perception") {
+      } else if (kind === "perception" && !companionPerception) {
         check = perceptionCheck(this.actor.system, [0, 1, 2].map(i => modifier.fields["attribute" + i]));
         if (!check) throw new Error("Bitte drei gültige Attribute auswählen.");
+      } else if (companionAbility) {
+        const keys = [0, 1, 2].map(i => modifier.fields["attribute" + i]);
+        const attributes = keys.map(key => primary.find(row => row.key.toUpperCase() === key));
+        if (!attributes.every(Boolean)) throw new Error("Bitte drei gültige Attribute auswählen.");
+        check = { ...check, attributes };
+        if (keys.some((key, index) => key !== abilityDefaults[index]?.key)) {
+          await this.actor.update({ ["flags.ucurifunke.companionAbilityAttributes." + abilityFlag]: keys });
+        }
+      } else if (companionAttack && canBookTicks && fields) {
+        bookTicks = [true, 1, "1", "true", "on"].includes(modifier.fields.bookTicks);
       }
-      await postRoll(this.actor, check, modifier);
+      check = applyConditionEffects(this.actor, check);
       if (bookTicks) await addActionTicks(selection, check.ticks, { game, canvas });
+      if (check.kind === "combat") check = linkAttack(this.actor, check, attackTarget, weaponDamage, bookTicks ? check.ticks : attackTarget ? 0 : undefined);
+      await postRoll(this.actor, check, modifier);
     } catch (error) {
       ui.notifications.error(error.message);
     } finally {
@@ -203,4 +325,8 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       target.disabled = false;
     }
   }
+}
+
+export class CompanionSheet extends CharacterSheet {
+  static DEFAULT_OPTIONS = { classes: ["ucurifunke-companion-sheet"] };
 }
