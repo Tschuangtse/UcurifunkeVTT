@@ -132,6 +132,10 @@
 .ucurifunke-card-outcome.is-success { text-decoration: underline; }
 .ucurifunke-free-roll .ucurifunke-card-die { border-color: color-mix(in srgb, currentColor 28%, transparent); }
 .ucurifunke-free-roll footer > strong { font-size: 1.2em; }
+.ucurifunke-dice-pool { display: flex; gap: .65rem; }
+.ucurifunke-dice-pool label { display: grid; flex: 1; gap: .3rem; }
+.ucurifunke-dice-pool input[type="number"] { appearance: auto; }
+.ucurifunke-dice-pool input::-webkit-inner-spin-button { appearance: auto; opacity: 1; }
 .ucurifunke-modifier-dialog { display: grid; gap: .65rem; }
 .ucurifunke-modifier-dialog .form-group { display: grid; grid-template-columns: 1fr 7rem; align-items: center; }
 .ucurifunke-modifier-dialog input[type="checkbox"] { justify-self: start; }

@@ -99,6 +99,10 @@ export class ActionDock {
 
   update() {
     if (!this.root) return;
+    // Keep the open controls clickable above sheets and the timeline. Yield to action dialogs.
+    this.root.style.zIndex = this.expanded && !this.busy ? String(Math.max(60,
+      ...Array.from(document.querySelectorAll(".application:not(.dialog)"),
+        element => Number.parseInt(getComputedStyle(element).zIndex, 10) || 0)) + 1) : "";
     const selection = getSelection(this.getGame(), this.getCanvas());
     this.root.querySelector(".uqca-panel").hidden = !this.expanded;
     this.root.querySelector(".uqca-status").textContent = this.busy ? "Handlung wird bearbeitet …"

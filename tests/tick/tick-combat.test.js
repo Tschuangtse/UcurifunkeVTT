@@ -72,8 +72,10 @@ test("German normalization uses the Combatant type and keeps update operations s
 test("loading a started German encounter recovers its initial tick offset once", async () => {
   const { combat, values } = encounter([4, 13, 20]);
   const hooks = new Map();
-  globalThis.Hooks = { once: (name, fn) => hooks.set(name, fn), on() {} };
-  globalThis.foundry = { applications: { api: {
+  globalThis.Hooks = { once: (name, fn) => hooks.set(name, fn), on: (name, fn) => hooks.set(name, fn) };
+  globalThis.foundry = {
+    utils: { hasProperty: (data, path) => path.split(".").reduce((value, key) => value?.[key], data) !== undefined },
+    applications: { api: {
     ApplicationV2: class { async render() {} setPosition() {} },
     HandlebarsApplicationMixin: Base => Base
   } } };
@@ -85,6 +87,16 @@ test("loading a started German encounter recovers its initial tick offset once",
     assert.equal(combat.flags.totalTicks, 4);
     await normalizeTicks();
     assert.equal(combat.flags.totalTicks, 4);
+
+    // The active GM must normalize when another GM advances the last event at tick zero.
+    combat.combatants[0].data = JSON.stringify({ ticks: 3 });
+    combat.flags.events = [{ id: "remote-event", isEvent: true, ticks: 12 }];
+    const update = { flags: { ucurifunke: { events: combat.flags.events } } };
+    await hooks.get("updateCombat")(combat, update, { tickCombatNormalization: true });
+    assert.equal(combat.flags.totalTicks, 4);
+    await hooks.get("updateCombat")(combat, update, {});
+    assert.deepEqual(values(), [0, 6, 13]);
+    assert.equal(combat.flags.totalTicks, 7);
   } finally {
     setTimelineApp(null);
     delete globalThis.Hooks;

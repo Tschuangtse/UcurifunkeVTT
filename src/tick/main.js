@@ -186,8 +186,10 @@ Hooks.on("createCombat", async combat => {
 });
 
 Hooks.on("updateCombat", async (combat, changes, options) => {
+  const changedEvents = Object.hasOwn(changes ?? {}, "flags.ucurifunke.events")
+    || foundry.utils.hasProperty(changes ?? {}, "flags.ucurifunke.events");
   if (!options?.tickCombatNormalization
-    && (Object.hasOwn(changes, "round") || Object.hasOwn(changes, "active"))) {
+    && (changedEvents || Object.hasOwn(changes, "round") || Object.hasOwn(changes, "active"))) {
     await normalizeTicks(combat);
   }
   await refreshTimeline();

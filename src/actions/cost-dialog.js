@@ -33,19 +33,20 @@ export async function requestCost(action, selection) {
   const label = document.createElement("label");
   label.textContent = "Ticks ";
   const input = document.createElement("input");
+  const initialCost = String(action.ticks ?? VARIABLE_COST.default);
   Object.assign(input, {
     type: "number", name: "ticks", min: String(VARIABLE_COST.min), max: String(VARIABLE_COST.max),
-    step: "1", value: String(VARIABLE_COST.default), required: true, autofocus: true
+    step: "1", defaultValue: initialCost, value: initialCost, required: true, autofocus: true
   });
   input.setAttribute("aria-label", "Tickkosten");
   label.append(input);
   fields.append(actor, hint);
   const choices = weaponChoices(action, selection.combatant.actor?.items);
-  let select;
   if (choices.length) {
     const weaponLabel = document.createElement("label");
     weaponLabel.textContent = "Waffe ";
-    select = document.createElement("select");
+    const select = document.createElement("select");
+    select.name = "weapon";
     const manual = document.createElement("option");
     manual.value = "";
     manual.textContent = "Ohne Waffenauswahl";
@@ -56,17 +57,9 @@ export async function requestCost(action, selection) {
       option.textContent = weapon.name + " · " + weapon.ticks + " Ticks";
       select.append(option);
     }
-    select.value = choices[0].id;
     weaponLabel.append(select);
     fields.append(weaponLabel);
   }
-  const updateCost = () => {
-    const weapon = choices.find(choice => choice.id === select?.value);
-    input.readOnly = Boolean(weapon) || action.ticks !== null;
-    input.value = String(weapon?.ticks ?? action.ticks ?? VARIABLE_COST.default);
-  };
-  updateCost();
-  select?.addEventListener("change", updateCost);
   fields.append(label);
   content.append(fields);
 
@@ -79,16 +72,35 @@ export async function requestCost(action, selection) {
     ok: {
       label: "Ticks hinzufügen",
       callback: (_event, button) => {
-        const field = button.form.elements.namedItem("ticks");
+        const { elements } = button.form;
+        const weaponId = elements.namedItem("weapon")?.value;
+        const weapon = choices.find(choice => choice.id === weaponId);
+        if (weapon) return { ticks: weapon.ticks, weaponId: weapon.id };
+        if (action.ticks !== null) return action.ticks;
+        const field = elements.namedItem("ticks");
         if (!field.reportValidity()) throw new Error("Bitte eine ganze Tickzahl von 0 bis 32 eingeben.");
-        const ticks = parseCost(field.value);
-        return select?.value ? { ticks, weaponId: select.value } : ticks;
+        return parseCost(field.value);
       }
     },
     render: (_event, dialog) => {
+      // DialogV2 serializes and recreates its content. Bind to the live form.
       const field = dialog.element.querySelector('input[name="ticks"]');
-      field?.focus();
-      field?.select();
+      const select = dialog.element.querySelector('select[name="weapon"]');
+      const updateCost = () => {
+        const weapon = choices.find(choice => choice.id === select?.value);
+        field.readOnly = Boolean(weapon) || action.ticks !== null;
+        field.value = String(weapon?.ticks ?? initialCost);
+      };
+      if (select) {
+        select.value = choices[0].id;
+        select.addEventListener("change", updateCost);
+      }
+      updateCost();
+      if (select) select.focus();
+      else {
+        field.focus();
+        field.select();
+      }
     }
   });
 }

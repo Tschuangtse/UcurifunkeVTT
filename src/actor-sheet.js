@@ -10,19 +10,16 @@ export async function importPedipalpus() {
   const content = document.createElement("div");
   content.innerHTML = '<label>Pedipalpus-Charakterdatei <input type="file" name="character" accept=".json,application/json" required></label>';
   try {
-    const character = await api.DialogV2.prompt({
+    const file = await api.DialogV2.prompt({
       window: { title: "Pedipalpus-Charakter importieren" },
       content, modal: true, rejectClose: false,
       ok: {
         label: "Neuen Charakter erstellen",
-        callback: async (_event, button) => {
-          const file = button.form.elements.namedItem("character").files[0];
-          if (!file) throw new Error("Bitte eine JSON-Datei auswählen.");
-          return parseCharacter(await file.text());
-        }
+        callback: (_event, button) => button.form.elements.namedItem("character").files[0]
       }
     });
-    if (!character) return;
+    if (!file) return;
+    const character = parseCharacter(await file.text());
     const actor = await foundry.documents.Actor.implementation.create(character);
     await actor?.sheet.render({ force: true });
   } catch (error) {
