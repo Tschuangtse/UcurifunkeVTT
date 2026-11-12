@@ -1,79 +1,159 @@
 <div class="ucurifunke-character">
+  {{#*inline "skillRows"}}
+    {{#each groups}}
+      <section class="ucurifunke-group" data-filter-group="{{name}}">
+        <h3>{{name}}</h3>
+        <ul class="ucurifunke-rows">
+          {{#each rows}}
+            <li class="ucurifunke-row {{#if specialization}}is-specialization{{/if}}"
+                data-filter-row="{{../name}} {{name}} {{attributeLabel}}">
+              <span class="ucurifunke-row-name">
+                {{#if specialization}}<i class="fa-solid fa-turn-up" aria-hidden="true"></i>{{/if}}
+                {{label}}
+              </span>
+              {{#if attributeLabel}}<small class="ucurifunke-row-meta">{{attributeLabel}}</small>{{/if}}
+              <strong class="ucurifunke-row-value" aria-label="Wert {{value}}">{{value}}</strong>
+              {{#if rollable}}{{#if @root.canRoll}}
+                <button type="button" class="ucurifunke-roll" data-action="rollCheck" data-kind="skill" data-index="{{index}}"
+                        title="{{name}} würfeln" aria-label="{{name}} würfeln">
+                  <i class="fa-solid fa-dice-d20" aria-hidden="true"></i>
+                </button>
+              {{/if}}{{/if}}
+            </li>
+          {{/each}}
+        </ul>
+      </section>
+    {{/each}}
+  {{/inline}}
+  {{#*inline "itemRows"}}
+    {{#each groups}}
+      <section class="ucurifunke-group" data-filter-group="{{name}}">
+        <h3>{{name}}</h3>
+        <ul class="ucurifunke-rows">
+          {{#each rows}}
+            <li class="ucurifunke-row is-item" data-filter-row="{{../name}} {{name}} {{data.container}} {{data.technique}}">
+              <div class="ucurifunke-row-name">
+                <span title="{{data.description}}">{{name}}</span>
+                <small class="ucurifunke-item-details">
+                  {{#if data.container}}<span>{{data.container}}</span>{{/if}}
+                  {{#if data.damage}}<span>{{data.damage}}</span>{{/if}}
+                  {{#if data.reach}}<span>{{data.reach}}</span>{{/if}}
+                  {{#if hasSpeed}}<span>WGS {{data.speed}}</span>{{/if}}
+                  {{#if hasReload}}<span>Laden {{data.reload}} Ticks</span>{{/if}}
+                  {{#if data.protection}}<span>RS {{data.protection}}</span>{{/if}}
+                </small>
+              </div>
+              <small class="ucurifunke-row-meta" aria-label="Anzahl {{data.quantity}}">×{{data.quantity}}</small>
+              {{#if @root.canRoll}}
+                {{#if attack}}<button type="button" class="ucurifunke-roll" data-action="rollCheck" data-kind="weapon"
+                  data-item="{{id}}" data-mode="{{attackMode}}" aria-label="{{attackMode}} mit {{name}} würfeln">{{attackMode}}</button>{{/if}}
+                {{#if parry}}<button type="button" class="ucurifunke-roll" data-action="rollCheck" data-kind="weapon"
+                  data-item="{{id}}" data-mode="PA" aria-label="Parade mit {{name}} würfeln">PA</button>{{/if}}
+              {{/if}}
+            </li>
+          {{/each}}
+        </ul>
+      </section>
+    {{/each}}
+  {{/inline}}
+
   <header class="ucurifunke-character-header">
     {{#if actorImage}}<img src="{{actorImage}}" alt="">{{/if}}
-    <div><h2>{{actorName}}</h2>{{#if data.race}}<p>{{data.race}}</p>{{/if}}</div>
-  </header>
-
-  <section class="ucurifunke-combat-values" aria-label="Kampfwerte">
-    <label>BE <input type="number" name="impairment" min="0" step="1" value="{{data.impairment}}" {{#unless canEdit}}disabled{{/unless}}></label>
-    <label>RE <input type="number" name="reaction" min="0" step="1" value="{{data.reaction}}" {{#unless canEdit}}disabled{{/unless}}></label>
-    {{#if canEdit}}<button type="button" data-action="saveCombatValues">Speichern</button>{{/if}}
-    {{#each data.energies}}<span><strong>{{key}}</strong> {{value}}</span>{{/each}}
-  </section>
-
-  {{#if data.attributes.length}}
-  <details open>
-    <summary>Attribute</summary>
-    <div class="ucurifunke-attributes">
-      {{#each data.attributes}}
-        {{#if ../canRoll}}
-          <button type="button" data-action="rollCheck" data-kind="attribute" data-index="{{@index}}">
-            <span>{{name}}</span><strong>{{value}}</strong>
-          </button>
-        {{else}}
-          <span>{{name}} <strong>{{value}}</strong></span>
-        {{/if}}
-      {{/each}}
+    <div class="ucurifunke-identity">
+      <h2>{{actorName}}</h2>
+      {{#if data.race}}<p>{{data.race}}</p>{{/if}}
     </div>
-  </details>
-  {{/if}}
+    {{#if data.energies.length}}
+      <dl class="ucurifunke-energies">
+        {{#each data.energies}}<div><dt>{{key}}</dt><dd>{{value}}</dd></div>{{/each}}
+      </dl>
+    {{/if}}
+  </header>
+  <nav class="ucurifunke-sheet-tabs" role="tablist" aria-label="Charakterbogen">
+    <button type="button" role="tab" id="{{sheetId}}-tab-overview" aria-controls="{{sheetId}}-overview"
+            aria-selected="true" data-action="openSheetTab" data-sheet-tab="overview"><i class="fa-solid fa-id-card" aria-hidden="true"></i> Übersicht</button>
+    <button type="button" role="tab" id="{{sheetId}}-tab-skills" aria-controls="{{sheetId}}-skills"
+            aria-selected="false" tabindex="-1" data-action="openSheetTab" data-sheet-tab="skills"><i class="fa-solid fa-book-open" aria-hidden="true"></i> Fertigkeiten</button>
+    <button type="button" role="tab" id="{{sheetId}}-tab-combat" aria-controls="{{sheetId}}-combat"
+            aria-selected="false" tabindex="-1" data-action="openSheetTab" data-sheet-tab="combat"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Kampf</button>
+    <button type="button" role="tab" id="{{sheetId}}-tab-equipment" aria-controls="{{sheetId}}-equipment"
+            aria-selected="false" tabindex="-1" data-action="openSheetTab" data-sheet-tab="equipment"><i class="fa-solid fa-box-open" aria-hidden="true"></i> Ausrüstung</button>
+  </nav>
 
-  {{#if data.skills.length}}
-  <details open>
-    <summary>Fertigkeiten und Spezialisierungen</summary>
-    <table>
-      <thead><tr><th>Fertigkeit</th><th>Bereich</th><th>Wert</th><th>Probe</th></tr></thead>
-      <tbody>{{#each data.skills}}
-        <tr><td>{{name}}</td><td>{{group}}</td><td>{{value}}</td><td>
-          {{#if rollable}}{{#if ../canRoll}}
-            <button type="button" data-action="rollCheck" data-kind="skill" data-index="{{@index}}" aria-label="{{name}} würfeln">
-              <i class="fa-solid fa-dice-d20" aria-hidden="true"></i>
-            </button>
-          {{/if}}{{/if}}
-        </td></tr>
-      {{/each}}</tbody>
-    </table>
-  </details>
-  {{/if}}
+  <div class="ucurifunke-sheet-body">
+    <section role="tabpanel" id="{{sheetId}}-overview" aria-labelledby="{{sheetId}}-tab-overview" data-sheet-panel="overview">
+      {{#if data.attributes.length}}
+        <h3>Attribute</h3>
+        <ul class="ucurifunke-attributes">
+          {{#each data.attributes}}
+            <li>
+              {{#if ../canRoll}}
+                <button type="button" data-action="rollCheck" data-kind="attribute" data-index="{{@index}}" title="{{name}} würfeln">
+                  <span><small>{{key}}</small><span>{{name}}</span></span><strong>{{value}}</strong>
+                </button>
+              {{else}}
+                <div><span><small>{{key}}</small><span>{{name}}</span></span><strong>{{value}}</strong></div>
+              {{/if}}
+            </li>
+          {{/each}}
+        </ul>
+      {{/if}}
+      {{#if data.derived.length}}
+        <h3>Abgeleitete Werte</h3>
+        <dl class="ucurifunke-derived">
+          {{#each data.derived}}<div><dt>{{name}}</dt><dd>{{value}}</dd></div>{{/each}}
+        </dl>
+      {{/if}}
+      {{#unless data.attributes.length}}<p class="ucurifunke-empty">Keine Attribute vorhanden.</p>{{/unless}}
+    </section>
 
-  {{#if items.length}}
-  <details open>
-    <summary>Ausrüstung</summary>
-    <table>
-      <thead><tr><th>Gegenstand</th><th>Details</th><th>Probe</th></tr></thead>
-      <tbody>{{#each items}}
-        <tr>
-          <td title="{{data.description}}">{{name}} <small>×{{data.quantity}}</small></td>
-          <td>
-            {{data.group}}{{#if data.container}} · {{data.container}}{{/if}}
-            {{#if data.damage}} · {{data.damage}}{{/if}}{{#if data.reach}} · {{data.reach}}{{/if}}
-            {{#if hasSpeed}} · WGS {{data.speed}}{{/if}}{{#if hasReload}} · Laden {{data.reload}} Ticks{{/if}}
-            {{#if data.protection}} · RS {{data.protection}}{{/if}}
-          </td>
-          <td>{{#if ../canRoll}}
-            {{#if attack}}<button type="button" data-action="rollCheck" data-kind="weapon" data-item="{{id}}" data-mode="{{attackMode}}">{{attackMode}}</button>{{/if}}
-            {{#if parry}}<button type="button" data-action="rollCheck" data-kind="weapon" data-item="{{id}}" data-mode="PA">PA</button>{{/if}}
-          {{/if}}</td>
-        </tr>
-      {{/each}}</tbody>
-    </table>
-  </details>
-  {{/if}}
+    <section role="tabpanel" id="{{sheetId}}-skills" aria-labelledby="{{sheetId}}-tab-skills" data-sheet-panel="skills" data-searchable hidden>
+      {{#if skillGroups.length}}
+        <div class="ucurifunke-filter">
+          <label><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <input type="search" aria-label="Fertigkeiten suchen" placeholder="Fertigkeiten oder Spezialisierungen suchen">
+          </label>
+          <select aria-label="Fertigkeitsbereich">
+            <option value="">Alle Bereiche</option>
+            {{#each skillGroups}}<option value="{{name}}">{{name}}</option>{{/each}}
+          </select>
+        </div>
+      {{else}}
+        <input type="search" hidden aria-label="Fertigkeiten suchen">
+      {{/if}}
+      {{> skillRows groups=skillGroups}}
+      <p class="ucurifunke-empty" role="status" data-no-results hidden>{{#if skillGroups.length}}Keine passenden Fertigkeiten.{{else}}Keine Fertigkeiten vorhanden.{{/if}}</p>
+    </section>
 
-  {{#if data.derived.length}}
-  <details>
-    <summary>Abgeleitete Werte</summary>
-    <dl>{{#each data.derived}}<dt>{{name}}</dt><dd>{{value}}</dd>{{/each}}</dl>
-  </details>
-  {{/if}}
+    <section role="tabpanel" id="{{sheetId}}-combat" aria-labelledby="{{sheetId}}-tab-combat" data-sheet-panel="combat" hidden>
+      <section class="ucurifunke-group">
+        <h3>Kampfwerte</h3>
+        <div class="ucurifunke-combat-values">
+          <label>BE <input type="number" name="impairment" min="0" step="1" value="{{data.impairment}}" {{#unless canEdit}}disabled{{/unless}}></label>
+          <label>RE <input type="number" name="reaction" min="0" step="1" value="{{data.reaction}}" {{#unless canEdit}}disabled{{/unless}}></label>
+          {{#if canEdit}}<button type="button" data-action="saveCombatValues">Speichern</button>{{/if}}
+        </div>
+      </section>
+      {{#if weaponGroups.length}}<h3>Waffen</h3>{{> itemRows groups=weaponGroups}}{{/if}}
+      {{#if combatGroups.length}}<h3>Kampftechniken</h3>{{> skillRows groups=combatGroups}}{{/if}}
+    </section>
+
+    <section role="tabpanel" id="{{sheetId}}-equipment" aria-labelledby="{{sheetId}}-tab-equipment" data-sheet-panel="equipment" data-searchable hidden>
+      {{#if equipmentGroups.length}}
+        <div class="ucurifunke-filter">
+          <label><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <input type="search" aria-label="Ausrüstung suchen" placeholder="Ausrüstung suchen">
+          </label>
+          <select aria-label="Ausrüstungskategorie">
+            <option value="">Alle Kategorien</option>
+            {{#each equipmentGroups}}<option value="{{name}}">{{name}}</option>{{/each}}
+          </select>
+        </div>
+      {{else}}
+        <input type="search" hidden aria-label="Ausrüstung suchen">
+      {{/if}}
+      {{> itemRows groups=equipmentGroups}}
+      <p class="ucurifunke-empty" role="status" data-no-results hidden>{{#if equipmentGroups.length}}Keine passende Ausrüstung.{{else}}Keine Ausrüstung vorhanden.{{/if}}</p>
+    </section>
+  </div>
 </div>

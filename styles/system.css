@@ -1,15 +1,113 @@
-.ucurifunke-sheet .window-content { padding: 0; }
-.ucurifunke-character { display: grid; align-content: start; gap: 1rem; padding: 1rem; overflow: auto; }
-.ucurifunke-character-header { display: flex; align-items: center; gap: 1rem; }
-.ucurifunke-character-header img { width: 64px; height: 64px; object-fit: cover; border-radius: .4rem; }
-.ucurifunke-character-header h2, .ucurifunke-character-header p { margin: 0; }
+.ucurifunke-sheet .window-content { padding: 0; min-height: 0; overflow: hidden; }
+.ucurifunke-character {
+  --uc-line: color-mix(in srgb, currentColor 17%, transparent);
+  --uc-surface: color-mix(in srgb, currentColor 5%, transparent);
+  --uc-accent: var(--color-warm-2, #b8784c);
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+}
+.ucurifunke-character [hidden] { display: none !important; }
+.ucurifunke-character-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem;
+  background: linear-gradient(115deg, color-mix(in srgb, var(--uc-accent) 17%, transparent), transparent 70%);
+}
+.ucurifunke-character-header img { width: 60px; height: 60px; object-fit: contain; border-radius: 8px; }
+.ucurifunke-identity { flex: 1 1 12rem; min-width: 0; }
+.ucurifunke-identity h2 { margin: 0; border: 0; font-size: 1.65rem; overflow-wrap: anywhere; }
+.ucurifunke-identity p { margin: .25rem 0 0; }
+.ucurifunke-energies { display: flex; gap: .35rem; margin: 0; }
+.ucurifunke-energies div { min-width: 3rem; text-align: center; padding: .35rem .55rem; border: 1px solid var(--uc-line); border-radius: 6px; }
+.ucurifunke-energies dt { font-size: .72rem; }
+.ucurifunke-energies dd { margin: 0; font-size: 1.15rem; font-weight: 700; }
+
+.ucurifunke-sheet-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .25rem;
+  padding: 0 .9rem;
+  border-bottom: 1px solid var(--uc-line);
+}
+.ucurifunke-sheet-tabs button {
+  display: flex;
+  justify-content: center;
+  gap: .4rem;
+  min-width: 0;
+  min-height: 2.55rem;
+  padding: .35rem .15rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 4px 4px 0 0;
+  background: transparent;
+  font-size: .83rem;
+}
+.ucurifunke-sheet-tabs button[aria-selected="true"] {
+  border-bottom-color: var(--uc-accent);
+  background: var(--uc-surface);
+  font-weight: 700;
+}
+.ucurifunke-sheet-body { min-height: 0; overflow: auto; padding: 1rem 1.15rem 1.25rem; }
+.ucurifunke-sheet-body h3 { margin: 0 0 .55rem; border: 0; font-size: 1.1rem; }
+.ucurifunke-sheet-body > section > h3:not(:first-child) { margin-top: 1rem; }
+.ucurifunke-character ul { list-style: none; padding: 0; margin: 0; }
+
+.ucurifunke-character .ucurifunke-attributes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+  gap: .4rem;
+}
+.ucurifunke-attributes button, .ucurifunke-attributes li > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 3.2rem;
+  height: 100%;
+  gap: .35rem;
+  text-align: left;
+  padding: .35rem .55rem;
+  border: 1px solid var(--uc-line);
+  border-radius: 6px;
+  background: var(--uc-surface);
+}
+.ucurifunke-attributes li > :is(button, div) > span { display: grid; gap: .15rem; }
+.ucurifunke-attributes small { opacity: .8; font-size: .7rem; }
+.ucurifunke-attributes strong { font-size: 1.12rem; font-variant-numeric: tabular-nums; }
+.ucurifunke-derived { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: .3rem 1rem; margin: 0; }
+.ucurifunke-derived div { display: flex; justify-content: space-between; gap: .5rem; padding: .45rem 0; border-bottom: 1px solid var(--uc-line); }
+.ucurifunke-derived dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+.ucurifunke-filter { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .8rem; }
+.ucurifunke-filter label { display: flex; flex: 1 1 14rem; align-items: center; gap: .55rem; }
+.ucurifunke-filter input { flex: 1; min-width: 0; }
+.ucurifunke-filter select { flex: 0 1 auto; max-width: 100%; }
+.ucurifunke-group { overflow: hidden; border: 1px solid var(--uc-line); border-radius: 7px; margin-bottom: .65rem; }
+.ucurifunke-group > h3 { margin: 0; padding: .55rem .65rem; background: var(--uc-surface); }
+.ucurifunke-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  min-height: 2.2rem;
+  padding: .25rem .6rem;
+  border-top: 1px solid var(--uc-line);
+}
+.ucurifunke-row:hover { background: var(--uc-surface); }
+.ucurifunke-row-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.ucurifunke-row:not(.is-specialization) .ucurifunke-row-name { font-weight: 650; }
+.ucurifunke-row.is-specialization .ucurifunke-row-name { padding-inline-start: .6rem; }
+.ucurifunke-row.is-specialization .ucurifunke-row-name i { font-size: .67rem; opacity: .65; transform: rotate(90deg); margin-inline-end: .28rem; }
+.ucurifunke-row-meta, .ucurifunke-item-details { font-size: .75rem; opacity: .82; }
+.ucurifunke-row-meta { white-space: nowrap; }
+.ucurifunke-item-details { display: flex; flex-wrap: wrap; gap: .15rem .55rem; font-weight: 400; }
+.ucurifunke-row-value { min-width: 1.75rem; text-align: center; font-variant-numeric: tabular-nums; }
+.ucurifunke-row .ucurifunke-roll { flex: 0 0 2.1rem; min-height: 1.65rem; padding: .12rem .2rem; }
+.ucurifunke-empty { padding: .75rem 0; }
+.ucurifunke-group .ucurifunke-combat-values { padding: .6rem; }
 .ucurifunke-combat-values, .ucurifunke-modifiers { display: flex; align-items: center; flex-wrap: wrap; gap: .7rem; }
 .ucurifunke-combat-values input, .ucurifunke-modifiers input { width: 5rem; }
-.ucurifunke-character summary { font-weight: 700; padding: .45rem 0; cursor: pointer; }
-.ucurifunke-attributes { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .35rem; }
-.ucurifunke-attributes button { display: flex; justify-content: space-between; gap: .4rem; }
-.ucurifunke-character th, .ucurifunke-character td { text-align: start; padding: .3rem .4rem; }
-.ucurifunke-character td button { min-width: 2rem; }
-.ucurifunke-character dl { display: grid; grid-template-columns: 1fr auto; gap: .25rem 1rem; }
-.ucurifunke-character dd { margin: 0; }
 .ucurifunke-import { width: 100%; }

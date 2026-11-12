@@ -1,5 +1,6 @@
 import { parseCharacter } from "./import-data.js";
 import { postRoll, prepareRoll, weaponCheck } from "./checks.js";
+import { filterSheet, groupItems, groupSkills } from "./sheet-view.js";
 
 const { api, sheets } = foundry.applications;
 const path = "systems/ucurifunke/templates/actor.hbs";
@@ -30,12 +31,16 @@ export async function importPedipalpus() {
 }
 
 export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorSheetV2) {
+  #activeTab = "overview";
+  #filters = {};
+
   static DEFAULT_OPTIONS = {
-    classes: ["ucurifunke-sheet"], position: { width: 690, height: 740 },
-    actions: { rollCheck: CharacterSheet.#roll, saveCombatValues: CharacterSheet.#saveCombatValues }
+    classes: ["ucurifunke-sheet"], position: { width: 710, height: 720 },
+    actions: { rollCheck: CharacterSheet.#roll, saveCombatValues: CharacterSheet.#saveCombatValues,
+      openSheetTab: CharacterSheet.#openTab }
   };
 
-  static PARTS = { character: { template: path, scrollable: [""] } };
+  static PARTS = { character: { template: path, scrollable: [".ucurifunke-sheet-body"] } };
 
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
@@ -50,8 +55,65 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
         hasSpeed: Number.isInteger(item.system.speed), hasReload: Number.isInteger(item.system.reload)
       };
     });
-    return { ...context, data, items, actorName: this.actor.name, actorImage: this.actor.img,
+    const skillGroups = groupSkills(data.skills);
+    const combatGroups = skillGroups.filter(group => ["Nahkampf", "Fernkampf"].includes(group.name));
+    return { ...context, data, sheetId: this.id, actorName: this.actor.name, actorImage: this.actor.img,
+      skillGroups: skillGroups.filter(group => !combatGroups.includes(group)), combatGroups,
+      equipmentGroups: groupItems(items), weaponGroups: groupItems(items.filter(item => item.weapon)),
       canEdit: this.isEditable, canRoll: this.actor.isOwner };
+  }
+
+  _onRender(context, options) {
+    super._onRender(context, options);
+    const root = this.element.querySelector(".ucurifunke-character");
+    const tablist = root.querySelector('[role="tablist"]');
+    tablist.onkeydown = event => {
+      const tabs = [...tablist.querySelectorAll('[role="tab"]')];
+      const index = tabs.indexOf(event.target);
+      const next = { ArrowLeft: (index + tabs.length - 1) % tabs.length,
+        ArrowRight: (index + 1) % tabs.length, Home: 0, End: tabs.length - 1 }[event.key];
+      if (index < 0 || next === undefined) return;
+      event.preventDefault();
+      this.#selectTab(tabs[next].dataset.sheetTab, true);
+      tabs[next].focus();
+    };
+    for (const panel of root.querySelectorAll("[data-searchable]")) {
+      const input = panel.querySelector('input[type="search"]');
+      const category = panel.querySelector("select");
+      const key = panel.dataset.sheetPanel;
+      const saved = this.#filters[key];
+      input.value = saved?.query ?? "";
+      if (category) category.value = saved?.category ?? "";
+      const apply = () => {
+        const filter = { query: input.value, category: category?.value ?? "" };
+        this.#filters[key] = filter;
+        filterSheet(panel, filter.query, filter.category);
+      };
+      input.oninput = apply;
+      input.onkeydown = event => {
+        if (event.key === "Enter") event.preventDefault();
+      };
+      if (category) category.onchange = apply;
+      apply();
+    }
+    this.#selectTab(this.#activeTab);
+  }
+
+  #selectTab(name, resetScroll = false) {
+    this.#activeTab = name;
+    for (const tab of this.element.querySelectorAll("[data-sheet-tab]")) {
+      const selected = tab.dataset.sheetTab === name;
+      tab.setAttribute("aria-selected", String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+    }
+    for (const panel of this.element.querySelectorAll("[data-sheet-panel]")) {
+      panel.hidden = panel.dataset.sheetPanel !== name;
+    }
+    if (resetScroll) this.element.querySelector(".ucurifunke-sheet-body").scrollTop = 0;
+  }
+
+  static #openTab(_event, target) {
+    this.#selectTab(target.dataset.sheetTab, true);
   }
 
   static async #roll(_event, target) {
