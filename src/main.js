@@ -1,5 +1,6 @@
 import "./tick/main.js";
 import "./actions/main.js";
+import "./creation-defaults.js";
 import { UcurifunkeActor } from "./actor.js";
 import { CharacterData, EquipmentData, WeaponData } from "./models.js";
 import { CharacterSheet, importPedipalpus } from "./actor-sheet.js";
