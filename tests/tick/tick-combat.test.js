@@ -33,11 +33,18 @@ function encounter(ticks, { started = true, events = [], waiting = [] } = {}) {
   combat.combatants = ticks.map((ticks, index) => ({
     id: String(index), name: String(index), parent: combat, isOwner: true,
     data: JSON.stringify({ ticks, isWaiting: waiting.includes(index) }),
-    getFlag() { return this.data; },
+    pending: {},
+    getFlag(_scope, key) { return key === "pendingTicks" ? this.pending : this.data; },
+    async update(changes) {
+      for (const [key, value] of Object.entries(changes)) {
+        if (key === "flags.ucurifunke.data") this.data = value;
+        else if (key.startsWith("flags.ucurifunke.pendingTicks.-=")) delete this.pending[key.split("-=")[1]];
+      }
+    },
     async setFlag(_scope, _key, value) { this.data = value; }
   }));
   globalThis.game = {
-    combat, user: { id: "gm", isGM: true },
+    combat, combats: [combat], user: { id: "gm", isGM: true },
     users: { activeGM: { id: "gm" } }
   };
   return { combat, writes, values: () => combat.combatants.map(item => getCombatantData(item).ticks) };
@@ -52,6 +59,29 @@ test("initiative remains absolute before combat starts", async () => {
   await normalizeTicks();
   assert.deepEqual(values(), [0, 4]);
   assert.equal(combat.flags.totalTicks, 19);
+});
+
+test("bookings arriving during a normalization survive and are consumed exactly once", async () => {
+  const { combat, values } = encounter([0, 0]);
+  const [attacker, defender] = combat.combatants;
+  attacker.pending.attack = 7;
+  defender.pending.parry = 5;
+  const update = combat.updateEmbeddedDocuments.bind(combat);
+  let next;
+  combat.updateEmbeddedDocuments = async (...args) => {
+    if (!next) {
+      attacker.pending.anotherAttack = 4;
+      next = normalizeTicks(combat);
+    }
+    await update(...args);
+  };
+  await normalizeTicks(combat);
+  await next;
+  await normalizeTicks(combat);
+  assert.equal(combat.flags.totalTicks, 5);
+  assert.deepEqual(values(), [6, 0]);
+  assert.deepEqual(attacker.pending, {});
+  assert.deepEqual(defender.pending, {});
 });
 
 test("German normalization uses the Combatant type and keeps update operations separate", async () => {

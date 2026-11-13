@@ -208,16 +208,49 @@ export function getCombatantAndEventsList({ combat = game.combat, forDisplay = t
   });
 }
 
-// Every request reads fresh data after the previous normalization has completed.
-// In particular, embedded-document hooks must not start a second normalization.
+// The active GM serializes additive bookings and timeline advancement per encounter.
 const normalizationQueues = new WeakMap();
 
 export function normalizeTicks(combat = game.combat) {
   if (!combat?.started || !isNormalizationAuthority()) return Promise.resolve();
   const previous = normalizationQueues.get(combat) ?? Promise.resolve();
-  const next = previous.catch(() => {}).then(() => normalizeCombat(combat));
+  const next = previous.catch(() => {}).then(async () => {
+    if (!combat.started || !isNormalizationAuthority()) return;
+    for (const combatant of combat.combatants) {
+      const pending = combatant.getFlag(MODULE_ID, "pendingTicks") ?? {};
+      const requests = Object.entries(pending).filter(([id, ticks]) =>
+        /^[a-zA-Z0-9]+$/.test(id) && Number.isInteger(ticks) && ticks > 0 && ticks <= 32);
+      if (!requests.length) continue;
+      const data = getCombatantData(combatant);
+      data.ticks += requests.reduce((sum, [, ticks]) => sum + ticks, 0);
+      if (data.ticks > 0) data.isWaiting = false;
+      const update = Object.fromEntries(requests.map(([id]) => [`flags.ucurifunke.pendingTicks.-=${id}`, null]));
+      update["flags.ucurifunke.data"] = JSON.stringify(data);
+      await combatant.update(update, { tickCombatNormalization: true });
+    }
+    await normalizeCombat(combat);
+  });
   normalizationQueues.set(combat, next);
   return next;
+}
+
+export async function queueActionTicks(combatant, ticks) {
+  if (!game.users?.activeGM && !game.user?.isGM) {
+    throw new Error("Für Tickbuchungen muss eine Spielleitung verbunden sein.");
+  }
+  const combat = combatant.parent;
+  // The player persists a delta under a unique key, so concurrent clients never
+  // replace each other's requests or write an outdated combatant tick total.
+  const id = foundry.utils.randomID();
+  await combatant.update({ [`flags.ucurifunke.pendingTicks.${id}`]: ticks });
+  if (isNormalizationAuthority()) await normalizeTicks(combat);
+  // Requests remain persisted if the authority disconnects while processing.
+  for (let attempt = 0; attempt < 100; attempt++) {
+    if (combatant.getFlag(MODULE_ID, "pendingTicks")?.[id] === undefined) return;
+    if (!combat.started || !combat.combatants.has(combatant.id)) break;
+    await new Promise(resolve => setTimeout(resolve, 150));
+  }
+  ui.notifications.warn("Die Tickbuchung wurde vorgemerkt und wartet auf die Spielleitung.");
 }
 
 async function normalizeCombat(combat) {

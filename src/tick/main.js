@@ -190,7 +190,7 @@ Hooks.once("ready", async () => {
       await reconcileActiveEncounter(sceneId);
     }
     // Resume encounters whose initial tick normalization did not run.
-    await normalizeTicks();
+    for (const combat of game.combats) await normalizeTicks(combat);
   } finally {
     setTimelineApp(new TimelineApp());
     await refreshTimeline({ open: true });
@@ -201,6 +201,10 @@ Hooks.once("ready", async () => {
 Hooks.on("renderCombatTracker", replaceCombatTracker);
 Hooks.on("renderChatMessageHTML", localizeActionMessage);
 Hooks.on("canvasReady", () => refreshTimeline());
+Hooks.on("userConnected", async () => {
+  if (!game.ready || !isNormalizationAuthority()) return;
+  for (const combat of game.combats) await normalizeTicks(combat);
+});
 Hooks.on("refreshToken", token => refreshTokenHighlight(token));
 Hooks.on("updateToken", () => refreshTimeline());
 
@@ -241,8 +245,10 @@ Hooks.on("createCombatant", async combatant => {
 Hooks.on("updateCombatant", async (combatant, changes, options) => {
   const changedTickData = Object.hasOwn(changes ?? {}, "flags.ucurifunke.data")
     || foundry.utils.hasProperty(changes, "flags.ucurifunke.data");
+  const changedRequests = Object.keys(changes ?? {}).some(key => key.startsWith("flags.ucurifunke.pendingTicks."))
+    || foundry.utils.hasProperty(changes, "flags.ucurifunke.pendingTicks");
   const changedParticipation = ["hidden", "defeated"].some(key => Object.hasOwn(changes ?? {}, key));
-  if (!options?.tickCombatNormalization && (changedTickData || changedParticipation)) {
+  if (!options?.tickCombatNormalization && (changedTickData || changedRequests || changedParticipation)) {
     await normalizeTicks(combatant.parent);
   }
   await refreshTimeline();

@@ -37,9 +37,5 @@ export async function addActionTicks(expected, ticks, { game, canvas, loadApi = 
   // Recheck permissions and identity before persisting.
   assertSameSelection(expected, getSelection(game, canvas));
   if (ticks === 0) return;
-  const current = api.getCombatantInfo(expected.combatant).ticks;
-  if (!Number.isInteger(current)) throw new Error("Der aktuelle Tickwert ist ungültig.");
-  await api.setTicks(expected.combatant, current + ticks);
-  // Player updates are normalized by TickBasedCombat's update hook on the active GM client.
-  if (game.user.isGM) await api.normalizeTicks(expected.combat);
+  await api.queueActionTicks(expected.combatant, ticks);
 }

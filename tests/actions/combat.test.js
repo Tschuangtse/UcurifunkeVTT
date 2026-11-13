@@ -12,9 +12,7 @@ function fixture() {
   const canvas = { ready: true, scene: { id: "scene-a" }, tokens: { controlled: [{ id: "token-a", document: { parent: { id: "scene-a" } } }] } };
   const calls = [];
   const loadApi = async () => ({
-    getCombatantInfo: () => ({ ticks: 11 }),
-    setTicks: async (...args) => calls.push(["set", ...args]),
-    normalizeTicks: async (...args) => calls.push(["normalize", ...args])
+    queueActionTicks: async (...args) => calls.push(["queue", ...args])
   });
   return { game, canvas, combatant, calls, loadApi };
 }
@@ -42,7 +40,7 @@ test("aim books one four-tick step without opening a cost dialog", async () => {
   });
   dock.refresh = () => {};
   await dock.execute("aim");
-  assert.deepEqual(f.calls, [["set", f.combatant, 15], ["normalize", f.game.combat]]);
+  assert.deepEqual(f.calls, [["queue", f.combatant, 4]]);
 });
 
 test("manual cost input accepts zero and 32, rejects empty, fractional, and out-of-range input", () => {
@@ -82,7 +80,7 @@ for (const [name, mutate] of [
 test("adds to the existing value and delegates normalization to TickBasedCombat", async () => {
   const f = fixture();
   await addActionTicks(getSelection(f.game, f.canvas), 4, f);
-  assert.deepEqual(f.calls, [["set", f.combatant, 15], ["normalize", f.game.combat]]);
+  assert.deepEqual(f.calls, [["queue", f.combatant, 4]]);
 });
 
 test("players can book ticks for their owned token", async () => {
@@ -90,7 +88,7 @@ test("players can book ticks for their owned token", async () => {
   f.game.user.isGM = false;
   f.canvas.tokens.controlled[0].document.isOwner = true;
   await addActionTicks(getSelection(f.game, f.canvas), 4, f);
-  assert.deepEqual(f.calls, [["set", f.combatant, 15]]);
+  assert.deepEqual(f.calls, [["queue", f.combatant, 4]]);
 });
 
 test("unowned token shows the required warning before prompting for variable costs", async () => {
@@ -145,9 +143,7 @@ test("ending or switching combat while loading the dependency prevents writing",
 
 test("failed persistence never calls normalization", async () => {
   const f = fixture();
-  f.loadApi = async () => ({ getCombatantInfo: () => ({ ticks: 1 }),
-    setTicks: async () => { throw new Error("write failed"); },
-    normalizeTicks: async () => f.calls.push("unexpected") });
+  f.loadApi = async () => ({ queueActionTicks: async () => { throw new Error("write failed"); } });
   await assert.rejects(addActionTicks(getSelection(f.game, f.canvas), 4, f), /write failed/);
   assert.deepEqual(f.calls, []);
 });
