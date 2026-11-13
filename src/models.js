@@ -10,7 +10,7 @@ const attribute = () => ({ name: text(), key: text(), value: number() });
 export class CharacterData extends foundry.abstract.TypeDataModel {
   static defineSchema() {
     return {
-      sourceVersion: optionalInteger(), sourceName: text(), race: text(),
+      sourceVersion: optionalInteger(), sourceName: text(), race: text(), npcGenerator: flag(),
       reaction: integer(0), impairment: integer(0), hasJointPenalty: flag(),
       hasIron: flag(), hasEndurance: flag(), naturalArmor: integer(0),
       companionArmor: optionalInteger(), companionKind: text(),
@@ -20,7 +20,7 @@ export class CharacterData extends foundry.abstract.TypeDataModel {
       offensiveFocus: optionalInteger(), defensiveFocus: optionalInteger(), combatFocus: optionalInteger(),
       dodgeOverride: optionalInteger(),
       attributes: rows({ ...attribute(), kind: text() }), derived: rows(attribute()), energies: rows({ key: text(), value: number() }),
-      skills: rows({ name: text(), group: text(), rollName: text(), value: number(), rollable: flag(), attributes: rows(attribute()) })
+      skills: rows({ name: text(), group: text(), rollName: text(), description: text(), value: number(), rollable: flag(), attributes: rows(attribute()) })
     };
   }
 }
@@ -40,7 +40,7 @@ export class WeaponData extends EquipmentData {
       ...super.defineSchema(),
       speed: optionalInteger(), reload: optionalInteger(), damage: text(), reach: text(), technique: text(),
       mobilityTolerance: integer(0), attack: optionalInteger(), parry: optionalInteger(),
-      preparedCheck: flag(), parryTicks: optionalInteger(),
+      preparedCheck: flag(), useAttackTicks: flag(), parryTicks: optionalInteger(),
       attackBreakdown: new ArrayField(integer(), { initial: [] }),
       parryBreakdown: new ArrayField(integer(), { initial: [] })
     };

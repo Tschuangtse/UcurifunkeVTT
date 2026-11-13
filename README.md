@@ -38,4 +38,6 @@ Die Tickleiste basiert auf TickBasedCombat 0.3.12 von Tschuangtse und Phil Reif.
 
 ## Entwicklung
 
+Der Importknopf im Akteursverzeichnis erkennt auch Dateien `*.nsc.json` aus dem NSCGenerator und legt einen Akteur vom Typ **NSC** an. Einen bestehenden NSC kann man über seinen Bogen oder **Daten importieren** aktualisieren. Aufgabenbereiche verwenden drei im Probenfenster gewählte Attribute. Zauber, Rituale und Liturgien übernehmen die hinterlegten Attribute. Merkmale und Kräfte ohne gültige Probe erscheinen ohne Würfelknopf.
+
 Mit Node.js lassen sich die Tests über `npm test` ausführen. `npm run package` legt das Manifest und das installierbare ZIP in `dist/` ab. Für den Paketbau wird ein `tar` mit ZIP-Unterstützung benötigt, wie es Windows mitliefert.

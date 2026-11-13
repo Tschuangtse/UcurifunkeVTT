@@ -12,7 +12,7 @@
           {{#each rows}}
             <li class="ucurifunke-row {{#if specialization}}is-specialization{{/if}}"
                 data-filter-row="{{../name}} {{name}} {{attributeLabel}}">
-              <span class="ucurifunke-row-name">
+              <span class="ucurifunke-row-name" title="{{description}}">
                 {{#if specialization}}<i class="fa-solid fa-turn-up" aria-hidden="true"></i>{{/if}}
                 {{label}}
               </span>
@@ -152,7 +152,7 @@
       {{/if}}
       {{#if companionDetails.length}}
         <section class="ucurifunke-overview-group" data-filter-group="Gefolgedaten">
-          <h3>Gefolgedaten</h3>
+          <h3>{{#if npcGenerator}}NSC-Daten{{else}}Gefolgedaten{{/if}}</h3>
           <dl class="ucurifunke-derived ucurifunke-companion-details">
             {{#each companionDetails}}
               <div class="{{#if fullWidth}}ucurifunke-companion-properties{{/if}}" data-filter-row="{{name}} {{value}}">

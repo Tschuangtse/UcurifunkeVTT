@@ -1,9 +1,9 @@
 import { ACTIONS } from "./actions/actions.js";
 
 export function weaponTickFields(item) {
-  const { group, speed, reload, parryTicks, preparedCheck, parry } = item.system;
+  const { group, speed, reload, parryTicks, preparedCheck, useAttackTicks, parry } = item.system;
   const ranged = group === "Fernkampf";
-  const attack = ranged && !preparedCheck ? ACTIONS.get("ranged").ticks : speed;
+  const attack = ranged && !preparedCheck && !useAttackTicks ? ACTIONS.get("ranged").ticks : speed;
   return [
     { action: ranged ? "ranged" : "melee", label: "Angriff", source: attack },
     { action: "parry", label: "Parade", source: !ranged && Number.isInteger(parry) ? parryTicks ?? ACTIONS.get("parry").ticks : null },

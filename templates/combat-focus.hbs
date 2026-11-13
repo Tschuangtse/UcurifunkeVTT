@@ -1,7 +1,7 @@
 <div class="ucurifunke-focus">
   <label>
     <span>Kampffokus</span>
-    <input type="range" name="combatFocus" min="-2" max="2" step="1" value="{{focus}}"
+    <input type="range" name="combatFocus" min="{{focusMin}}" max="{{focusMax}}" step="1" value="{{focus}}"
       {{#unless canEdit}}disabled{{/unless}}>
   </label>
   <div class="ucurifunke-focus-values">

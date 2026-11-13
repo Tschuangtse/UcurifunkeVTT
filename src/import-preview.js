@@ -2,10 +2,11 @@ import { escapeHtml } from "./check-card.js";
 import { parseCharacter } from "./import-data.js";
 import { conditionRows, SUPPRESSIONS } from "./conditions.js";
 import { planRetinue, retinueSource, syncRetinue } from "./retinue.js";
+import { convertNpc, isNpcFile, npcRetinue } from "./npc-import.js";
 
 export function chooseCharacterFile(label) {
   const content = document.createElement("div");
-  content.innerHTML = '<label>Pedipalpus-Charakterdatei <input type="file" name="character" accept=".json,application/json" required></label>';
+  content.innerHTML = '<label>Pedipalpus- oder NSCGenerator-Datei <input type="file" name="character" accept=".json,application/json" required></label>';
   return foundry.applications.api.DialogV2.prompt({
     window: { title: "Pedipalpus-Charakter importieren" },
     content, modal: true, rejectClose: false,
@@ -64,8 +65,11 @@ export async function updatePedipalpusActor(actor) {
   const file = await chooseCharacterFile("Änderungen ansehen");
   if (!file || !actor.isOwner) return;
   const json = await file.text();
-  const data = parseCharacter(json);
-  const retinue = retinueSource(JSON.parse(json.replace(/^\uFEFF/, "")));
+  const source = JSON.parse(json.replace(/^\uFEFF/, ""));
+  const npc = isNpcFile(source);
+  if (npc && actor.type !== "npc") throw new Error("NSC-Dateien können nur in Akteure vom Typ NSC importiert werden.");
+  const data = npc ? convertNpc(source) : parseCharacter(json);
+  const retinue = retinueSource(npc ? npcRetinue(source) : source);
   const snapshot = () => {
     const { name, system, items } = actor.toObject();
     return { name, system, items };

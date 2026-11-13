@@ -1,9 +1,17 @@
 import { convertCharacter, isPedipalpusCharacter } from "./import-data.js";
 import { retinueSource, syncRetinue } from "./retinue.js";
+import { convertNpc, isNpcFile, npcRetinue } from "./npc-import.js";
 
 export class UcurifunkeActor extends foundry.documents.Actor {
   async importFromJSON(json) {
     const source = JSON.parse(json.replace(/^\uFEFF/, ""));
+    if (isNpcFile(source)) {
+      if (this.type !== "npc") throw new Error("NSC-Dateien können nur in Akteure vom Typ NSC importiert werden.");
+      const result = await this.importPedipalpusData(convertNpc(source));
+      const pending = await syncRetinue(this, retinueSource(npcRetinue(source)));
+      if (pending.length) ui.notifications.warn("Gefolge zur Übernahme vorgemerkt: " + pending.join(", "));
+      return result;
+    }
     if (!isPedipalpusCharacter(source)) return super.importFromJSON(json);
 
     const result = await this.importPedipalpusData(convertCharacter(source));

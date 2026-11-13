@@ -3,7 +3,8 @@ export function combatFocus(actor) {
   const legacy = () => actor.items?.find(item => item.type === "weapon" && item.system.group !== "Fernkampf"
     && item.system.attackBreakdown?.length === 4)?.system.attackBreakdown[2];
   const value = combatFocus ?? offensiveFocus ?? (defensiveFocus == null ? legacy() ?? 0 : -defensiveFocus);
-  return Math.max(-2, Math.min(2, Math.trunc(value)));
+  const limit = actor.system.npcGenerator ? 4 : 2;
+  return Math.max(-limit, Math.min(limit, Math.trunc(value)));
 }
 
 export function focusModifier(actor, mode, imported) {
@@ -25,8 +26,9 @@ export function bindFocus(root) {
 }
 
 export async function requestFocus(actor, tokenName) {
+  const limit = actor.system.npcGenerator ? 4 : 2;
   const content = await foundry.applications.handlebars.renderTemplate("systems/ucurifunke/templates/combat-focus.hbs",
-    { focus: combatFocus(actor), canEdit: true });
+    { focus: combatFocus(actor), focusMin: -limit, focusMax: limit, canEdit: true });
   const result = await foundry.applications.api.DialogV2.input({
     window: { title: "Haltung wechseln – " + tokenName }, content, modal: true, rejectClose: false,
     ok: { label: "Haltung wechseln (4 Ticks)" },
@@ -34,6 +36,6 @@ export async function requestFocus(actor, tokenName) {
   });
   if (!result) return null;
   const focus = Number(result.combatFocus);
-  if (!Number.isInteger(focus) || focus < -2 || focus > 2) throw new Error("Ungültiger Kampffokus.");
+  if (!Number.isInteger(focus) || focus < -limit || focus > limit) throw new Error("Ungültiger Kampffokus.");
   return focus;
 }

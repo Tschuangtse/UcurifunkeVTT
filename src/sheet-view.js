@@ -76,10 +76,23 @@ export function groupSkills(skills) {
   return [...groups.values()];
 }
 
-export function partitionSkills(skills, companion = false) {
+export function partitionSkills(skills, companion = false, npc = false) {
   const groups = groupSkills(skills);
   if (companion) return { combatGroups: [], skillTabs: [{ id: "abilities", label: "Fähigkeiten", icon: "fa-book-open",
     groups: groups.map(group => ({ ...group, rows: group.rows.map(row => ({ ...row, companionAbility: true })) })) }] };
+  if (npc) {
+    const select = names => groups.filter(group => names.includes(group.name)).map(group => ({
+      ...group, rows: group.rows.map(row => ({ ...row, rollable: false, companionAbility: skills[row.index].rollable }))
+    }));
+    return {
+      combatGroups: groups.filter(group => ["Nahkampf", "Fernkampf"].includes(group.name)),
+      skillTabs: [
+        { id: "munda", label: "Mundan", icon: "fa-book-open", groups: select(["Aufgabenbereiche"]) },
+        { id: "magic", label: "Magie", icon: "fa-wand-sparkles", groups: select(["Merkmale", "Zauber", "Rituale"]) },
+        { id: "clerical", label: "Klerikal", icon: "fa-sun", groups: select(["Liturgien"]) }
+      ]
+    };
+  }
   const select = (names, keepParents = false) => groups.filter(group => names.includes(group.name))
     .map(group => {
       const rollable = group.rows.filter(row => row.rollable);

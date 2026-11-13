@@ -1,4 +1,5 @@
 import { parseCharacter } from "./import-data.js";
+import { convertNpc, isNpcFile, npcRetinue } from "./npc-import.js";
 import { dodgeCheck, dodgeValue, postRoll, prepareRoll, weaponCheck } from "./checks.js";
 import { escapeHtml } from "./check-card.js";
 import { effectiveTicks, tickOverridePatch, weaponTickFields } from "./weapon-ticks.js";
@@ -47,9 +48,11 @@ export async function importPedipalpus() {
     const file = await chooseCharacterFile("Neuen Charakter erstellen");
     if (!file) return;
     const json = await file.text();
-    const character = parseCharacter(json);
+    const source = JSON.parse(json.replace(/^\uFEFF/, ""));
+    const npc = isNpcFile(source);
+    const character = npc ? convertNpc(source) : parseCharacter(json);
     const actor = await foundry.documents.Actor.implementation.create(character);
-    const retinue = retinueSource(JSON.parse(json.replace(/^\uFEFF/, "")));
+    const retinue = retinueSource(npc ? npcRetinue(source) : source);
     if (actor && Object.values(retinue).some(rows => rows.length)) {
       const pending = await syncRetinue(actor, retinue);
       if (pending.length) ui.notifications.warn("Gefolge zur Übernahme vorgemerkt: " + pending.join(", "));
@@ -105,7 +108,8 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       };
     });
     return { ...context, data, sheetId: this.id, actorName: this.actor.name, actorImage: this.actor.img,
-      ...partitionSkills(data.skills, companion), focus: combatFocus(this.actor),
+      ...partitionSkills(data.skills, companion, data.npcGenerator), focus: combatFocus(this.actor),
+      focusMin: data.npcGenerator ? -4 : -2, focusMax: data.npcGenerator ? 4 : 2,
       dodge: dodgeValue(this.actor), canDodge: this.actor.isOwner && dodgeValue(this.actor) != null,
       focusTemplate,
       attributeGroups: groupAttributes(data.attributes).map(group => ({ ...group, rows: group.rows.map(row => ({
@@ -118,7 +122,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       conditionSummary: conditionSummary(effects), simpleConditions: conditions.filter(row => !row.staged),
       stagedConditions: conditions.filter(row => row.staged),
       conditionRule: conditions.find(row => row.key === this.#selectedCondition),
-      companion, companionDetails, retinue, canImportRetinue: Boolean(pending && globalThis.game?.user?.isGM),
+      companion, npcGenerator: data.npcGenerator, companionDetails, retinue, canImportRetinue: Boolean(pending && globalThis.game?.user?.isGM),
       pendingRetinue: pendingPlan ? pendingPlan.entries.length + pendingPlan.removed.length : 0,
       canEdit: this.isEditable, canRoll: this.actor.isOwner, canImport: this.actor.isOwner && !this.actor.isToken && !companion,
       canRollPerception: this.actor.isOwner && Boolean(perceptionCheck(data)) };
@@ -314,7 +318,8 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       : kind === "attribute" ? attributeCheck(data.attributes, Number(index))
       : kind === "skill" ? skillCheck(data.skills, Number(index))
       : kind === "perception" ? perceptionCheck(data)
-      : companionAbility && this.actor.type === "retinue" ? { ...companionAbility, kind: "skill" }
+      : companionAbility && (this.actor.type === "retinue" || data.npcGenerator) && companionAbility.rollable
+        ? { ...companionAbility, kind: "skill" }
       : skill ? techniqueCheck(this.actor, skill, mode, settings) : null;
     if (check && companionPerception) check = { kind: "attribute", name: check.name, value: check.value };
     if (!check || !Number.isInteger(check.value)) return;
@@ -332,7 +337,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       const abilityDefaults = remembered?.map(key => primary.find(row => row.key === key)) ?? check.attributes;
       const fields = skill ? techniqueFields(settings, canBookTicks)
         : kind === "perception" && !companionPerception ? perceptionFields(primary, check.attributes)
-        : companionAbility ? perceptionFields(primary, abilityDefaults)
+        : companionAbility ? perceptionFields(primary, [0, 1, 2].map(i => abilityDefaults[i]))
         : weaponAttack && canBookTicks && check.ticks > 0 && check.ticks <= 32
           ? `<label><input type="checkbox" name="bookTicks"> ${check.ticks} Ticks im laufenden Kampf buchen</label>` : "";
       const modifier = await prepareRoll(check, fields);
@@ -353,6 +358,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
         const keys = [0, 1, 2].map(i => modifier.fields["attribute" + i]);
         const attributes = keys.map(key => primary.find(row => row.key.toUpperCase() === key));
         if (!attributes.every(Boolean)) throw new Error("Bitte drei gültige Attribute auswählen.");
+        if (data.npcGenerator && new Set(keys).size < 2) throw new Error("Drei gleiche Attribute sind bei NSC-Proben nicht erlaubt.");
         check = { ...check, attributes };
         if (keys.some((key, index) => key !== abilityDefaults[index]?.key)) {
           await this.actor.update({ ["flags.ucurifunke.companionAbilityAttributes." + abilityFlag]: keys });
