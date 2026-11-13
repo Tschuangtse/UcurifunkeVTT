@@ -1,6 +1,7 @@
 import { assignedRetinueEquipment } from "./import-data.js";
 
-const GROUPS = { Animals: "Tier", Persons: "Person", Demons: "Dämon", Undead: "Untoter", Chimeras: "Chimäre" };
+const GROUPS = { Animals: "Tier", Persons: "Person", Demons: "Dämon", Undead: "Untoter", Chimeras: "Chimäre",
+  Elementals: "Elementar", Golems: "Golem" };
 const ATTRIBUTES = {
   MU: "Mut", KL: "Klugheit", IN: "Intuition", CH: "Charisma", FF: "Fingerfertigkeit",
   GE: "Gewandtheit", KO: "Konstitution", KK: "Körperkraft"
@@ -72,7 +73,8 @@ export function convertRetinue(source) {
       ["GS", "Geschwindigkeit", member.Speed], ["TK", "Tragkraft", member.CarryCapacity],
       ["ZK", "Zugkraft", member.PullCapacity], ["BL", "Bindungslast", member.BindingLoad],
       ["nRS", "Natürlicher Rüstungsschutz", member.NaturalArmor],
-      ["pRS", "Rüstungsschutz", member.ArmorProtection], ["GW", "Gefahrenwert", member.DangerValue]
+      ["pRS", "Rüstungsschutz", member.ArmorProtection], ["GW", "Gefahrenwert", member.DangerValue],
+      ["AS", "Astralsinn", member.AstralSense], ["BS", "Beschwörungsschwierigkeit", member.SummoningDifficulty]
     ];
     if (!plantOnly) for (const [key, name, value] of baseValues) {
       if (typeof value === "number" && !derived.some(row => row.key === key)) derived.push({ key, name, value });
@@ -83,6 +85,7 @@ export function convertRetinue(source) {
       detail("Größenklasse", member.SizeClass), detail("Gewicht", member.Weight),
       detail("Beschreibung", member.Description), detail("Besondere Eigenschaften", member.SpecialProperties),
       detail("Schwächen", member.Weaknesses), detail("Notizen", member.Notes),
+      detail("Domäne", member.Domain), detail("Material", member.MaterialAndRaising),
       detail("Bestandteile", components.map(row => (row.Quantity ?? 1) + " × " + text(row.Name)).join(", ")),
       ...list(member.Properties).map(row => detail(text(row.Name), row.Description))
     ].filter(row => row.name && row.value);

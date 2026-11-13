@@ -9,6 +9,14 @@ import { renderHiddenCheck } from "./checks.js";
 import { registerCheckCommands } from "./chat-commands.js";
 import { refreshExchange, renderExchange } from "./combat-workflow.js";
 import { importNpcGroup } from "./npc-bulk-import.js";
+import { createProbeMacro, rollSavedProbe } from "./probe-shortcuts.js";
+
+Hooks.once("ready", () => { game.ucurifunke = { ...game.ucurifunke, rollSavedProbe }; });
+Hooks.on("hotbarDrop", (_bar, data, slot) => {
+  if (data?.type !== "UcurifunkeProbe") return;
+  void createProbeMacro(data, slot).catch(error => ui.notifications.error(error.message));
+  return false;
+});
 
 Hooks.on("renderChatMessageHTML", renderHiddenCheck);
 Hooks.on("renderChatMessageHTML", renderExchange);
@@ -16,6 +24,10 @@ Hooks.on("createChatMessage", refreshExchange);
 Hooks.on("deleteChatMessage", refreshExchange);
 
 Hooks.once("init", () => {
+  game.settings.register("ucurifunke", "sheetDesign", { name: "Bogendesign", scope: "client", config: true,
+    type: String, choices: { standard: "Standard", parchment: "Pergament", steel: "Stahl" }, default: "standard" });
+  game.settings.register("ucurifunke", "rollSounds", { name: "Würfelklänge", scope: "client", config: true,
+    type: Boolean, default: true });
   registerCheckCommands(foundry.applications.sidebar.tabs.ChatLog.CHAT_COMMANDS);
   CONFIG.Actor.documentClass = UcurifunkeActor;
   CONFIG.Actor.dataModels.character = CharacterData;

@@ -71,7 +71,9 @@ function equipment(character, row, group, container = "") {
     sourceId: string(row.InventoryItemId ?? row.InventoryId), group, container,
     quantity: positive(row.Quantity ?? 1), weight: Math.max(0, number(row.Weight)),
     description: string(row.Description), properties: string(row.SpecialProperties),
-    carried: carriedByCharacter(row), equipped: Boolean(row.IsEquiped), protection: positive(row.Protection)
+    carried: carriedByCharacter(row), equipped: Boolean(row.IsEquiped), protection: positive(row.Protection),
+    mobilityPenalty: group === "Rüstung" ? positive(row.BaseMobilityPenalty ?? row.MobilityPenalty) : 0,
+    assignedCarrier: Boolean(string(row.CarrierAnimalId))
   };
   if (weapon) Object.assign(system, {
     speed: ticks(row.WeaponSpeed), reload: ranged ? reloadTicks(row, skill) : null,
@@ -141,6 +143,8 @@ export function convertCharacter(source) {
     reaction: positive(source.Re), impairment: positive(source.Be), attributes, skills,
     offensiveFocus: integer(source.OffOffset), defensiveFocus: integer(source.DefOffset),
     conditions, hasIron: advantages.has("eisern"), hasEndurance: advantages.has("ausdauernd"),
+    armorTraining: ["CombatSpecialSkills", "MagicalSpecialSkills", "DivineSpecialSkills", "MundaneSpecialSkills"]
+      .some(group => list(source[group]).some(row => germanKey(row.Name).startsWith("ruestungsgewoehnung"))),
     naturalArmor: Number(advantages.has("dichter pelz")) + Number(advantages.has("schuppenkleid")),
     derived: list(source.DerivedValues).filter(row => string(row.LongName))
       .map(row => ({ name: string(row.LongName), key: string(row.ShortName), value: number(row.TotalValue) })),

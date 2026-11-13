@@ -78,7 +78,8 @@ export function convertNpc(source) {
   });
   const armor = npc.Armors.map((row, index) => ({ name: row.Name, type: "equipment", system: {
     sourceId: "nsc:armor:" + row.Name + ":" + index, group: "Rüstung", carried: true, equipped: row.Equipped !== false,
-    protection: Math.max(0, num(row.Protection)), quantity: 1, weight: num(row.Weight), description: row.Notes ?? ""
+    protection: Math.max(0, num(row.Protection)), mobilityPenalty: Math.max(0, num(row.MobilityPenalty)),
+    quantity: 1, weight: num(row.Weight), description: row.Notes ?? ""
   } }));
   const conditions = npc.Conditions.map(row => ({ name: row.Name, staged: row.IsGraded, active: row.Active,
     level: row.IsGraded ? num(row.Level) : 0 }));
@@ -95,7 +96,8 @@ export function convertNpc(source) {
 }
 
 export function npcRetinue(source) {
-  const groups = { Tier:"Animals", Person:"Persons", Dämon:"Demons", Untoter:"Undead", Chimäre:"Chimeras" };
+  const groups = { Tier:"Animals", Person:"Persons", Dämon:"Demons", Untoter:"Undead", Chimäre:"Chimeras",
+    Elementar:"Elementals", Golem:"Golems" };
   const result = Object.fromEntries(Object.values(groups).map(group => [group, []]));
   for (const row of source.Npc.Retinue) {
     const group = groups[row.Kind] ?? "Persons";

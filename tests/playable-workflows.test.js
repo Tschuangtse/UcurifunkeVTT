@@ -72,5 +72,5 @@ test("damage accepts plain Pedipalpus dice formulas and uses only equipped perso
   ] };
   assert.equal(armorProtection(actor), 4);
   assert.deepEqual(linkAttack({ uuid: "Actor.123" }, { mode: "AT" }, { name: "Test", uuid: "Scene.a.Token.b" }, "2W6", 8).exchange,
-    { type: "attack", target: "Scene.a.Token.b", attacker: "Actor.123", damage: "2W6" });
+    { type: "attack", mode: "AT", target: "Scene.a.Token.b", attacker: "Actor.123", damage: "2W6" });
 });

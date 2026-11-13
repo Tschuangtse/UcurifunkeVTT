@@ -12,7 +12,7 @@ export class CharacterData extends foundry.abstract.TypeDataModel {
     return {
       sourceVersion: optionalInteger(), sourceName: text(), race: text(), npcGenerator: flag(),
       reaction: integer(0), impairment: integer(0), hasJointPenalty: flag(),
-      hasIron: flag(), hasEndurance: flag(), naturalArmor: integer(0),
+      hasIron: flag(), hasEndurance: flag(), armorTraining: flag(), naturalArmor: integer(0),
       companionArmor: optionalInteger(), companionKind: text(),
       companionDetails: rows({ name: text(), value: text() }),
       conditions: rows({ name: text(), staged: flag(), active: flag(), suppressed: flag(),
@@ -29,7 +29,8 @@ export class EquipmentData extends foundry.abstract.TypeDataModel {
   static defineSchema() {
     return {
       sourceId: text(), group: text(), container: text(), quantity: integer(0, 1), weight: new NumberField({ min: 0, initial: 0 }),
-      description: text(), properties: text(), carried: flag(), equipped: flag(), protection: integer(0)
+      description: text(), properties: text(), carried: flag(), equipped: flag(), protection: integer(0),
+      mobilityPenalty: integer(0), assignedCarrier: flag()
     };
   }
 }

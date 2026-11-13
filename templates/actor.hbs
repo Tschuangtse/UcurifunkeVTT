@@ -65,6 +65,14 @@
                 </small>
               </div>
               <small class="ucurifunke-row-meta" aria-label="Anzahl {{data.quantity}}">×{{data.quantity}}</small>
+              {{#if @root.canEdit}}{{#unless data.assignedCarrier}}
+                {{#unless @root.npcGenerator}}
+                  <button type="button" data-action="toggleEquipment" data-item="{{id}}" data-field="carried"
+                    aria-pressed="{{data.carried}}">Dabei</button>
+                {{/unless}}
+                {{#if armor}}<button type="button" data-action="toggleEquipment" data-item="{{id}}" data-field="equipped"
+                  aria-pressed="{{data.equipped}}">Angelegt</button>{{/if}}
+              {{/unless}}{{/if}}
               {{#if @root.canEdit}}{{#if tickFields.length}}
                 <button type="button" class="ucurifunke-roll" data-action="editWeaponTicks" data-item="{{id}}"
                   title="Tickkosten bearbeiten" aria-label="Tickkosten für {{name}} bearbeiten"><i class="fa-solid fa-pencil" aria-hidden="true"></i></button>
@@ -116,6 +124,7 @@
       <i class="fa-solid fa-heart-pulse" aria-hidden="true"></i> Zustände
     </button>
   </nav>
+  <div class="ucurifunke-probe-favorites" data-probe-favorites hidden aria-label="Meine Probenfavoriten"></div>
 
   <div class="ucurifunke-sheet-body">
     <section role="tabpanel" id="{{sheetId}}-overview" aria-labelledby="{{sheetId}}-tab-overview" data-sheet-panel="overview" data-searchable>
@@ -195,6 +204,7 @@
           {{#if canDodge}}<button type="button" data-action="rollCheck" data-kind="dodge" aria-label="Ausweichen würfeln" title="Ausweichen würfeln">
             <i class="fa-solid fa-dice-d20" aria-hidden="true"></i></button>{{/if}}
           {{#if canEdit}}<button type="button" data-action="saveCombatValues">Speichern</button>{{/if}}
+          {{#if canEdit}}{{#if hasWeaponSets}}<button type="button" data-action="weaponSets">Waffensets</button>{{/if}}{{/if}}
         </div>
         {{> (lookup . "focusTemplate")}}
         </div>
@@ -203,7 +213,7 @@
         <section class="ucurifunke-combat-section"><h3>{{#if companion}}Angriffe{{else}}Waffen{{/if}}</h3>{{> itemRows groups=weaponGroups}}</section>
       {{/if}}
       {{#if armorGroups.length}}
-        <section class="ucurifunke-combat-section">{{> itemRows groups=armorGroups}}</section>
+        <section class="ucurifunke-combat-section"><h3>Rüstungsschutz {{armorProtection}}</h3>{{> itemRows groups=armorGroups}}</section>
       {{/if}}
       {{#if combatGroups.length}}
         <section class="ucurifunke-combat-section"><h3>Kampftechniken</h3>{{> skillRows groups=combatGroups}}</section>

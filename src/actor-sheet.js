@@ -2,13 +2,16 @@ import { parseCharacter } from "./import-data.js";
 import { createNpcActor, isNpcFile } from "./npc-import.js";
 import { dodgeCheck, dodgeValue, postRoll, prepareRoll, weaponCheck } from "./checks.js";
 import { escapeHtml } from "./check-card.js";
+import { bindProbeShortcuts } from "./probe-shortcuts.js";
 import { effectiveTicks, tickOverridePatch, weaponTickFields } from "./weapon-ticks.js";
 import { bindFocus, combatFocus } from "./combat-focus.js";
-import { chooseCharacterFile, updatePedipalpusActor } from "./import-preview.js";
+import { applyCharacterPortrait, chooseCharacterFile, updatePedipalpusActor } from "./import-preview.js";
 import { applyConditionEffects, conditionEffects, conditionRows, conditionSummary, SUPPRESSIONS } from "./conditions.js";
-import { linkAttack, selectedAttackTarget } from "./combat-workflow.js";
+import { armorProtection, dodgeFields, dodgeOptions, linkAttack, selectedAttackTarget } from "./combat-workflow.js";
 import { planRetinue, retinueSource, syncRetinue } from "./retinue.js";
 import { addActionTicks, assertSameSelection, getSelection } from "./actions/combat.js";
+import { getCombatantInfo } from "./tick/data.js";
+import { equipmentImpairment } from "./equipment-state.js";
 import { readTechniqueSettings, techniqueCheck, techniqueFlag, techniqueSettings } from "./technique-check.js";
 import { attributeCheck, filterSheet, groupAttributes, groupItems, partitionSkills, perceptionAttributes,
   perceptionCheck, skillCheck } from "./sheet-view.js";
@@ -45,7 +48,7 @@ function techniqueFields(settings, canBookTicks) {
 export async function importPedipalpus() {
   if (!game.user.can("ACTOR_CREATE")) return;
   try {
-    const file = await chooseCharacterFile("Neuen Charakter erstellen");
+    const { file, portrait } = await chooseCharacterFile("Neuen Charakter erstellen") ?? {};
     if (!file) return;
     const json = await file.text();
     const source = JSON.parse(json.replace(/^\uFEFF/, ""));
@@ -54,6 +57,7 @@ export async function importPedipalpus() {
       ({ actor, pending } = await createNpcActor(source));
     } else {
       actor = await foundry.documents.Actor.implementation.create(parseCharacter(json));
+      if (actor) await applyCharacterPortrait(actor, portrait);
       const retinue = retinueSource(source);
       pending = actor && Object.values(retinue).some(rows => rows.length) ? await syncRetinue(actor, retinue) : [];
     }
@@ -75,7 +79,8 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       openSheetTab: CharacterSheet.#openTab, updatePedipalpus: CharacterSheet.#updatePedipalpus,
       showCondition: CharacterSheet.#showCondition, cycleCondition: CharacterSheet.#cycleCondition,
       openCompanion: CharacterSheet.#openCompanion, importRetinue: CharacterSheet.#importRetinue,
-      editWeaponTicks: CharacterSheet.#editWeaponTicks }
+      editWeaponTicks: CharacterSheet.#editWeaponTicks, toggleEquipment: CharacterSheet.#toggleEquipment,
+      weaponSets: CharacterSheet.#weaponSets }
   };
 
   static PARTS = { character: { template: path, scrollable: [".ucurifunke-sheet-body"] } };
@@ -99,7 +104,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
     const items = this.actor.items.map(item => {
       const weapon = item.type === "weapon";
       return {
-        id: item.id, name: item.name, data: item.system, weapon,
+        id: item.id, name: item.name, data: item.system, weapon, armor: item.system.group === "Rüstung",
         attack: weapon && Number.isInteger(item.system.attack),
         parry: weapon && Number.isInteger(item.system.parry),
         attackMode: item.system.group === "Fernkampf" ? "FK" : "AT",
@@ -110,7 +115,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
     });
     return { ...context, data, sheetId: this.id, actorName: this.actor.name, actorImage: this.actor.img,
       ...partitionSkills(data.skills, companion, data.npcGenerator), focus: combatFocus(this.actor),
-      focusMin: data.npcGenerator ? -4 : -2, focusMax: data.npcGenerator ? 4 : 2,
+      focusMin: -2, focusMax: 2,
       dodge: dodgeValue(this.actor), canDodge: this.actor.isOwner && dodgeValue(this.actor) != null,
       focusTemplate,
       attributeGroups: groupAttributes(data.attributes).map(group => ({ ...group, rows: group.rows.map(row => ({
@@ -118,6 +123,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       })) })),
       weaponGroups: groupItems(items.filter(item => item.weapon)),
       armorGroups: groupItems(items.filter(item => item.data.group === "Rüstung")),
+      armorProtection: armorProtection(this.actor), hasWeaponSets: items.some(item => item.weapon),
       derivedValues: data.derived.filter(row => !["LE", "AE", "KE"].includes(row.key.toUpperCase()))
         .map(row => row.key.toUpperCase() === "GS" ? { name: row.name, key: row.key, value: effects.effectiveSpeed } : row),
       conditionSummary: conditionSummary(effects), simpleConditions: conditions.filter(row => !row.staged),
@@ -145,6 +151,8 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       });
     }
     const root = this.element.querySelector(".ucurifunke-character");
+    root.dataset.design = game.settings.get("ucurifunke", "sheetDesign");
+    bindProbeShortcuts(root, this.actor);
     const tablist = root.querySelector('[role="tablist"]');
     tablist.onkeydown = event => {
       const tabs = [...tablist.querySelectorAll('[role="tab"]')];
@@ -188,6 +196,61 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
   static async #updatePedipalpus() {
     try { await updatePedipalpusActor(this.actor); }
     catch (error) { ui.notifications.error(error.message); }
+  }
+
+  static async #toggleEquipment(_event, target) {
+    if (!this.isEditable || !this.actor.isOwner) return;
+    const item = this.actor.items.get(target.dataset.item);
+    if (!item || item.system.assignedCarrier) return;
+    const field = target.dataset.field;
+    if (!["equipped", "carried"].includes(field)) return;
+    const before = equipmentImpairment(this.actor);
+    const patch = { [field]: !item.system[field] };
+    if (field === "carried" && !patch.carried) patch.equipped = false;
+    if (field === "equipped" && patch.equipped) patch.carried = true;
+    target.disabled = true;
+    try {
+      await item.update(Object.fromEntries(Object.entries(patch).map(([key, value]) => ["system." + key, value])));
+      const impairment = Math.max(0, this.actor.system.impairment + equipmentImpairment(this.actor) - before);
+      if (impairment !== this.actor.system.impairment) await this.actor.update({ "system.impairment": impairment });
+    } catch (error) { ui.notifications.error(error.message); }
+    finally { target.disabled = false; }
+  }
+
+  static async #weaponSets() {
+    if (!this.actor.isOwner || !this.isEditable) return;
+    const actor = this.actor;
+    const weapons = actor.items.filter(item => item.type === "weapon" && !item.system.assignedCarrier);
+    const stored = actor.getFlag("ucurifunke", "weaponSets") ?? [];
+    try {
+      const result = await api.DialogV2.input({
+        window: { title: "Waffensets" },
+        content: `<div><label>Gespeichertes Set <select name="set"><option value="">Neues Set</option>
+          ${stored.map((set, i) => `<option value="${i}">${escapeHtml(set.name)}</option>`).join("")}</select></label>
+          <label>Name <input name="setName" maxlength="80" required></label>
+          ${weapons.map(item => `<label><input type="checkbox" name="weapon-${item.id}" ${item.system.carried ? "checked" : ""}>
+            ${escapeHtml(item.name)}</label>`).join("")}</div>`,
+        modal: true, rejectClose: false, ok: { label: "Speichern und aktivieren" },
+        render: (_event, dialog) => {
+          const select = dialog.element.querySelector('[name="set"]');
+          select.addEventListener("change", () => {
+            const set = select.value === "" ? null : stored[Number(select.value)];
+            const form = select.form;
+            form.elements.setName.value = set?.name ?? "";
+            for (const item of weapons) form.elements.namedItem("weapon-" + item.id).checked = set ? set.items.includes(item.id) : item.system.carried;
+          });
+        }
+      });
+      if (!result || !actor.isOwner) return;
+      const name = result.setName.trim();
+      if (!name) throw new Error("Bitte einen Namen für das Waffenset eingeben.");
+      const items = weapons.filter(item => [true, "on", "true", 1].includes(result["weapon-" + item.id])).map(item => item.id);
+      const before = equipmentImpairment(actor);
+      await actor.updateEmbeddedDocuments("Item", weapons.map(item => ({ _id: item.id, "system.carried": items.includes(item.id) })));
+      const sets = stored.filter((set, i) => set.name !== name && String(i) !== result.set);
+      await actor.update({ "flags.ucurifunke.weaponSets": [...sets, { name, items }],
+        "system.impairment": Math.max(0, actor.system.impairment + equipmentImpairment(actor) - before) });
+    } catch (error) { ui.notifications.error(error.message); }
   }
 
   static async #editWeaponTicks(_event, target) {
@@ -314,8 +377,10 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
     const companionAbility = kind === "companionAbility" ? data.skills[Number(index)] : null;
     const settings = skill ? techniqueSettings(this.actor, skill) : null;
     const companionPerception = kind === "perception" && this.actor.type === "retinue";
+    const dodgeSelection = kind === "dodge" ? getSelection(game, canvas) : null;
+    const bookDodge = dodgeSelection?.token?.actor?.uuid === this.actor.uuid;
     let check = kind === "weapon" ? weaponCheck(this.actor, this.actor.items.get(item), mode)
-      : kind === "dodge" ? dodgeCheck(this.actor)
+      : kind === "dodge" ? dodgeCheck(this.actor, { ticks: bookDodge ? getCombatantInfo(dodgeSelection.combatant).ticks : 0 })
       : kind === "attribute" ? attributeCheck(data.attributes, Number(index))
       : kind === "skill" ? skillCheck(data.skills, Number(index))
       : kind === "perception" ? perceptionCheck(data)
@@ -336,7 +401,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       const remembered = abilityFlag && this.actor.getFlag("ucurifunke", "companionAbilityAttributes")?.[abilityFlag];
       const primary = perceptionAttributes(data.attributes);
       const abilityDefaults = remembered?.map(key => primary.find(row => row.key === key)) ?? check.attributes;
-      const fields = skill ? techniqueFields(settings, canBookTicks)
+      const fields = kind === "dodge" ? dodgeFields : skill ? techniqueFields(settings, canBookTicks)
         : kind === "perception" && !companionPerception ? perceptionFields(primary, check.attributes)
         : companionAbility ? perceptionFields(primary, [0, 1, 2].map(i => abilityDefaults[i]))
         : weaponAttack && canBookTicks && check.ticks > 0 && check.ticks <= 32
@@ -367,9 +432,16 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       } else if (weaponAttack && canBookTicks && fields) {
         bookTicks = [true, 1, "1", "true", "on"].includes(modifier.fields.bookTicks);
       }
+      if (kind === "dodge") {
+        if (bookDodge) assertSameSelection(dodgeSelection, getSelection(game, canvas));
+        const situation = dodgeOptions(modifier.fields, bookDodge ? getCombatantInfo(dodgeSelection.combatant).ticks : 0);
+        if (!situation) return;
+        check = { ...dodgeCheck(this.actor, situation), ...(bookDodge ? { bookedTicks: 4 } : {}) };
+      }
       check = applyConditionEffects(this.actor, check);
+      if (bookDodge) await addActionTicks(dodgeSelection, 4, { game, canvas });
       if (bookTicks) await addActionTicks(selection, check.ticks, { game, canvas });
-      if (check.kind === "combat") check = linkAttack(this.actor, check, attackTarget, weaponDamage, bookTicks ? check.ticks : attackTarget ? 0 : undefined);
+      if (check.kind === "combat" && !check.title) check = linkAttack(this.actor, check, attackTarget, weaponDamage, bookTicks ? check.ticks : attackTarget ? 0 : undefined);
       await postRoll(this.actor, check, modifier);
     } catch (error) {
       ui.notifications.error(error.message);

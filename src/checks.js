@@ -2,9 +2,15 @@ import { medianDie, renderCheckCard, skillDice } from "./check-card.js";
 import { postDiceMessage } from "./dice-message.js";
 import { combatFocus, focusModifier } from "./combat-focus.js";
 import { effectiveTicks, weaponTickFields } from "./weapon-ticks.js";
+import { conditionEffects } from "./conditions.js";
 
 export function evaluateCheck(check, dice, modifier = 0, confirmation) {
   const target = check.value + modifier;
+  if (check.title === "Ausweichen" || check.mode === "AT" && check.exchange?.mode === "AT") {
+    const quality = target - dice[0];
+    return { quality, success: quality >= 0 && (check.opposedQuality == null || quality > check.opposedQuality),
+      critical: false, fumble: false };
+  }
   let quality;
   let critical = false;
   let fumble = false;
@@ -59,16 +65,21 @@ export function dodgeValue(actor) {
   const data = actor.system;
   const derived = data.derived?.find(row => row.key.toUpperCase() === "AW")?.value;
   const defense = data.derived?.find(row => row.key.toUpperCase() === "DEF")?.value;
-  const base = derived ?? (Number.isFinite(defense) && Number.isFinite(data.reaction) ? defense + data.reaction : null);
+  const base = Number.isFinite(defense) && Number.isFinite(data.reaction) ? defense + data.reaction : derived;
   return data.dodgeOverride ?? (Number.isFinite(base) ? Math.round(base) : null);
 }
 
-export function dodgeCheck(actor) {
+export function dodgeCheck(actor, { ticks = 0, running = false, posture = 0, cramped = 0 } = {}) {
   const base = dodgeValue(actor);
   if (!Number.isInteger(base)) return null;
   const focus = -combatFocus(actor);
-  return { kind: "combat", mode: "PA", title: "Ausweichen", name: "Ausweichen",
-    breakdown: [base, 0, focus, 0], value: base + focus };
+  const impairment = actor.system.impairment ?? 0;
+  const reaction = Math.max(0, Math.floor(ticks / 10)) * 4;
+  const penalties = [["Reaktion bei " + ticks + " Ticks", reaction], ["Nach dem Rennen", running ? 4 : 0],
+    ["Überanstrengung (RE)", conditionEffects(actor.system).reactionPenalty],
+    ["Körperlage", posture], ["Beengte Umgebung", cramped]].filter(([, value]) => value);
+  return { kind: "combat", mode: "PA", title: "Ausweichen", name: "Ausweichen", impairment,
+    breakdown: [base, 0, focus, 0], penalties, value: base + focus - impairment - penalties.reduce((n, [, v]) => n + v, 0) };
 }
 
 export async function prepareRoll(check, fields = "", { allowBlind = true } = {}) {
@@ -115,13 +126,14 @@ export async function postRoll(actor, check, modifiers, speaker) {
   const combat = check.kind === "combat";
   const roll = await new Roll(combat ? "1d20" : "3d20").evaluate();
   const dice = roll.dice[0].results.map(die => die.result);
-  const confirmation = combat && [1, 20].includes(dice[0]) ? await new Roll("1d20").evaluate() : null;
+  const opposed = check.title === "Ausweichen" || check.exchange?.mode === "AT";
+  const confirmation = combat && !opposed && [1, 20].includes(dice[0]) ? await new Roll("1d20").evaluate() : null;
   const result = evaluateCheck(check, dice, modifiers.bonus - modifiers.penalty, confirmation?.total);
   const content = renderCheckCard(check, dice, modifiers, result, confirmation?.total);
   const rolls = confirmation ? [roll, confirmation] : [roll];
   return postDiceMessage(content, rolls, {
     actor, speaker, mode: modifiers.blind ? "blind" : modifiers.mode,
-    hiddenSubject: check.name, exchange: check.exchange && { ...check.exchange, success: result.success }
+    hiddenSubject: check.name, exchange: check.exchange && { ...check.exchange, quality: result.quality, success: result.success }
   });
 }
 

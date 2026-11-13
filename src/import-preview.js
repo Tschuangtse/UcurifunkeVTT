@@ -6,12 +6,34 @@ import { convertNpc, isNpcFile, npcRetinue } from "./npc-import.js";
 
 export function chooseCharacterFile(label) {
   const content = document.createElement("div");
-  content.innerHTML = '<label>Pedipalpus- oder NSCGenerator-Datei <input type="file" name="character" accept=".json,application/json" required></label>';
+  content.innerHTML = '<label>Pedipalpus- oder NSCGenerator-Datei <input type="file" name="character" accept=".json,application/json" required></label>' +
+    '<label>Charakterporträt (optional) <input type="file" name="portrait" accept="image/png,image/jpeg,image/webp"></label>';
   return foundry.applications.api.DialogV2.prompt({
     window: { title: "Pedipalpus-Charakter importieren" },
     content, modal: true, rejectClose: false,
-    ok: { label, callback: (_event, button) => button.form.elements.namedItem("character").files[0] }
+    ok: { label, callback: (_event, button) => ({
+      file: button.form.elements.namedItem("character").files[0],
+      portrait: button.form.elements.namedItem("portrait").files[0]
+    }) }
   });
+}
+
+export async function applyCharacterPortrait(actor, portrait) {
+  if (!portrait || actor.type !== "character") return;
+  const types = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
+  const extension = types[portrait.type];
+  if (!extension || portrait.size > 10 * 1024 * 1024 || !game.user.can("FILES_UPLOAD")) {
+    ui.notifications.warn("Porträt nicht übernommen. Erforderlich sind Uploadrechte und PNG, JPG oder WebP bis 10 MB.");
+    return;
+  }
+  try {
+    const picker = foundry.applications.apps.FilePicker.implementation;
+    const path = "worlds/" + game.world.id;
+    const file = new File([portrait], "ucurifunke-portrait-" + actor.id + "-" + foundry.utils.randomID() + "." + extension, { type: portrait.type });
+    const uploaded = await picker.upload("data", path, file, {}, { notify: false });
+    if (!uploaded?.path) throw new Error("Der Upload hat keinen Dateipfad zurückgegeben.");
+    await actor.update({ img: uploaded.path });
+  } catch (error) { ui.notifications.warn("Porträt nicht übernommen: " + error.message); }
 }
 
 function changes(before, after, label, describe) {
@@ -62,7 +84,7 @@ export function describeImport(current, imported) {
 
 export async function updatePedipalpusActor(actor) {
   if (!actor.isOwner || actor.isToken) return;
-  const file = await chooseCharacterFile("Änderungen ansehen");
+  const { file, portrait } = await chooseCharacterFile("Änderungen ansehen") ?? {};
   if (!file || !actor.isOwner) return;
   const json = await file.text();
   const source = JSON.parse(json.replace(/^\uFEFF/, ""));
@@ -94,6 +116,7 @@ export async function updatePedipalpusActor(actor) {
     throw new Error("Das Gefolge wurde zwischenzeitlich geändert. Bitte den Import erneut öffnen.");
   }
   await actor.importPedipalpusData(data);
+  if (!npc) await applyCharacterPortrait(actor, portrait);
   const pending = await syncRetinue(actor, retinue);
   if (pending.length) ui.notifications.warn("Gefolge zur Übernahme durch die Spielleitung vorgemerkt: " + pending.join(", "));
   ui.notifications.info("Charakter aus Pedipalpus aktualisiert.");

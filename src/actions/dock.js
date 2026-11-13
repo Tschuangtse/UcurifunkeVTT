@@ -4,7 +4,8 @@ import { requestCost, saveTickOverride } from "./cost-dialog.js";
 import { requestFocus } from "../combat-focus.js";
 import { dodgeCheck, postRoll, prepareRoll, weaponCheck } from "../checks.js";
 import { applyConditionEffects } from "../conditions.js";
-import { linkAttack, selectedAttackTarget } from "../combat-workflow.js";
+import { dodgeFields, dodgeOptions, linkAttack, selectedAttackTarget } from "../combat-workflow.js";
+import { getCombatantInfo } from "../tick/data.js";
 
 export class ActionDock {
   constructor({ getGame = () => game, getCanvas = () => globalThis.canvas, notify = message => ui.notifications.warn(message),
@@ -146,12 +147,18 @@ export class ActionDock {
       if (cost === null || cost === undefined) return;
       const mode = id === "ranged" ? "FK" : id.startsWith("parry") ? "PA" : "AT";
       const weapon = weaponAction && cost.weaponId ? actor.items.get(cost.weaponId) : null;
-      const check = id === "dodge" && actor ? dodgeCheck(actor) : weapon ? weaponCheck(actor, weapon, mode) : null;
+      let check = id === "dodge" && actor ? dodgeCheck(actor, { ticks: getCombatantInfo(selection.combatant).ticks })
+        : weapon ? weaponCheck(actor, weapon, mode) : null;
       if (id === "dodge" && !check) throw new Error("Für diesen Akteur ist kein Ausweichwert hinterlegt.");
       const target = check && selectedAttackTarget(actor, check);
       if (check) applyConditionEffects(actor, check);
-      const modifiers = check ? await prepareRoll(check) : null;
+      const modifiers = check ? await prepareRoll(check, id === "dodge" ? dodgeFields : "") : null;
       if (check && modifiers === null) return;
+      if (id === "dodge") {
+        const situation = dodgeOptions(modifiers.fields, getCombatantInfo(selection.combatant).ticks);
+        if (!situation) return;
+        check = dodgeCheck(actor, situation);
+      }
       const adjusted = check && applyConditionEffects(actor, check);
       const ticks = parseCost(cost.ticks ?? cost);
       await this.applyTicks(selection, ticks, { game: this.getGame(), canvas: this.getCanvas() });

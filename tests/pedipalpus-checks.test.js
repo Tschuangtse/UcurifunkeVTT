@@ -56,7 +56,7 @@ test("technique checks use stored settings, weapon rules, and legacy focus value
   assert.equal(techniqueSettings(actor, { ...skill, name: "Dolche" }).ticks, 0);
   assert.deepEqual(techniqueCheck(actor, skill, "AT", settings).breakdown, [8, 10, 2, 3]);
   assert.equal(techniqueCheck(actor, skill, "AT", settings).value, 20);
-  assert.equal(techniqueCheck(actor, skill, "PA", settings).value, 15);
+  assert.equal(techniqueCheck(actor, skill, "PA", settings).value, 13);
   assert.equal(techniqueCheck(actor, { ...skill, group: "Fernkampf" }, "FK", settings).value, 15);
   assert.equal(techniqueCheck(actor, skill, "FK", settings), null);
   assert.throws(() => readTechniqueSettings({ ...settings, ticks: 33 }), /Tickkosten/);

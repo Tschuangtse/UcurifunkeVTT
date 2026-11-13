@@ -1,11 +1,25 @@
 import { addActionTicks, assertSameSelection, getSelection } from "./actions/combat.js";
 import { escapeHtml } from "./check-card.js";
-import { postRoll, prepareRoll, weaponCheck } from "./checks.js";
+import { dodgeCheck, postRoll, prepareRoll, weaponCheck } from "./checks.js";
+import { getCombatantInfo, queueActionTicks } from "./tick/data.js";
 import { applyConditionEffects } from "./conditions.js";
 import { postDiceMessage } from "./dice-message.js";
 import { techniqueCheck, techniqueSettings } from "./technique-check.js";
 
 const pending = new Set();
+
+export const dodgeFields = `<div>
+  <label><input type="checkbox" name="aware" required> Angriff wahrgenommen und nicht umzingelt</label>
+  <label><input type="checkbox" name="running"> Seit dem letzten eigenen Zug gerannt</label>
+  <label>Körperlage <select name="posture"><option value="0">Stehend</option><option value="2">Kniend</option><option value="4">Liegend</option></select></label>
+  <label>Beengte Umgebung <select name="cramped"><option value="0">Kein Abzug</option><option value="2">−2</option><option value="4">−4</option></select></label>
+</div>`;
+
+export function dodgeOptions(fields, ticks) {
+  if (![true, "on", "true", 1].includes(fields?.aware)) return null;
+  return { ticks, running: [true, "on", "true", 1].includes(fields.running),
+    posture: Number(fields.posture), cramped: Number(fields.cramped) };
+}
 
 export function selectedAttackTarget(actor, check) {
   if (!["AT", "FK"].includes(check.mode)) return null;
@@ -18,7 +32,7 @@ export function selectedAttackTarget(actor, check) {
 }
 
 export function linkAttack(actor, check, target, damage, bookedTicks) {
-  const exchange = target && { type: "attack", target: target.uuid, attacker: actor.uuid, damage: damage || "" };
+  const exchange = target && { type: "attack", mode: check.mode, target: target.uuid, attacker: actor.uuid, damage: damage || "" };
   return { ...check, bookedTicks, ...(exchange ? { targetName: target.name, exchange } : {}) };
 }
 
@@ -56,9 +70,17 @@ function canRespond(message) {
 
 function allowed(state, action) {
   if (!state) return false;
+  if (action === "dodge") return !state.defense && state.attack.mode === "AT" && Number.isInteger(state.attack.quality)
+    && Boolean(dodgeCheck(state.defender)) && Boolean(reactionCombatant(state.token))
+    && (game.user.isGM || state.defender.isOwner);
   if (action === "parry" || action === "skip") return !state.defense && (game.user.isGM || state.defender.isOwner);
   return action === "damage" && state.defense && !state.defense.success && !state.damage
     && (game.user.isGM || state.attacker?.isOwner);
+}
+
+function reactionCombatant(token) {
+  return game.combats.find(c => c.started && c.active && c.scene?.id === token.parent.id)
+    ?.combatants.find(c => c.tokenId === token.id && !c.isDefeated);
 }
 
 function ensure(message, action) {
@@ -75,6 +97,25 @@ function postResponse(actor, message, type, content, rolls = []) {
 async function respond(message, action) {
   const state = ensure(message, action);
   const { defender, attacker, attack, token } = state;
+  if (action === "dodge") {
+    const combatant = reactionCombatant(token);
+    if (!combatant) throw new Error("Für Ausweichen muss das Ziel am laufenden Tickkampf teilnehmen.");
+    if (!game.users.activeGM && !game.user.isGM) throw new Error("Für Tickbuchungen muss eine Spielleitung verbunden sein.");
+    const check = dodgeCheck(defender);
+    const options = await prepareRoll(check, dodgeFields, { allowBlind: false });
+    if (!options) return;
+    ensure(message, action);
+    const situation = dodgeOptions(options.fields, getCombatantInfo(combatant).ticks);
+    if (!situation || reactionCombatant(token) !== combatant) return;
+    const adjusted = applyConditionEffects(defender, dodgeCheck(defender, situation));
+    const response = await postRoll(defender, { ...adjusted, opposedQuality: attack.quality, targetName: token.name,
+      exchange: { type: "defense", attack: message.id } }, { ...options, mode: "public" });
+    if (response) {
+      await queueActionTicks(combatant, 4);
+      await response.update({ content: response.content.replace("</footer>", "</footer><p>Gebuchte Ticks: <strong>4</strong></p>") });
+    }
+    return response;
+  }
   if (action === "skip") {
     const confirmed = await foundry.applications.api.DialogV2.confirm({
       window: { title: "Auf Parade verzichten" },
@@ -146,7 +187,7 @@ function addActions(message, html) {
   card.querySelector(".ucurifunke-exchange")?.remove();
   const state = canRespond(message);
   if (!state) return;
-  const choices = [["parry", "Parade würfeln"], ["skip", "Auf Parade verzichten"], ["damage", "Schaden würfeln"]]
+  const choices = [["parry", "Parade würfeln"], ["dodge", "Ausweichen"], ["skip", "Auf Abwehr verzichten"], ["damage", "Schaden würfeln"]]
     .filter(([action]) => allowed(state, action));
   if (!choices.length && !state.defense) return;
   const group = document.createElement("div");

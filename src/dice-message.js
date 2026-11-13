@@ -5,7 +5,7 @@ export function postDiceMessage(content, rolls, { actor, speaker, mode, hiddenSu
     content,
     style: CONST.CHAT_MESSAGE_STYLES.OTHER,
     rolls: rolls.map(roll => roll.toJSON()),
-    sound: CONFIG.sounds.dice
+    sound: globalThis.game?.settings?.get?.("ucurifunke", "rollSounds") === false ? null : CONFIG.sounds.dice
   };
   const data = ChatMessage.applyMode(message, mode);
   if (data.blind && hiddenSubject) {

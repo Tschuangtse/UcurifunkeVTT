@@ -3,13 +3,13 @@ export function combatFocus(actor) {
   const legacy = () => actor.items?.find(item => item.type === "weapon" && item.system.group !== "Fernkampf"
     && item.system.attackBreakdown?.length === 4)?.system.attackBreakdown[2];
   const value = combatFocus ?? offensiveFocus ?? (defensiveFocus == null ? legacy() ?? 0 : -defensiveFocus);
-  const limit = actor.system.npcGenerator ? 4 : 2;
+  const limit = 2;
   return Math.max(-limit, Math.min(limit, Math.trunc(value)));
 }
 
 export function focusModifier(actor, mode, imported) {
   if (mode !== "AT" && mode !== "PA") return 0;
-  if (actor.system.combatFocus == null && imported != null) return imported;
+  if (actor.system.combatFocus == null && imported != null) return Math.max(-2, Math.min(2, imported));
   return combatFocus(actor) * (mode === "AT" ? 1 : -1);
 }
 
@@ -26,7 +26,7 @@ export function bindFocus(root) {
 }
 
 export async function requestFocus(actor, tokenName) {
-  const limit = actor.system.npcGenerator ? 4 : 2;
+  const limit = 2;
   const content = await foundry.applications.handlebars.renderTemplate("systems/ucurifunke/templates/combat-focus.hbs",
     { focus: combatFocus(actor), focusMin: -limit, focusMax: limit, canEdit: true });
   const result = await foundry.applications.api.DialogV2.input({

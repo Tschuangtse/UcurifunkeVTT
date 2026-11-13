@@ -55,6 +55,8 @@ function renderCombat(check, dice, modifiers, confirmation) {
       check.value + impairment + joints - (check.focusDelta ?? 0) + (check.conditionPenalties ?? [])
       .reduce((sum, entry) => sum + entry.value, 0)]];
   rows.push(["Beeinträchtigung", -impairment]);
+  for (const [name, value] of check.penalties ?? []) rows.push([escapeHtml(name), -value]);
+  if (check.opposedQuality != null) rows.push(["Angriffsqualität", check.opposedQuality]);
   if (check.focusDelta) rows.push(["Kampffokus", check.focusDelta]);
   if (joints) rows.push(["Schlechte Gelenke", -joints]);
   for (const { name, value } of check.conditionPenalties ?? []) rows.push([escapeHtml(name), -value]);

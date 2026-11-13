@@ -30,6 +30,10 @@ Für eine manuelle Installation den Inhalt des Release-ZIPs nach `Data/systems/u
 
 ## Umfang der Testversion
 
+In einem laufenden Tickkampf kann das Ziel eines öffentlichen Nahkampfangriffs im Chat **Ausweichen** wählen. Die Reaktion kostet auch bei einem Fehlschlag 4 Ticks. Die Berechnung berücksichtigt BE, den aktuellen Tickwert, Kampffokus und Überanstrengung. Wahrnehmung des Angriffs, Umzingelung, Rennen, Körperlage und beengte Umgebung werden im Dialog angegeben. Bei gleicher Qualität trifft der Angriff.
+
+Über den Stern am Würfelknopf lassen sich Proben je Benutzer und Akteur als Favoriten speichern. Wer in Foundry Skriptmakros erstellen und ausführen darf, kann Würfelknöpfe auf die Makroleiste ziehen. Im Kampfreiter lassen sich Waffen in Sets speichern und Rüstungen an- oder ablegen. Charaktere können beim Import oder Aktualisieren zusätzlich ein Porträt erhalten. Design und Würfelklang sind in den Systemeinstellungen verfügbar.
+
 Der Import liest Pedipalpus-Speicherdateien direkt. Er übernimmt gespeicherte Spielwerte und berechnet unterstützte Waffenwerte und Ladezeiten aus den enthaltenen Daten. Der Charakterbogen berücksichtigt die aus Pedipalpus übernommenen automatischen Zustandsfolgen für Attribute, GS, RE und Proben. Situative Abzüge, Ausnahmen und besondere Schadensregeln lassen sich im jeweiligen Dialog berücksichtigen. In Pedipalpus erzeugte Chatbefehle enthalten ihre Abzüge bereits.
 
 Ein erneuter Import aus Pedipalpus ergänzt bei älteren Foundry-Charakteren die Einzelwerte für Kampfproben und stellt Ritualproben und Wunder anhand der Quelldatei bereit.
