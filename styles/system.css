@@ -34,6 +34,12 @@
   border-bottom: 1px solid var(--uc-line);
 }
 .ucurifunke-character.is-companion .ucurifunke-sheet-tabs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.ucurifunke-character .ucurifunke-sheet-tabs:has([data-sheet-tab="favorites"]:not([hidden])) {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.ucurifunke-character.is-companion .ucurifunke-sheet-tabs:has([data-sheet-tab="favorites"]:not([hidden])) {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
 .ucurifunke-companion-details dd { white-space: pre-line; text-align: end; overflow-wrap: anywhere; }
 .ucurifunke-companion-details .ucurifunke-companion-properties {
   grid-column: 1 / -1;
@@ -214,12 +220,11 @@
 .ucurifunke-modifier-dialog .form-group { display: grid; grid-template-columns: 1fr 7rem; align-items: center; }
 .ucurifunke-modifier-dialog input[type="checkbox"] { justify-self: start; }
 
-.ucurifunke-character { grid-template-rows: auto auto auto minmax(0, 1fr); }
-.ucurifunke-character:has([data-probe-favorites][hidden]) { grid-template-rows: auto auto minmax(0, 1fr); }
 .ucurifunke-character[data-design="parchment"] { --uc-surface: #584732; --uc-accent: #d4a55d; background: #33291e; color: #fff0d4; }
 .ucurifunke-character[data-design="steel"] { --uc-surface: #303d4d; --uc-accent: #94b8df; background: #202a36; color: #e7f3ff; }
-.ucurifunke-probe-favorites { display: flex; flex-wrap: wrap; gap: .35rem; padding: .4rem .75rem; max-height: 8rem; overflow: auto; }
-.ucurifunke-probe-favorites button { width: auto; font-size: .82rem; }
+.ucurifunke-probe-favorites { display: grid; gap: .35rem; }
+.ucurifunke-probe-favorites li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .4rem; }
+.ucurifunke-probe-favorites li > button:first-child { justify-content: start; text-align: start; }
 .ucurifunke-probe-star { width: 1.7rem; flex: 0 0 1.7rem; padding: .1rem; }
 .ucurifunke-probe-star[aria-pressed="true"] { color: #edbd68; }
 .ucurifunke-row:not(.is-item):has(.ucurifunke-probe-star) { grid-template-columns: minmax(0, 1fr) auto 1.75rem 2.1rem 1.7rem; }

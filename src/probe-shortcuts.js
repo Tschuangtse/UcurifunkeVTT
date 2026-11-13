@@ -20,17 +20,18 @@ export async function rollSavedProbe(actorId, ref) {
 
 export async function createProbeMacro(data, slot) {
   const actor = game.actors.get(data.actorId);
-  if (!actor?.isOwner || !game.user.can("MACRO_SCRIPT") || !game.user.can("MACRO_CREATE")) {
+  const Macro = foundry.documents.Macro.implementation;
+  if (!actor?.isOwner || !game.user.can("MACRO_SCRIPT") || !Macro.canUserCreate(game.user)) {
     return ui.notifications.warn("Für dieses Probenmakro fehlen die nötigen Foundry-Rechte.");
   }
   const command = `await game.ucurifunke.rollSavedProbe(${JSON.stringify(actor.id)}, ${JSON.stringify(data.reference)});`;
   if (typeof data.label !== "string" || !data.reference?.kind) return;
   const macro = game.macros.find(m => m.isOwner && m.command === command)
-    ?? await foundry.documents.Macro.implementation.create({ name: data.label, type: "script", command });
+    ?? await Macro.create({ name: data.label, type: "script", command });
   if (macro) await game.user.assignHotbarMacro(macro, slot);
 }
 
-export function bindProbeShortcuts(root, actor) {
+export function bindProbeShortcuts(root, actor, onRefresh) {
   if (!actor.isOwner || actor.isToken) return;
   const user = game.user;
   const read = () => user.getFlag("ucurifunke", "favorites")?.[actor.id] ?? [];
@@ -40,34 +41,35 @@ export function bindProbeShortcuts(root, actor) {
   function refresh() {
     const saved = new Set(read());
     bar.replaceChildren();
-    for (const [button, star, key] of stars) {
+    for (const [button, star, key, toggle] of stars) {
       const active = saved.has(key);
       star.setAttribute("aria-pressed", String(active));
       star.textContent = active ? "★" : "☆";
       if (!active) continue;
+      const row = document.createElement("li");
+      row.dataset.filterRow = button.ariaLabel;
       const shortcut = document.createElement("button");
       shortcut.type = "button";
-      shortcut.textContent = button.ariaLabel;
+      shortcut.textContent = button.ariaLabel || button.title;
       shortcut.onclick = () => button.click();
-      bar.append(shortcut);
+      shortcut.draggable = true;
+      shortcut.ondragstart = button.ondragstart;
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = star.className;
+      remove.ariaLabel = "Favorit entfernen: " + shortcut.textContent;
+      remove.title = remove.ariaLabel;
+      remove.textContent = "★";
+      remove.setAttribute("aria-pressed", "true");
+      remove.onclick = toggle;
+      row.append(shortcut, remove);
+      bar.append(row);
     }
-    bar.hidden = !bar.children.length;
+    onRefresh(Boolean(bar.children.length));
   }
   for (const button of buttons) {
     const ref = rollReference(button, actor);
     const key = referenceKey(ref);
-    const star = document.createElement("button");
-    star.type = "button";
-    star.className = "ucurifunke-probe-star";
-    star.ariaLabel = "Favorit: " + button.ariaLabel;
-    star.onclick = async () => {
-      const saved = new Set(read());
-      if (!saved.delete(key)) saved.add(key);
-      await user.update({ ["flags.ucurifunke.favorites." + actor.id]: [...saved] });
-      refresh();
-    };
-    stars.push([button, star, key]);
-    button.after(star);
     button.draggable = true;
     button.ondragstart = event => {
       event.stopPropagation();
@@ -75,6 +77,22 @@ export function bindProbeShortcuts(root, actor) {
         type: "UcurifunkeProbe", actorId: actor.id, reference: ref, label: button.ariaLabel
       }));
     };
+    if (ref.kind === "perception") continue;
+    const star = document.createElement("button");
+    star.type = "button";
+    star.className = "ucurifunke-probe-star";
+    star.ariaLabel = "Favorit: " + button.ariaLabel;
+    const toggle = async () => {
+      try {
+        const saved = new Set(read());
+        if (!saved.delete(key)) saved.add(key);
+        await user.update({ ["flags.ucurifunke.favorites." + actor.id]: [...saved] });
+        refresh();
+      } catch (error) { ui.notifications.error(error.message); }
+    };
+    star.onclick = toggle;
+    stars.push([button, star, key, toggle]);
+    button.after(star);
   }
   refresh();
 }

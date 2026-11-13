@@ -80,7 +80,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       showCondition: CharacterSheet.#showCondition, cycleCondition: CharacterSheet.#cycleCondition,
       openCompanion: CharacterSheet.#openCompanion, importRetinue: CharacterSheet.#importRetinue,
       editWeaponTicks: CharacterSheet.#editWeaponTicks, toggleEquipment: CharacterSheet.#toggleEquipment,
-      weaponSets: CharacterSheet.#weaponSets }
+      weaponSets: CharacterSheet.#weaponSets, sheetPreferences: CharacterSheet.#sheetPreferences }
   };
 
   static PARTS = { character: { template: path, scrollable: [".ucurifunke-sheet-body"] } };
@@ -152,10 +152,9 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
     }
     const root = this.element.querySelector(".ucurifunke-character");
     root.dataset.design = game.settings.get("ucurifunke", "sheetDesign");
-    bindProbeShortcuts(root, this.actor);
     const tablist = root.querySelector('[role="tablist"]');
     tablist.onkeydown = event => {
-      const tabs = [...tablist.querySelectorAll('[role="tab"]')];
+      const tabs = [...tablist.querySelectorAll('[role="tab"]:not([hidden])')];
       const index = tabs.indexOf(event.target);
       const next = { ArrowLeft: (index + tabs.length - 1) % tabs.length,
         ArrowRight: (index + 1) % tabs.length, Home: 0, End: tabs.length - 1 }[event.key];
@@ -183,6 +182,16 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       if (category) category.onchange = apply;
       apply();
     }
+    bindProbeShortcuts(root, this.actor, hasFavorites => {
+      const tab = tablist.querySelector('[data-sheet-tab="favorites"]');
+      const panel = root.querySelector('[data-sheet-panel="favorites"]');
+      tab.hidden = !hasFavorites;
+      filterSheet(panel, panel.querySelector('input[type="search"]').value, "");
+      if (!hasFavorites && this.#activeTab === "favorites") {
+        this.#selectTab("overview", true);
+        tablist.querySelector('[data-sheet-tab="overview"]').focus();
+      }
+    });
     const conditions = root.querySelector('[data-sheet-panel="conditions"]');
     conditions.onchange = async event => {
       const { conditionField } = event.target.dataset;
@@ -196,6 +205,26 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
   static async #updatePedipalpus() {
     try { await updatePedipalpusActor(this.actor); }
     catch (error) { ui.notifications.error(error.message); }
+  }
+
+  static async #sheetPreferences() {
+    const settings = game.settings;
+    const design = settings.get("ucurifunke", "sheetDesign");
+    const sounds = settings.get("ucurifunke", "rollSounds");
+    const choices = settings.settings.get("ucurifunke.sheetDesign").choices;
+    const result = await foundry.applications.api.DialogV2.input({
+      window: { title: "Bogendesign und Würfelklänge" },
+      content: `<div class="form-group"><label for="${this.id}-design">Bogendesign</label>
+        <select id="${this.id}-design" name="design">${Object.entries(choices).map(([key, label]) =>
+          `<option value="${key}" ${key === design ? "selected" : ""}>${label}</option>`).join("")}</select></div>
+        <div class="form-group"><label for="${this.id}-sounds">Würfelklänge beim eigenen Wurf</label>
+        <input id="${this.id}-sounds" type="checkbox" name="sounds" ${sounds ? "checked" : ""}></div>`,
+      rejectClose: false, modal: true, ok: { label: "Speichern" }
+    });
+    if (!result) return;
+    await settings.set("ucurifunke", "sheetDesign", result.design);
+    await settings.set("ucurifunke", "rollSounds", [true, 1, "1", "true", "on"].includes(result.sounds));
+    for (const sheet of document.querySelectorAll(".ucurifunke-character")) sheet.dataset.design = result.design;
   }
 
   static async #toggleEquipment(_event, target) {
@@ -353,6 +382,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
   }
 
   #selectTab(name, resetScroll = false) {
+    if (name === "favorites" && this.element.querySelector('[data-sheet-tab="favorites"]').hidden) name = "overview";
     this.#activeTab = name;
     for (const tab of this.element.querySelectorAll("[data-sheet-tab]")) {
       const selected = tab.dataset.sheetTab === name;

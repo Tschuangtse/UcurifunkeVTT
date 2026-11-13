@@ -107,8 +107,16 @@
       <button type="button" class="ucurifunke-roll ucurifunke-perception" data-action="rollCheck" data-kind="perception"
         title="Wahrnehmung würfeln" aria-label="Wahrnehmung würfeln"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>
     {{/if}}
+    <button type="button" class="ucurifunke-roll ucurifunke-header-action" data-action="sheetPreferences"
+      title="Bogendesign und Würfelklänge" aria-label="Bogendesign und Würfelklänge">
+      <i class="fa-solid fa-gear" aria-hidden="true"></i>
+    </button>
   </header>
   <nav class="ucurifunke-sheet-tabs" role="tablist" aria-label="Charakterbogen">
+    <button type="button" role="tab" id="{{sheetId}}-tab-favorites" aria-controls="{{sheetId}}-favorites"
+      aria-selected="false" tabindex="-1" data-action="openSheetTab" data-sheet-tab="favorites" hidden>
+      <i class="fa-solid fa-star" aria-hidden="true"></i> Favoriten
+    </button>
     <button type="button" role="tab" id="{{sheetId}}-tab-overview" aria-controls="{{sheetId}}-overview"
             aria-selected="true" data-action="openSheetTab" data-sheet-tab="overview"><i class="fa-solid fa-id-card" aria-hidden="true"></i> Grundwerte</button>
     <button type="button" role="tab" id="{{sheetId}}-tab-combat" aria-controls="{{sheetId}}-combat"
@@ -124,9 +132,12 @@
       <i class="fa-solid fa-heart-pulse" aria-hidden="true"></i> Zustände
     </button>
   </nav>
-  <div class="ucurifunke-probe-favorites" data-probe-favorites hidden aria-label="Meine Probenfavoriten"></div>
-
   <div class="ucurifunke-sheet-body">
+    <section role="tabpanel" id="{{sheetId}}-favorites" aria-labelledby="{{sheetId}}-tab-favorites" data-sheet-panel="favorites" data-searchable hidden>
+      <div class="ucurifunke-filter">{{> searchField label="Favoriten suchen"}}</div>
+      <ul class="ucurifunke-probe-favorites" data-probe-favorites data-filter-group="Favoriten" aria-label="Meine Probenfavoriten"></ul>
+      <p data-no-results hidden>Keine passenden Favoriten.</p>
+    </section>
     <section role="tabpanel" id="{{sheetId}}-overview" aria-labelledby="{{sheetId}}-tab-overview" data-sheet-panel="overview" data-searchable>
       <div class="ucurifunke-filter">{{> searchField label="Grundwerte suchen"}}</div>
       {{#each attributeGroups}}
