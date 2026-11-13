@@ -73,3 +73,20 @@ test("new companions inherit the character ownership, and a repeat import update
   assert.equal(actors.length, 1);
   assert.equal(updated.name, "Habicht");
 });
+
+test("explicit empty lists remove old members and their tokens while absent lists preserve them", async () => {
+  const events = [];
+  const old = { id: "old", type: "retinue", name: "Falke", isOwner: true,
+    getFlag: (_scope, key) => key === "retinueOwner" ? "parent" : "Animals:old",
+    delete: async () => events.push("actor")
+  };
+  const owner = { id: "parent", getFlag: () => undefined };
+  globalThis.game = { actors: [old], user: { isGM: true }, scenes: [{
+    tokens: [{ id: "old-token", actorId: "old" }, { id: "kept-token", actorId: "other" }],
+    deleteEmbeddedDocuments: async (type, ids) => events.push([type, ids])
+  }] };
+  await syncRetinue(owner, retinueSource({}));
+  assert.deepEqual(events, []);
+  await syncRetinue(owner, retinueSource({ Animals: [] }));
+  assert.deepEqual(events, [["Token", ["old-token"]], "actor"]);
+});

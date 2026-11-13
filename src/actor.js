@@ -8,7 +8,7 @@ export class UcurifunkeActor extends foundry.documents.Actor {
 
     const result = await this.importPedipalpusData(convertCharacter(source));
     const retinue = retinueSource(source);
-    if (this.getFlag?.("ucurifunke", "retinuePending") || Object.values(retinue).some(rows => rows.length)) {
+    if (typeof globalThis.game !== "undefined") {
       const pending = await syncRetinue(this, retinue);
       if (pending.length) ui.notifications.warn("Gefolge zur Übernahme durch die Spielleitung vorgemerkt: " + pending.join(", "));
     }
@@ -27,7 +27,7 @@ export class UcurifunkeActor extends foundry.documents.Actor {
     return super.importFromJSON(JSON.stringify({
       ...current,
       name,
-      system,
+      system: { ...system, combatFocus: current.system?.combatFocus ?? null, dodgeOverride: current.system?.dodgeOverride ?? null },
       items: importedItems,
       prototypeToken: {
         ...current.prototypeToken,

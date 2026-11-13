@@ -30,6 +30,7 @@ Hooks.once("init", () => {
   );
 });
 
+
 Hooks.on("renderActorDirectory", (_directory, html) => {
   if (!(html instanceof HTMLElement) || !game.user.can("ACTOR_CREATE")) return;
   const header = html.querySelector(".directory-header, .directory-controls, .header-actions");

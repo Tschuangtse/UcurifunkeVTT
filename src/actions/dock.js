@@ -1,14 +1,15 @@
 import { ACTIONS, CATEGORIES, parseCost } from "./actions.js";
-import { MODULE_ID, SETTINGS_SCOPE, OWNERSHIP_ERROR, getSelection, addActionTicks } from "./combat.js";
-import { requestCost } from "./cost-dialog.js";
-import { postRoll, prepareRoll, weaponCheck } from "../checks.js";
+import { MODULE_ID, SETTINGS_SCOPE, OWNERSHIP_ERROR, getSelection, addActionTicks, assertSameSelection } from "./combat.js";
+import { requestCost, saveTickOverride } from "./cost-dialog.js";
+import { requestFocus } from "../combat-focus.js";
+import { dodgeCheck, postRoll, prepareRoll, weaponCheck } from "../checks.js";
 import { applyConditionEffects } from "../conditions.js";
 import { linkAttack, selectedAttackTarget } from "../combat-workflow.js";
 
 export class ActionDock {
   constructor({ getGame = () => game, getCanvas = () => globalThis.canvas, notify = message => ui.notifications.warn(message),
-    costPrompt = requestCost, applyTicks = addActionTicks } = {}) {
-    Object.assign(this, { getGame, getCanvas, notify, costPrompt, applyTicks });
+    costPrompt = requestCost, focusPrompt = requestFocus, applyTicks = addActionTicks } = {}) {
+    Object.assign(this, { getGame, getCanvas, notify, costPrompt, focusPrompt, applyTicks });
     this.expanded = null;
     this.busy = false;
   }
@@ -127,12 +128,26 @@ export class ActionDock {
     try {
       const weaponAction = ["melee", "opportunity", "ranged", "parry", "parry-maneuver"].includes(id);
       const actor = selection.combatant.actor;
+      if (id === "stance") {
+        if (!actor?.isOwner) throw new Error(OWNERSHIP_ERROR);
+        const focus = await this.focusPrompt(actor, selection.token.name);
+        if (focus === null) return;
+        assertSameSelection(selection, getSelection(this.getGame(), this.getCanvas()));
+        const character = actor.isToken ? this.getGame().actors.get(actor.id) ?? actor : actor;
+        if (!character.isOwner) throw new Error(OWNERSHIP_ERROR);
+        await this.applyTicks(selection, action.ticks, { game: this.getGame(), canvas: this.getCanvas() });
+        await character.update({ "system.combatFocus": focus });
+        if (character !== actor) await actor.update({ "system.combatFocus": focus });
+        this.collapse();
+        return;
+      }
       const cost = action.ticks === null || (weaponAction && actor?.items?.some(item => item.type === "weapon"))
         ? await this.costPrompt(action, selection) : action.ticks;
       if (cost === null || cost === undefined) return;
       const mode = id === "ranged" ? "FK" : id.startsWith("parry") ? "PA" : "AT";
       const weapon = weaponAction && cost.weaponId ? actor.items.get(cost.weaponId) : null;
-      const check = weapon ? weaponCheck(actor, weapon, mode) : null;
+      const check = id === "dodge" && actor ? dodgeCheck(actor) : weapon ? weaponCheck(actor, weapon, mode) : null;
+      if (id === "dodge" && !check) throw new Error("Für diesen Akteur ist kein Ausweichwert hinterlegt.");
       const target = check && selectedAttackTarget(actor, check);
       if (check) applyConditionEffects(actor, check);
       const modifiers = check ? await prepareRoll(check) : null;
@@ -140,7 +155,8 @@ export class ActionDock {
       const adjusted = check && applyConditionEffects(actor, check);
       const ticks = parseCost(cost.ticks ?? cost);
       await this.applyTicks(selection, ticks, { game: this.getGame(), canvas: this.getCanvas() });
-      if (adjusted) await postRoll(actor, linkAttack(actor, adjusted, target, weapon.system.damage, ticks), modifiers);
+      await saveTickOverride(actor, id, cost.weaponId, ticks, cost.importedTicks);
+      if (adjusted) await postRoll(actor, linkAttack(actor, adjusted, target, weapon?.system.damage, ticks), modifiers);
       this.collapse();
     } catch (error) {
       console.error(`${MODULE_ID} | Handlung fehlgeschlagen`, error);

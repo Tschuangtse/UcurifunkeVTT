@@ -96,6 +96,7 @@ export function convertRetinue(source) {
         companionKind: categoryName, companionDetails: [...resources, ...details],
         attributes, skills, derived, reaction: positive(member.Reaction), impairment: positive(member.Impairment),
         naturalArmor: positive(member.NaturalArmor),
+        offensiveFocus: integer(member.Focus), defensiveFocus: -integer(member.Focus),
         companionArmor: typeof member.ArmorProtection === "number" ? positive(member.ArmorProtection) : null
       }, items: [...attacks, ...equipment] } };
   }));
@@ -107,17 +108,29 @@ export function retinueSource(source) {
   for (const key of ["GeneralItems", "InventoryContainers", "Armors", "Ammunitions"]) {
     data[key] = list(source[key]).filter(row => ids.has(text(row.CarrierAnimalId)));
   }
+  data.authoritative = Array.isArray(source.authoritative) ? source.authoritative
+    : Object.keys(GROUPS).filter(key => Array.isArray(source[key]));
   return data;
 }
 
-export async function syncRetinue(owner, source) {
+export function planRetinue(owner, source, actors = game.actors) {
   const entries = convertRetinue(source);
-  const existing = new Map(game.actors.filter(actor => actor.type === "retinue"
-    && actor.getFlag("ucurifunke", "retinueOwner") === owner.id)
-    .map(actor => [actor.getFlag("ucurifunke", "retinueSource"), actor]));
+  const existing = actors.filter(actor => actor.type === "retinue"
+    && actor.getFlag("ucurifunke", "retinueOwner") === owner.id);
+  const incoming = new Set(entries.map(entry => entry.sourceKey));
+  const removed = existing.filter(actor => {
+    const key = actor.getFlag("ucurifunke", "retinueSource");
+    return key && source.authoritative?.includes(key.split(":")[0]) && !incoming.has(key);
+  });
+  return { entries, existing, removed };
+}
+
+export async function syncRetinue(owner, source) {
+  const { entries, existing, removed } = planRetinue(owner, source);
+  const bySource = new Map(existing.map(actor => [actor.getFlag("ucurifunke", "retinueSource"), actor]));
   const pending = [];
   for (const { sourceKey, data } of entries) {
-    const actor = existing.get(sourceKey);
+    const actor = bySource.get(sourceKey);
     try {
       if (actor?.isOwner) await actor.importPedipalpusData(data);
       else if (actor || !game.user.can("ACTOR_CREATE")) pending.push(data.name);
@@ -126,6 +139,22 @@ export async function syncRetinue(owner, source) {
     } catch (error) {
       pending.push(data.name);
       console.warn("Ucurifunke | Gefolge konnte nicht übernommen werden", error);
+    }
+  }
+  for (const actor of removed) {
+    try {
+      if (!game.user.isGM) {
+        pending.push(actor.name + " (entfernen)");
+        continue;
+      }
+      for (const scene of game.scenes ?? []) {
+        const tokens = scene.tokens.filter(token => token.actorId === actor.id).map(token => token.id);
+        if (tokens.length) await scene.deleteEmbeddedDocuments("Token", tokens);
+      }
+      await actor.delete();
+    } catch (error) {
+      pending.push(actor.name + " (entfernen)");
+      console.warn("Ucurifunke | Gefolge konnte nicht entfernt werden", error);
     }
   }
   if (pending.length) await owner.setFlag("ucurifunke", "retinuePending", source);

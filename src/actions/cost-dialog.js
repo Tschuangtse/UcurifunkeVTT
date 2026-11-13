@@ -41,7 +41,9 @@ export async function requestCost(action, selection) {
   input.setAttribute("aria-label", "Tickkosten");
   label.append(input);
   fields.append(actor, hint);
-  const choices = weaponChoices(action, selection.combatant.actor?.items);
+  const owner = selection.combatant.actor;
+  const overrides = owner?.getFlag?.("ucurifunke", "actionTickOverrides")?.[action.id] ?? {};
+  const choices = weaponChoices(action, owner?.items);
   if (choices.length) {
     const weaponLabel = document.createElement("label");
     weaponLabel.textContent = "Waffe ";
@@ -54,13 +56,20 @@ export async function requestCost(action, selection) {
     for (const weapon of choices) {
       const option = document.createElement("option");
       option.value = weapon.id;
-      option.textContent = weapon.name + " · " + weapon.ticks + " Ticks";
+      option.textContent = weapon.name + " · " + (overrides[weapon.id] ?? weapon.ticks) + " Ticks";
       select.append(option);
     }
     weaponLabel.append(select);
     fields.append(weaponLabel);
   }
-  fields.append(label);
+  const reset = document.createElement("button");
+  reset.type = "button";
+  reset.setAttribute("data-reset-ticks", "");
+  reset.textContent = "Zurücksetzen";
+  const row = document.createElement("div");
+  row.className = "uqca-tick-field";
+  row.append(label, reset);
+  fields.append(row);
   content.append(fields);
 
   return foundry.applications.api.DialogV2.prompt({
@@ -75,22 +84,33 @@ export async function requestCost(action, selection) {
         const { elements } = button.form;
         const weaponId = elements.namedItem("weapon")?.value;
         const weapon = choices.find(choice => choice.id === weaponId);
-        if (weapon) return { ticks: weapon.ticks, weaponId: weapon.id };
-        if (action.ticks !== null) return action.ticks;
         const field = elements.namedItem("ticks");
         if (!field.reportValidity()) throw new Error("Bitte eine ganze Tickzahl von 0 bis 32 eingeben.");
-        return parseCost(field.value);
+        const ticks = parseCost(field.value);
+        if (weapon) return { ticks, weaponId: weapon.id, importedTicks: weapon.ticks };
+        return { ticks, importedTicks: Number(initialCost) };
       }
     },
     render: (_event, dialog) => {
       // DialogV2 serializes and recreates its content. Bind to the live form.
       const field = dialog.element.querySelector('input[name="ticks"]');
       const select = dialog.element.querySelector('select[name="weapon"]');
+      const resetButton = dialog.element.querySelector("[data-reset-ticks]");
+      const selected = () => choices.find(choice => choice.id === select?.value);
+      const key = () => selected()?.id ?? "manual";
+      const source = () => selected()?.ticks ?? Number(initialCost);
+      const drafts = new Map();
       const updateCost = () => {
-        const weapon = choices.find(choice => choice.id === select?.value);
-        field.readOnly = Boolean(weapon) || action.ticks !== null;
-        field.value = String(weapon?.ticks ?? initialCost);
+        field.value = drafts.get(key()) ?? String(overrides[key()] ?? source());
       };
+      field.addEventListener("input", () => drafts.set(key(), field.value));
+      resetButton.addEventListener("click", async () => {
+        const resetKey = key();
+        drafts.set(resetKey, String(source()));
+        updateCost();
+        try { await saveTickOverride(owner, action.id, selected()?.id, source(), source()); }
+        catch (error) { ui.notifications.error(error.message); }
+      });
       if (select) {
         select.value = choices[0].id;
         select.addEventListener("change", updateCost);
@@ -103,4 +123,16 @@ export async function requestCost(action, selection) {
       }
     }
   });
+}
+
+export async function saveTickOverride(actor, actionId, weaponId, ticks, importedTicks) {
+  if (importedTicks == null || !actor?.isOwner) return;
+  const key = weaponId ?? "manual";
+  const path = "flags.ucurifunke.actionTickOverrides." + actionId + ".";
+  const previous = actor.getFlag("ucurifunke", "actionTickOverrides")?.[actionId]?.[key];
+  if (ticks === importedTicks) {
+    if (previous !== undefined) await actor.update({ [path + "-=" + key]: null });
+  } else if (previous !== ticks) {
+    await actor.update({ [path + key]: ticks });
+  }
 }

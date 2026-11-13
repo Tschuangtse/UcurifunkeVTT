@@ -17,7 +17,8 @@ export class CharacterData extends foundry.abstract.TypeDataModel {
       companionDetails: rows({ name: text(), value: text() }),
       conditions: rows({ name: text(), staged: flag(), active: flag(), suppressed: flag(),
         level: integer(0), suppression: integer(0) }),
-      offensiveFocus: optionalInteger(), defensiveFocus: optionalInteger(),
+      offensiveFocus: optionalInteger(), defensiveFocus: optionalInteger(), combatFocus: optionalInteger(),
+      dodgeOverride: optionalInteger(),
       attributes: rows({ ...attribute(), kind: text() }), derived: rows(attribute()), energies: rows({ key: text(), value: number() }),
       skills: rows({ name: text(), group: text(), rollName: text(), value: number(), rollable: flag(), attributes: rows(attribute()) })
     };

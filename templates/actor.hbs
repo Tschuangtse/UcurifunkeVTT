@@ -183,10 +183,16 @@
       <div class="ucurifunke-filter">{{> searchField label="Kampftechniken, Waffen und Rüstung suchen"}}</div>
       <section class="ucurifunke-group" data-filter-group="Kampfwerte">
         <h3>Kampfwerte</h3>
-        <div class="ucurifunke-combat-values" data-filter-row="Kampfwerte Beeinträchtigung Reaktionsvermögen BE RE">
+        <div data-filter-row="Kampfwerte Beeinträchtigung Reaktionsvermögen BE RE Kampffokus Offensiv Defensiv">
+        <div class="ucurifunke-combat-values">
           <label>BE <input type="number" name="impairment" min="0" step="1" value="{{data.impairment}}" {{#unless canEdit}}disabled{{/unless}}></label>
           <label>RE <input type="number" name="reaction" min="0" step="1" value="{{data.reaction}}" {{#unless canEdit}}disabled{{/unless}}></label>
+          <label>Ausweichen <input type="number" name="dodgeOverride" step="1" value="{{dodge}}" {{#unless canEdit}}disabled{{/unless}}></label>
+          {{#if canDodge}}<button type="button" data-action="rollCheck" data-kind="dodge" aria-label="Ausweichen würfeln" title="Ausweichen würfeln">
+            <i class="fa-solid fa-dice-d20" aria-hidden="true"></i></button>{{/if}}
           {{#if canEdit}}<button type="button" data-action="saveCombatValues">Speichern</button>{{/if}}
+        </div>
+        {{> (lookup . "focusTemplate")}}
         </div>
       </section>
       {{#if weaponGroups.length}}

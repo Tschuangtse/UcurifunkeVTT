@@ -1,7 +1,7 @@
 import { escapeHtml } from "./check-card.js";
 import { parseCharacter } from "./import-data.js";
 import { conditionRows, SUPPRESSIONS } from "./conditions.js";
-import { convertRetinue, retinueSource, syncRetinue } from "./retinue.js";
+import { planRetinue, retinueSource, syncRetinue } from "./retinue.js";
 
 export function chooseCharacterFile(label) {
   const content = document.createElement("div");
@@ -71,13 +71,14 @@ export async function updatePedipalpusActor(actor) {
     return { name, system, items };
   };
   const current = snapshot();
-  const entries = convertRetinue(retinue);
+  const { entries, removed } = planRetinue(actor, retinue);
   const preview = describeImport(current, data).map(([label, rows]) => `<details${rows.length && rows.length <= 8 ? " open" : ""}>
     <summary>${label} (${rows.length})</summary><ul>${rows.map(([name, before, after]) =>
       `<li><strong>${escapeHtml(name)}</strong> · ${before === undefined ? "Neu" : escapeHtml(before)}
       → ${after === undefined ? "Entfällt" : escapeHtml(after)}</li>`).join("")}</ul></details>`).join("")
-    + (entries.length ? `<details open><summary>Gefolge (${entries.length})</summary><ul>${entries.map(({ data }) =>
-      `<li>${escapeHtml(data.name)} · ${escapeHtml(data.system.companionKind)}</li>`).join("")}</ul></details>` : "");
+    + (entries.length || removed.length ? `<details open><summary>Gefolge (${entries.length})</summary><ul>${entries.map(({ data }) =>
+      `<li>${escapeHtml(data.name)} · ${escapeHtml(data.system.companionKind)}</li>`).join("")}${removed.map(actor =>
+      `<li>${escapeHtml(actor.name)} · Akteur und Token werden entfernt</li>`).join("")}</ul></details>` : "");
   const confirmed = await foundry.applications.api.DialogV2.confirm({
     window: { title: "Änderungen an " + actor.name }, position: { width: 560 },
     content: `<div class="ucurifunke-import-preview">${preview}</div>`,
@@ -85,6 +86,9 @@ export async function updatePedipalpusActor(actor) {
   });
   if (!confirmed || !actor.isOwner) return;
   if (JSON.stringify(snapshot()) !== JSON.stringify(current)) throw new Error("Der Charakter wurde zwischenzeitlich geändert. Bitte den Import erneut öffnen.");
+  if (planRetinue(actor, retinue).removed.map(a => a.id).join() !== removed.map(a => a.id).join()) {
+    throw new Error("Das Gefolge wurde zwischenzeitlich geändert. Bitte den Import erneut öffnen.");
+  }
   await actor.importPedipalpusData(data);
   const pending = await syncRetinue(actor, retinue);
   if (pending.length) ui.notifications.warn("Gefolge zur Übernahme durch die Spielleitung vorgemerkt: " + pending.join(", "));

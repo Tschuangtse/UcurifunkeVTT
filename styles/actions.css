@@ -56,6 +56,8 @@
 .uqca-cost-dialog input[type="number"]::-webkit-inner-spin-button { appearance: auto; opacity: 1; }
 .uqca-cost-content label { display: flex; align-items: center; gap: 12px; }
 .uqca-cost-content input { width: 100px; }
+.uqca-tick-field { display: flex; align-items: center; gap: .55rem; }
+.uqca-tick-field button { width: auto; }
 @media (max-width: 480px) {
   #ucurifunke-quick-combat-actions .uqca-actions { grid-template-columns: 1fr; }
   #ucurifunke-quick-combat-actions .uqca-tabs button { padding: 6px 3px; gap: 3px; font-size: 12px; }

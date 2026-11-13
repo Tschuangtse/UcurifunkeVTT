@@ -47,14 +47,15 @@ function renderSkill(check, dice, net) {
 function renderCombat(check, dice, modifiers, confirmation) {
   const { weapon, technique, breakdown = [], impairment = 0, joints = 0, mode } = check;
   const target = check.value + modifiers.bonus - modifiers.penalty;
-  const labels = ["Fertigkeitswert", { AT: "Offensive Basis", PA: "Defensive Basis", FK: "Fernkampf-Basis" }[mode],
+  const labels = [check.title ? "Ausweichwert" : "Fertigkeitswert", check.title ? null : { AT: "Offensive Basis", PA: "Defensive Basis", FK: "Fernkampf-Basis" }[mode],
     { AT: "Offensiver Fokus", PA: "Defensiver Fokus" }[mode], weapon ? "Waffenmodifikator" : "Bonus"];
   const rows = breakdown.length === 4
     ? breakdown.flatMap((value, index) => labels[index] ? [[labels[index], value]] : [])
     : [[check.attackName ? "Hinterlegter Probenwert" : "Basiswert inkl. Waffe",
-      check.value + impairment + joints + (check.conditionPenalties ?? [])
+      check.value + impairment + joints - (check.focusDelta ?? 0) + (check.conditionPenalties ?? [])
       .reduce((sum, entry) => sum + entry.value, 0)]];
   rows.push(["Beeinträchtigung", -impairment]);
+  if (check.focusDelta) rows.push(["Kampffokus", check.focusDelta]);
   if (joints) rows.push(["Schlechte Gelenke", -joints]);
   for (const { name, value } of check.conditionPenalties ?? []) rows.push([escapeHtml(name), -value]);
   rows.push(["Erschwernis", -modifiers.penalty], ["Erleichterung", modifiers.bonus]);
@@ -75,7 +76,7 @@ function renderCombat(check, dice, modifiers, confirmation) {
 export function renderCheckCard(check, dice, modifiers, result, confirmation) {
   const net = modifiers.bonus - modifiers.penalty;
   const combat = check.kind === "combat";
-  const title = combat ? { AT: "Angriff", PA: "Parade", FK: "Fernkampfangriff" }[check.mode]
+  const title = combat ? check.title ?? { AT: "Angriff", PA: "Parade", FK: "Fernkampfangriff" }[check.mode]
     : check.kind === "attribute" ? `Attributsprobe: <strong>${escapeHtml(check.name)}</strong>`
       : `Fertigkeitsprobe: <strong>${escapeHtml(check.name)}</strong>`;
   const { summary, detail } = combat ? renderCombat(check, dice, modifiers, confirmation)

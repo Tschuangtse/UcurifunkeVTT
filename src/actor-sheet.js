@@ -1,10 +1,11 @@
 import { parseCharacter } from "./import-data.js";
-import { postRoll, prepareRoll, weaponCheck } from "./checks.js";
+import { dodgeCheck, dodgeValue, postRoll, prepareRoll, weaponCheck } from "./checks.js";
 import { escapeHtml } from "./check-card.js";
+import { bindFocus, combatFocus } from "./combat-focus.js";
 import { chooseCharacterFile, updatePedipalpusActor } from "./import-preview.js";
 import { applyConditionEffects, conditionEffects, conditionRows, conditionSummary, SUPPRESSIONS } from "./conditions.js";
 import { linkAttack, selectedAttackTarget } from "./combat-workflow.js";
-import { convertRetinue, retinueSource, syncRetinue } from "./retinue.js";
+import { planRetinue, retinueSource, syncRetinue } from "./retinue.js";
 import { addActionTicks, assertSameSelection, getSelection } from "./actions/combat.js";
 import { readTechniqueSettings, techniqueCheck, techniqueFlag, techniqueSettings } from "./technique-check.js";
 import { attributeCheck, filterSheet, groupAttributes, groupItems, partitionSkills, perceptionAttributes,
@@ -12,6 +13,7 @@ import { attributeCheck, filterSheet, groupAttributes, groupItems, partitionSkil
 
 const { api, sheets } = foundry.applications;
 const path = "systems/ucurifunke/templates/actor.hbs";
+const focusTemplate = "systems/ucurifunke/templates/combat-focus.hbs";
 
 function perceptionFields(attributes, defaults) {
   return defaults.map((attribute, index) => {
@@ -74,12 +76,14 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
 
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
+    await foundry.applications.handlebars.loadTemplates([focusTemplate]);
     const data = this.actor.system;
     const companion = this.actor.type === "retinue";
     const retinue = companion ? [] : (globalThis.game?.actors?.filter(actor => actor.type === "retinue" && actor.visible
       && actor.getFlag("ucurifunke", "retinueOwner") === this.actor.id)
       .map(actor => ({ id: actor.id, name: actor.name, kind: actor.system.companionKind })) ?? []);
     const pending = !companion && this.actor.getFlag?.("ucurifunke", "retinuePending");
+    const pendingPlan = pending && planRetinue(this.actor, pending);
     const effects = conditionEffects(data);
     const conditions = conditionRows(data).map(row => ({ ...row,
       suppressionLabel: !row.suppression && row.automatic ? "1 (Vorteil)" : SUPPRESSIONS[row.suppression]
@@ -96,7 +100,9 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       };
     });
     return { ...context, data, sheetId: this.id, actorName: this.actor.name, actorImage: this.actor.img,
-      ...partitionSkills(data.skills, companion),
+      ...partitionSkills(data.skills, companion), focus: combatFocus(this.actor),
+      dodge: dodgeValue(this.actor), canDodge: this.actor.isOwner && dodgeValue(this.actor) != null,
+      focusTemplate,
       attributeGroups: groupAttributes(data.attributes).map(group => ({ ...group, rows: group.rows.map(row => ({
         ...row, value: row.value - (effects.modifiers[row.key.toUpperCase()] ?? []).reduce((sum, modifier) => sum + modifier.value, 0)
       })) })),
@@ -108,13 +114,26 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       stagedConditions: conditions.filter(row => row.staged),
       conditionRule: conditions.find(row => row.key === this.#selectedCondition),
       companion, retinue, canImportRetinue: Boolean(pending && globalThis.game?.user?.isGM),
-      pendingRetinue: pending ? convertRetinue(pending).length : 0,
+      pendingRetinue: pendingPlan ? pendingPlan.entries.length + pendingPlan.removed.length : 0,
       canEdit: this.isEditable, canRoll: this.actor.isOwner, canImport: this.actor.isOwner && !this.actor.isToken && !companion,
       canRollPerception: this.actor.isOwner && Boolean(perceptionCheck(data)) };
   }
 
   _onRender(context, options) {
     super._onRender(context, options);
+    const focus = this.element.querySelector(".ucurifunke-focus");
+    if (focus) {
+      bindFocus(focus);
+      const slider = focus.querySelector('[name="combatFocus"]');
+      slider.addEventListener("change", async () => {
+        if (!this.isEditable || !this.actor.isOwner) return;
+        try { await this.actor.update({ "system.combatFocus": Number(slider.value) }); }
+        catch (error) {
+          ui.notifications.error(error.message);
+          await this.render();
+        }
+      });
+    }
     const root = this.element.querySelector(".ucurifunke-character");
     const tablist = root.querySelector('[role="tablist"]');
     tablist.onkeydown = event => {
@@ -172,7 +191,9 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
     if (!source) return;
     target.disabled = true;
     try {
-      const names = convertRetinue(source).map(({ data }) => escapeHtml(data.name));
+      const { entries, removed } = planRetinue(this.actor, source);
+      const names = [...entries.map(({ data }) => escapeHtml(data.name)),
+        ...removed.map(actor => escapeHtml(actor.name) + " (Akteur und Token entfernen)")];
       const confirmed = await api.DialogV2.confirm({ window: { title: "Gefolge übernehmen" },
         content: `<p>${names.join(", ")}</p>`, modal: true, rejectClose: false });
       if (!confirmed) return;
@@ -247,6 +268,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
     const settings = skill ? techniqueSettings(this.actor, skill) : null;
     const companionPerception = kind === "perception" && this.actor.type === "retinue";
     let check = kind === "weapon" ? weaponCheck(this.actor, this.actor.items.get(item), mode)
+      : kind === "dodge" ? dodgeCheck(this.actor)
       : kind === "attribute" ? attributeCheck(data.attributes, Number(index))
       : kind === "skill" ? skillCheck(data.skills, Number(index))
       : kind === "perception" ? perceptionCheck(data)
@@ -312,13 +334,18 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
     const fields = target.closest("section");
     const reaction = fields.querySelector('[name="reaction"]').valueAsNumber;
     const impairment = fields.querySelector('[name="impairment"]').valueAsNumber;
+    const dodge = fields.querySelector('[name="dodgeOverride"]');
     if (![reaction, impairment].every(value => Number.isSafeInteger(value) && value >= 0)) {
       ui.notifications.warn("BE und RE müssen nichtnegative Ganzzahlen sein.");
       return;
     }
     target.disabled = true;
     try {
-      await this.actor.update({ "system.reaction": reaction, "system.impairment": impairment });
+      if (dodge.value !== "" && !Number.isSafeInteger(dodge.valueAsNumber)) throw new Error("Der Ausweichwert muss eine Ganzzahl sein.");
+      const previous = dodgeValue(this.actor);
+      const update = { "system.reaction": reaction, "system.impairment": impairment };
+      if (dodge.value === "" || dodge.valueAsNumber !== previous) update["system.dodgeOverride"] = dodge.value === "" ? null : dodge.valueAsNumber;
+      await this.actor.update(update);
     } catch (error) {
       ui.notifications.error(error.message);
     } finally {

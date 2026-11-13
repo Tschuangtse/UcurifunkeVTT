@@ -33,7 +33,7 @@ test("every variable action supplies an attribute-free outer div to DialogV2", a
       input.value = cost;
       input.reportValidity = () => true;
       const button = { form: { elements: { namedItem: () => input } } };
-      assert.equal(config.ok.callback(null, button), Number(cost));
+      assert.deepEqual(config.ok.callback(null, button), { ticks: Number(cost), importedTicks: 8 });
     }
     return 8;
   } } } } };
@@ -52,16 +52,17 @@ test("weapon changes and submission read the recreated DialogV2 form", async t =
   globalThis.foundry = { applications: { api: { DialogV2: { prompt: async config => {
     let change;
     const select = { value: "", addEventListener: (_event, callback) => { change = callback; }, focus() {} };
-    const field = { value: "", reportValidity: () => true };
+    const field = { value: "", readOnly: false, reportValidity: () => true, addEventListener() {} };
     config.render(null, { element: { querySelector: selector => selector.startsWith("select") ? select : field } });
     assert.equal(select.value, "unarmed");
     assert.equal(field.value, "8");
-    assert.equal(field.readOnly, true);
+    assert.equal(field.readOnly, false);
     select.value = "sword";
     change();
     assert.equal(field.value, "12");
     const button = { form: { elements: { namedItem: name => name === "weapon" ? select : field } } };
-    assert.deepEqual(config.ok.callback(null, button), { weaponId: "sword", ticks: 12 });
+    field.value = "15";
+    assert.deepEqual(config.ok.callback(null, button), { weaponId: "sword", ticks: 15, importedTicks: 12 });
     select.value = "";
     change();
     assert.equal(field.readOnly, false);
@@ -72,5 +73,5 @@ test("weapon changes and submission read the recreated DialogV2 form", async t =
     id, name: id, type: "weapon", system: { group: "Nahkampf", carried: true, speed }
   }));
   const selection = { combatant: { name: "Test", actor: { items } }, token: {} };
-  assert.equal(await requestCost(ACTIONS.get("melee"), selection), 6);
+  assert.deepEqual(await requestCost(ACTIONS.get("melee"), selection), { ticks: 6, importedTicks: 8 });
 });
