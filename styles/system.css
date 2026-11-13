@@ -35,6 +35,13 @@
 }
 .ucurifunke-character.is-companion .ucurifunke-sheet-tabs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .ucurifunke-companion-details dd { white-space: pre-line; text-align: end; overflow-wrap: anywhere; }
+.ucurifunke-companion-details .ucurifunke-companion-properties {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: .4rem;
+}
+.ucurifunke-companion-properties dt { font-weight: 700; }
+.ucurifunke-companion-properties dd { text-align: start; line-height: 1.5; }
 .ucurifunke-sheet-tabs button {
   display: flex;
   justify-content: center;

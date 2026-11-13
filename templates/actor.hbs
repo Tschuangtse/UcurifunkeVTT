@@ -150,12 +150,14 @@
           </dl>
         </section>
       {{/if}}
-      {{#if data.companionDetails.length}}
+      {{#if companionDetails.length}}
         <section class="ucurifunke-overview-group" data-filter-group="Gefolgedaten">
           <h3>Gefolgedaten</h3>
           <dl class="ucurifunke-derived ucurifunke-companion-details">
-            {{#each data.companionDetails}}
-              <div data-filter-row="{{name}} {{value}}"><dt>{{name}}</dt><dd>{{value}}</dd></div>
+            {{#each companionDetails}}
+              <div class="{{#if fullWidth}}ucurifunke-companion-properties{{/if}}" data-filter-row="{{name}} {{value}}">
+                <dt>{{name}}</dt><dd>{{value}}</dd>
+              </div>
             {{/each}}
           </dl>
         </section>

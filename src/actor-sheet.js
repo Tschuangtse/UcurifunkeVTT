@@ -80,6 +80,8 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
     const context = await super._prepareContext(options);
     await foundry.applications.handlebars.loadTemplates([focusTemplate]);
     const data = this.actor.system;
+    const companionDetails = data.companionDetails.filter(row => row.name !== "Beschreibung")
+      .map(row => ({ name: row.name, value: row.value, fullWidth: row.name === "Besondere Eigenschaften" }));
     const companion = this.actor.type === "retinue";
     const retinue = companion ? [] : (globalThis.game?.actors?.filter(actor => actor.type === "retinue" && actor.visible
       && actor.getFlag("ucurifunke", "retinueOwner") === this.actor.id)
@@ -116,7 +118,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       conditionSummary: conditionSummary(effects), simpleConditions: conditions.filter(row => !row.staged),
       stagedConditions: conditions.filter(row => row.staged),
       conditionRule: conditions.find(row => row.key === this.#selectedCondition),
-      companion, retinue, canImportRetinue: Boolean(pending && globalThis.game?.user?.isGM),
+      companion, companionDetails, retinue, canImportRetinue: Boolean(pending && globalThis.game?.user?.isGM),
       pendingRetinue: pendingPlan ? pendingPlan.entries.length + pendingPlan.removed.length : 0,
       canEdit: this.isEditable, canRoll: this.actor.isOwner, canImport: this.actor.isOwner && !this.actor.isToken && !companion,
       canRollPerception: this.actor.isOwner && Boolean(perceptionCheck(data)) };
