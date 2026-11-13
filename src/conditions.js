@@ -81,7 +81,22 @@ export function conditionSummary(effects) {
   ].filter(Boolean);
 }
 
-export function applyConditionEffects(actor, check) {
+export function situationalConditionOptions(data, check) {
+  const levels = new Map(conditionRows(data).map(row => [row.key, row.effective]));
+  const fatigue = levels.get("ueberanstrengung") ?? 0;
+  return [
+    { key: "desire", name: "Begehren", label: check.kind === "combat"
+      ? "Der Gegner löst das Begehren aus und die Handlung stillt es nicht" : "Die Handlung dient nicht dazu, das Begehren zu stillen",
+      value: levels.get("begehren") ? 4 : 0 },
+    { key: "fear", name: "Angst", label: "Die Probe richtet sich gegen den Angstauslöser (keine Flucht oder Ausweichprobe)",
+      value: check.title === "Ausweichen" ? 0 : scale[levels.get("angst") ?? 0] },
+    { key: "physical", name: "Überanstrengung (körperlich)", label: "Die Probe ist körperlich anstrengend", value: scale[fatigue] },
+    { key: "mental", name: "Überanstrengung (geistig)", label: "Die Probe ist geistig fordernd", value: [0, 0, 2, 4][fatigue],
+      visible: fatigue > 0 }
+  ].filter(option => option.value || option.visible);
+}
+
+export function applyConditionEffects(actor, check, situation = {}) {
   const effects = conditionEffects(actor.system);
   const combat = check.kind === "combat";
   if (effects.blocked) throw new Error("Keine Probe möglich: handlungsunfähig durch Lähmung (GS 0).");
@@ -96,6 +111,11 @@ export function applyConditionEffects(actor, check) {
   if (combat) {
     add("Benommen", scale[effects.dazed]);
     if (check.mode === "PA") add("Wut", scale[effects.anger]);
+  }
+  if (Object.values(situation).some(Boolean)) {
+    for (const { key, name, value } of situationalConditionOptions(actor.system, check)) {
+      if (situation[key] && (key !== "mental" || !situation.physical)) add(name, value);
+    }
   }
   const penalty = penalties.reduce((sum, entry) => sum + entry.value, 0);
   const adjust = row => {

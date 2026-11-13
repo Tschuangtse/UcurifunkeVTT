@@ -425,9 +425,9 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
             const key = form?.elements.namedItem("attribute" + i)?.value ?? abilityDefaults[i]?.key;
             return primary.find(row => row.key.toUpperCase() === key?.toUpperCase()) ?? primary[0];
           }).filter(Boolean);
-          return applyConditionEffects(this.actor, { ...check, attributes });
+          return { ...check, attributes };
         } : undefined;
-      const modifier = await prepareRoll(preview ? preview() : applyConditionEffects(this.actor, check), fields, { preview });
+      const modifier = await prepareRoll(check, fields, { actor: this.actor, preview });
       if (!modifier || !this.actor.isOwner) return;
       let bookTicks = false;
       if (skill) {
@@ -459,7 +459,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
         if (!situation) return;
         check = { ...dodgeCheck(this.actor, situation), ...(bookDodge ? { bookedTicks: 4 } : {}) };
       }
-      check = applyConditionEffects(this.actor, check);
+      check = applyConditionEffects(this.actor, check, modifier.conditionSituation);
       if (bookDodge) await addActionTicks(dodgeSelection, 4, { game, canvas });
       if (bookTicks) await addActionTicks(selection, check.ticks, { game, canvas });
       if (check.kind === "combat" && !check.title) check = linkAttack(this.actor, check, attackTarget, weaponDamage, bookTicks ? check.ticks : attackTarget ? 0 : undefined);

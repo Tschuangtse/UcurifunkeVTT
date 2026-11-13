@@ -103,12 +103,12 @@ async function respond(message, action) {
     if (!combatant) throw new Error("Für Ausweichen muss das Ziel am laufenden Tickkampf teilnehmen.");
     if (!game.users.activeGM && !game.user.isGM) throw new Error("Für Tickbuchungen muss eine Spielleitung verbunden sein.");
     const check = dodgeCheck(defender);
-    const options = await prepareRoll(applyConditionEffects(defender, check), dodgeFields, { allowBlind: false });
+    const options = await prepareRoll(check, dodgeFields, { allowBlind: false, actor: defender });
     if (!options) return;
     ensure(message, action);
     const situation = dodgeOptions(options.fields, getCombatantInfo(combatant).ticks);
     if (!situation || reactionCombatant(token) !== combatant) return;
-    const adjusted = applyConditionEffects(defender, dodgeCheck(defender, situation));
+    const adjusted = applyConditionEffects(defender, dodgeCheck(defender, situation), options.conditionSituation);
     const response = await postRoll(defender, { ...adjusted, opposedQuality: attack.quality, targetName: token.name,
       exchange: { type: "defense", attack: message.id } }, { ...options, mode: "public" });
     if (response) {
@@ -161,15 +161,15 @@ async function respond(message, action) {
     · ${check.ticks ?? 4} Ticks</option>`).join("");
   const selection = getSelection(game, canvas);
   const canBook = selection.token?.document?.uuid === token.uuid;
-  const options = await prepareRoll({ ...applyConditionEffects(defender, checks[0]), name: "Parade gegen Angriff auf " + token.name },
+  const options = await prepareRoll({ ...checks[0], name: "Parade gegen Angriff auf " + token.name },
     `<div class="form-group"><label for="ucurifunke-parry">Waffe oder Kampftechnik</label>
       <select id="ucurifunke-parry" name="parry">${choices}</select></div>
-      ${canBook ? '<label><input type="checkbox" name="bookParry" checked> Tickkosten im laufenden Kampf buchen</label>' : ""}`, { allowBlind: false });
+      ${canBook ? '<label><input type="checkbox" name="bookParry" checked> Tickkosten im laufenden Kampf buchen</label>' : ""}`, { allowBlind: false, actor: defender });
   if (!options) return;
   ensure(message, action);
   const check = checks[Number(options.fields.parry)];
   if (!check) throw new Error("Bitte eine Parade auswählen.");
-  const adjusted = applyConditionEffects(defender, check);
+  const adjusted = applyConditionEffects(defender, check, options.conditionSituation);
   const book = canBook && [true, 1, "1", "true", "on"].includes(options.fields.bookParry);
   const ticks = check.ticks ?? 4;
   if (book && (ticks < 0 || ticks > 32)) throw new Error("Ungültige Tickkosten für diese Parade.");

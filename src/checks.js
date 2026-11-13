@@ -3,7 +3,7 @@ import { escapeHtml, medianDie, renderCheckCard, skillDice } from "./check-card.
 import { postDiceMessage } from "./dice-message.js";
 import { combatFocus, focusModifier } from "./combat-focus.js";
 import { effectiveTicks, weaponTickFields } from "./weapon-ticks.js";
-import { conditionEffects } from "./conditions.js";
+import { applyConditionEffects, conditionEffects, situationalConditionOptions } from "./conditions.js";
 
 export function evaluateCheck(check, dice, modifier = 0, confirmation) {
   const target = check.value + modifier;
@@ -96,14 +96,26 @@ function conditionNotice(check) {
   return penalties.length ? "Zustandsabzüge: " + penalties.join(" · ") : "";
 }
 
-export async function prepareRoll(check, fields = "", { allowBlind = true, preview } = {}) {
+export async function prepareRoll(check, fields = "", { allowBlind = true, actor, preview } = {}) {
   const type = { attribute: "Attributsprobe", skill: "Fertigkeitsprobe" }[check.kind];
-  const notice = conditionNotice(check);
+  const choices = actor ? situationalConditionOptions(actor.system, check) : [];
+  const checked = value => [true, 1, "1", "true", "on"].includes(value);
+  const readSituation = read => Object.fromEntries(choices.map(({ key }) => [key, checked(read("condition-" + key))]));
+  const getNotice = form => {
+    const candidate = preview?.(form) ?? check;
+    return conditionNotice(actor ? applyConditionEffects(actor, candidate,
+      readSituation(name => form?.elements.namedItem(name)?.checked)) : candidate);
+  };
+  const notice = getNotice();
   const options = await foundry.applications.api.DialogV2.input({
     classes: SYSTEM_DIALOG_CLASSES,
     window: { title: type ? type + ": " + check.name : check.name },
     content: `<div class="ucurifunke-modifier-dialog">
       ${fields}
+      ${choices.map(({ key, name, label, value }) => `<div class="form-group">
+        <label for="ucurifunke-condition-${key}">${escapeHtml(name + ": " + label)} (${value ? "−" + value : "0"})</label>
+        <input id="ucurifunke-condition-${key}" type="checkbox" name="condition-${key}">
+      </div>`).join("")}
       <p class="ucurifunke-condition-notice" aria-live="polite" ${notice ? "" : "hidden"}>${escapeHtml(notice)}</p>
       <div class="form-group">
         <label for="ucurifunke-difficulty">Erschwernis</label>
@@ -121,10 +133,15 @@ export async function prepareRoll(check, fields = "", { allowBlind = true, previ
     rejectClose: false, modal: true,
     ok: { label: "Würfeln", icon: "fa-solid fa-dice-d20" },
     render: (_event, dialog) => {
-      if (preview) dialog.element.addEventListener("change", event => {
-        if (!event.target.matches('select[name^="attribute"]')) return;
+      if (actor || preview) dialog.element.addEventListener("change", event => {
+        if (!event.target.matches('select, input[name^="condition-"]')) return;
+        const { name, form, checked } = event.target;
         const element = dialog.element.querySelector(".ucurifunke-condition-notice");
-        const message = conditionNotice(preview(event.target.form));
+        if (!element || !form) return;
+        if (checked && ["condition-physical", "condition-mental"].includes(name)) {
+          form.elements.namedItem(name === "condition-physical" ? "condition-mental" : "condition-physical").checked = false;
+        }
+        const message = getNotice(form);
         element.textContent = message;
         element.hidden = !message;
       });
@@ -157,7 +174,8 @@ export async function prepareRoll(check, fields = "", { allowBlind = true, previ
   return {
     penalty: normalizeModifier(options.difficulty),
     bonus: normalizeModifier(options.relief),
-    blind: allowBlind && [true, 1, "1", "true", "on"].includes(options.blind),
+    blind: allowBlind && checked(options.blind),
+    ...(choices.length ? { conditionSituation: readSituation(name => options[name]) } : {}),
     ...(fields ? { fields: options } : {})
   };
 }
