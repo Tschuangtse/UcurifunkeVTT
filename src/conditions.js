@@ -58,6 +58,19 @@ export function conditionEffects(data) {
     reactionPenalty: scale[exhaustion] };
 }
 
+export async function setConditionField(actor, key, field, value) {
+  if (!actor?.isOwner) return;
+  const rows = conditionRows(actor.system);
+  const row = rows.find(entry => entry.key === key);
+  if (!row) return;
+  if (field === "level" && (!Number.isInteger(value) || value < 0 || value > row.max)) {
+    throw new Error("Die Stufe muss zwischen 0 und " + row.max + " liegen.");
+  }
+  row[field] = value;
+  await actor.update({ "system.conditions": rows.map(({ name, staged, active, suppressed, level, suppression }) =>
+    ({ name, staged, active, suppressed, level, suppression })) });
+}
+
 export function conditionSummary(effects) {
   return [
     effects.blocked && "Handlungsunfähig: Lähmung, GS 0.",

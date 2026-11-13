@@ -382,6 +382,46 @@ html[data-ucurifunke-design="tavern"] .ucurifunke-sheet .ucurifunke-character-he
   background: #5d3826;
 }
 .ucurifunke-probe-favorites { display: grid; gap: .35rem; }
+#token-hud .status-effects [hidden] { display: none !important; }
+#token-hud .ucurifunke-hud-conditions {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 3px;
+}
+#token-hud .ucurifunke-hud-conditions.has-standard {
+  border-top: 1px solid #b8a188;
+  padding-top: 5px;
+  margin-top: 3px;
+}
+#token-hud .ucurifunke-hud-condition {
+  position: relative;
+  min-width: 0;
+  min-height: 34px;
+  padding: 2px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #fff4dd;
+}
+#token-hud .ucurifunke-hud-condition:is(:hover, :focus-visible, .active) {
+  border-color: #d8b984;
+  background: #453a48;
+}
+#token-hud .ucurifunke-hud-condition img { width: 26px; height: 26px; border: 0; }
+#token-hud .ucurifunke-hud-condition span {
+  position: absolute;
+  right: 2px;
+  bottom: 0;
+  font-weight: bold;
+  text-shadow: 0 0 3px #000, 0 0 3px #000;
+}
+#token-hud .ucurifunke-hud-condition .suppressed { text-decoration: line-through; }
+.ucurifunke-status-settings fieldset {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .35rem .65rem;
+}
+.ucurifunke-status-settings fieldset label { display: flex; align-items: center; gap: .35rem; }
 .ucurifunke-probe-favorites li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .4rem; }
 .ucurifunke-probe-favorites li > button:first-child { justify-content: start; text-align: start; }
 .ucurifunke-probe-star { width: 1.7rem; flex: 0 0 1.7rem; padding: .1rem; }

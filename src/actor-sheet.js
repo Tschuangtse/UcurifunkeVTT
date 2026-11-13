@@ -7,7 +7,7 @@ import { bindProbeShortcuts } from "./probe-shortcuts.js";
 import { effectiveTicks, tickOverridePatch, weaponTickFields } from "./weapon-ticks.js";
 import { bindFocus, combatFocus } from "./combat-focus.js";
 import { applyCharacterPortrait, chooseCharacterFile, updatePedipalpusActor } from "./import-preview.js";
-import { applyConditionEffects, conditionEffects, conditionRows, conditionSummary, SUPPRESSIONS } from "./conditions.js";
+import { applyConditionEffects, conditionEffects, conditionRows, conditionSummary, setConditionField, SUPPRESSIONS } from "./conditions.js";
 import { armorProtection, dodgeFields, dodgeOptions, linkAttack, selectedAttackTarget } from "./combat-workflow.js";
 import { planRetinue, retinueSource, syncRetinue } from "./retinue.js";
 import { addActionTicks, assertSameSelection, getSelection } from "./actions/combat.js";
@@ -353,11 +353,9 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       ui.notifications.warn("Die Stufe muss zwischen 0 und " + row.max + " liegen.");
       return;
     }
-    row[field] = value;
     target.disabled = true;
     try {
-      await this.actor.update({ "system.conditions": rows.map(({ name, staged, active, suppressed, level, suppression }) =>
-        ({ name, staged, active, suppressed, level, suppression })) });
+      await setConditionField(this.actor, row.key, field, value);
     } catch (error) {
       ui.notifications.error(error.message);
       await this.render();
