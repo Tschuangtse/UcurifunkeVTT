@@ -1,18 +1,22 @@
 import { VARIABLE_COST, parseCost } from "./actions.js";
+import { effectiveTicks, tickOverridePatch, weaponTickFields } from "../weapon-ticks.js";
 
-export function weaponChoices(action, items = []) {
+export function weaponChoices(action, items = [], actor) {
   return [...items].flatMap(item => {
     if (item.type !== "weapon" || !item.system.carried) return [];
-    const { group, speed, reload, attack, parry, preparedCheck, parryTicks } = item.system;
+    const { group, attack, parry } = item.system;
     const melee = group !== "Fernkampf";
+    const fields = Object.fromEntries(weaponTickFields(item).map(field => [field.action, field.source]));
+    const speed = effectiveTicks(actor, "melee", item.id, fields.melee);
+    const parryTicks = effectiveTicks(actor, "parry", item.id, fields.parry);
     const costs = {
-      melee: melee ? speed : null,
+      melee: fields.melee,
       opportunity: melee && Number.isInteger(speed) ? Math.ceil(speed / 2) : null,
       approach: melee ? speed : null,
-      reload: melee ? null : reload,
-      ranged: !melee && Number.isInteger(attack) ? (preparedCheck ? speed : action.ticks) : null,
-      parry: melee && Number.isInteger(parry) ? (preparedCheck ? parryTicks : action.ticks) : null,
-      "parry-maneuver": melee && Number.isInteger(parry) ? (preparedCheck ? (parryTicks ?? 4) + 4 : action.ticks) : null
+      reload: fields.reload,
+      ranged: !melee && Number.isInteger(attack) ? fields.ranged : null,
+      parry: fields.parry,
+      "parry-maneuver": melee && Number.isInteger(parry) ? parryTicks + 4 : null
     };
     const cost = costs[action.id];
     return Number.isInteger(cost) && cost >= VARIABLE_COST.min && cost <= VARIABLE_COST.max
@@ -43,7 +47,7 @@ export async function requestCost(action, selection) {
   fields.append(actor, hint);
   const owner = selection.combatant.actor;
   const overrides = owner?.getFlag?.("ucurifunke", "actionTickOverrides")?.[action.id] ?? {};
-  const choices = weaponChoices(action, owner?.items);
+  const choices = weaponChoices(action, owner?.items, owner);
   if (choices.length) {
     const weaponLabel = document.createElement("label");
     weaponLabel.textContent = "Waffe ";
@@ -127,12 +131,6 @@ export async function requestCost(action, selection) {
 
 export async function saveTickOverride(actor, actionId, weaponId, ticks, importedTicks) {
   if (importedTicks == null || !actor?.isOwner) return;
-  const key = weaponId ?? "manual";
-  const path = "flags.ucurifunke.actionTickOverrides." + actionId + ".";
-  const previous = actor.getFlag("ucurifunke", "actionTickOverrides")?.[actionId]?.[key];
-  if (ticks === importedTicks) {
-    if (previous !== undefined) await actor.update({ [path + "-=" + key]: null });
-  } else if (previous !== ticks) {
-    await actor.update({ [path + key]: ticks });
-  }
+  const patch = tickOverridePatch(actor, actionId, weaponId, ticks, importedTicks);
+  if (Object.keys(patch).length) await actor.update(patch);
 }

@@ -1,6 +1,7 @@
 import { medianDie, renderCheckCard, skillDice } from "./check-card.js";
 import { postDiceMessage } from "./dice-message.js";
 import { combatFocus, focusModifier } from "./combat-focus.js";
+import { effectiveTicks, weaponTickFields } from "./weapon-ticks.js";
 
 export function evaluateCheck(check, dice, modifier = 0, confirmation) {
   const target = check.value + modifier;
@@ -33,12 +34,14 @@ export function weaponCheck(actor, weapon, mode) {
   const data = weapon?.system;
   const base = mode === "PA" ? data?.parry : data?.attack;
   if (!Number.isInteger(base)) return null;
+  const action = { AT: "melee", PA: "parry", FK: "ranged" }[mode];
+  const ticks = effectiveTicks(actor, action, weapon.id, weaponTickFields(weapon).find(field => field.action === action)?.source);
   if (data.preparedCheck) {
     const original = (mode === "PA" ? actor.system.defensiveFocus : actor.system.offensiveFocus) ?? 0;
     const focus = mode === "FK" ? 0 : focusModifier(actor, mode, original) - original;
     return { kind: "combat", name: mode + " · " + weapon.name, mode,
     attackName: weapon.name, value: base + focus, focusDelta: focus,
-    ticks: mode === "PA" ? data.parryTicks : data.speed };
+    ticks };
   }
   const impairment = Math.max(0, actor.system.impairment - data.mobilityTolerance);
   const joints = mode === "PA" && actor.system.hasJointPenalty ? 2 : 0;
@@ -49,7 +52,7 @@ export function weaponCheck(actor, weapon, mode) {
   const breakdown = imported?.length === 4 ? [imported[0], imported[1], focus, imported[3]] : imported;
   return { kind: "combat", name: mode + " · " + weapon.name, mode, weapon: weapon.name,
     technique: data.technique, breakdown, focusDelta: breakdown?.length === 4 ? 0 : delta,
-    impairment, joints, value: base + delta - impairment - joints };
+    impairment, joints, ticks, value: base + delta - impairment - joints };
 }
 
 export function dodgeValue(actor) {

@@ -141,7 +141,7 @@ export class ActionDock {
         this.collapse();
         return;
       }
-      const cost = action.ticks === null || (weaponAction && actor?.items?.some(item => item.type === "weapon"))
+      const cost = action.ticks === null || ((weaponAction || id === "reload") && actor?.items?.some(item => item.type === "weapon"))
         ? await this.costPrompt(action, selection) : action.ticks;
       if (cost === null || cost === undefined) return;
       const mode = id === "ranged" ? "FK" : id.startsWith("parry") ? "PA" : "AT";

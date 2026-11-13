@@ -1,6 +1,7 @@
 import { parseCharacter } from "./import-data.js";
 import { dodgeCheck, dodgeValue, postRoll, prepareRoll, weaponCheck } from "./checks.js";
 import { escapeHtml } from "./check-card.js";
+import { effectiveTicks, tickOverridePatch, weaponTickFields } from "./weapon-ticks.js";
 import { bindFocus, combatFocus } from "./combat-focus.js";
 import { chooseCharacterFile, updatePedipalpusActor } from "./import-preview.js";
 import { applyConditionEffects, conditionEffects, conditionRows, conditionSummary, SUPPRESSIONS } from "./conditions.js";
@@ -69,7 +70,8 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
     actions: { rollCheck: CharacterSheet.#roll, saveCombatValues: CharacterSheet.#saveCombatValues,
       openSheetTab: CharacterSheet.#openTab, updatePedipalpus: CharacterSheet.#updatePedipalpus,
       showCondition: CharacterSheet.#showCondition, cycleCondition: CharacterSheet.#cycleCondition,
-      openCompanion: CharacterSheet.#openCompanion, importRetinue: CharacterSheet.#importRetinue }
+      openCompanion: CharacterSheet.#openCompanion, importRetinue: CharacterSheet.#importRetinue,
+      editWeaponTicks: CharacterSheet.#editWeaponTicks }
   };
 
   static PARTS = { character: { template: path, scrollable: [".ucurifunke-sheet-body"] } };
@@ -95,8 +97,9 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
         attack: weapon && Number.isInteger(item.system.attack),
         parry: weapon && Number.isInteger(item.system.parry),
         attackMode: item.system.group === "Fernkampf" ? "FK" : "AT",
-        hasSpeed: Number.isInteger(item.system.speed), hasReload: Number.isInteger(item.system.reload),
-        hasParrySpeed: Number.isInteger(item.system.parryTicks)
+        tickFields: weapon ? weaponTickFields(item).map(field => ({
+          ...field, ticks: effectiveTicks(this.actor, field.action, item.id, field.source)
+        })) : []
       };
     });
     return { ...context, data, sheetId: this.id, actorName: this.actor.name, actorImage: this.actor.img,
@@ -178,6 +181,43 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
   static async #updatePedipalpus() {
     try { await updatePedipalpusActor(this.actor); }
     catch (error) { ui.notifications.error(error.message); }
+  }
+
+  static async #editWeaponTicks(_event, target) {
+    if (!this.isEditable || !this.actor.isOwner) return;
+    const item = this.actor.items.get(target.dataset.item);
+    if (item?.type !== "weapon") return;
+    const fields = weaponTickFields(item);
+    const content = document.createElement("div");
+    for (const { action, label, source } of fields) {
+      const row = document.createElement("div");
+      row.className = "uqca-tick-field";
+      row.innerHTML = `<label>${label} <input type="number" name="${action}" min="0" max="32" step="1" required
+        value="${effectiveTicks(this.actor, action, item.id, source)}"></label>
+        <button type="button" data-reset="${action}" data-source="${source}">Zurücksetzen</button>`;
+      content.append(row);
+    }
+    try {
+      const result = await api.DialogV2.input({
+        window: { title: "Tickkosten – " + item.name }, content, modal: true, rejectClose: false,
+        classes: ["uqca-cost-dialog"], ok: { label: "Speichern" },
+        render: (_event, dialog) => {
+          for (const reset of dialog.element.querySelectorAll("[data-reset]")) {
+            reset.addEventListener("click", () => {
+              reset.form.elements.namedItem(reset.dataset.reset).value = reset.dataset.source;
+            });
+          }
+        }
+      });
+      if (!result || !this.actor.isOwner || !this.actor.items.get(item.id)) return;
+      const patch = {};
+      for (const { action, source } of fields) {
+        const ticks = Number(result[action]);
+        if (result[action] === "" || !Number.isInteger(ticks) || ticks < 0 || ticks > 32) throw new Error("Bitte ganze Tickkosten von 0 bis 32 eingeben.");
+        Object.assign(patch, tickOverridePatch(this.actor, action, item.id, ticks, source));
+      }
+      if (Object.keys(patch).length) await this.actor.update(patch);
+    } catch (error) { ui.notifications.error(error.message); }
   }
 
   static #openCompanion(_event, target) {
@@ -281,8 +321,8 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       const attackTarget = selectedAttackTarget(this.actor, check);
       const weaponDamage = kind === "weapon" ? this.actor.items.get(item)?.system.damage : "";
       if (kind !== "perception" || companionPerception) applyConditionEffects(this.actor, check);
-      const companionAttack = kind === "weapon" && this.actor.type === "retinue";
-      const selection = skill || companionAttack ? getSelection(game, canvas) : null;
+      const weaponAttack = kind === "weapon";
+      const selection = skill || weaponAttack ? getSelection(game, canvas) : null;
       const canBookTicks = selection?.token?.actor?.uuid === this.actor.uuid;
       const abilityFlag = companionAbility && techniqueFlag(companionAbility);
       const remembered = abilityFlag && this.actor.getFlag("ucurifunke", "companionAbilityAttributes")?.[abilityFlag];
@@ -291,7 +331,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       const fields = skill ? techniqueFields(settings, canBookTicks)
         : kind === "perception" && !companionPerception ? perceptionFields(primary, check.attributes)
         : companionAbility ? perceptionFields(primary, abilityDefaults)
-        : companionAttack && canBookTicks && check.ticks > 0 && check.ticks <= 32
+        : weaponAttack && canBookTicks && check.ticks > 0 && check.ticks <= 32
           ? `<label><input type="checkbox" name="bookTicks"> ${check.ticks} Ticks im laufenden Kampf buchen</label>` : "";
       const modifier = await prepareRoll(check, fields);
       if (!modifier || !this.actor.isOwner) return;
@@ -315,7 +355,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
         if (keys.some((key, index) => key !== abilityDefaults[index]?.key)) {
           await this.actor.update({ ["flags.ucurifunke.companionAbilityAttributes." + abilityFlag]: keys });
         }
-      } else if (companionAttack && canBookTicks && fields) {
+      } else if (weaponAttack && canBookTicks && fields) {
         bookTicks = [true, 1, "1", "true", "on"].includes(modifier.fields.bookTicks);
       }
       check = applyConditionEffects(this.actor, check);
