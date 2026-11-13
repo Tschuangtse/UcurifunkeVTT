@@ -128,8 +128,23 @@ export function planRetinue(owner, source, actors = game.actors) {
   return { entries, existing, removed };
 }
 
+function retinueFolder(owner, folders) {
+  let branch = owner.folder;
+  while (branch?.folder && branch.name !== "Tests") branch = branch.folder;
+  if (branch?.name === "Tests") {
+    const testFolder = folders?.find(folder => folder.type === "Actor" &&
+      folder.name === "Test-Gefolge" && folder.folder?.id === branch.id);
+    if (testFolder) return testFolder.id;
+  }
+  const parent = owner.folder;
+  if (parent?.name === "Gefolge") return parent.id;
+  return folders?.find(folder => folder.type === "Actor" && folder.name === "Gefolge" &&
+    folder.folder?.id === parent?.id)?.id ?? parent?.id;
+}
+
 export async function syncRetinue(owner, source, { folder } = {}) {
   const { entries, existing, removed } = planRetinue(owner, source);
+  const destination = folder ?? retinueFolder(owner, game.folders);
   const bySource = new Map(existing.map(actor => [actor.getFlag("ucurifunke", "retinueSource"), actor]));
   const pending = [];
   for (const { sourceKey, data } of entries) {
@@ -149,7 +164,7 @@ export async function syncRetinue(owner, source, { folder } = {}) {
         }
       }
       else if (actor || !game.user.can("ACTOR_CREATE")) pending.push(data.name);
-      else await foundry.documents.Actor.implementation.create({ ...data, ...(folder ? { folder } : {}),
+      else await foundry.documents.Actor.implementation.create({ ...data, ...(destination ? { folder: destination } : {}),
         ownership: owner.toObject().ownership, flags: { ucurifunke: { retinueOwner: owner.id, retinueSource: sourceKey } } });
     } catch (error) {
       pending.push(data.name);

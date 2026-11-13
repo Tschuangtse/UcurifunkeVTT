@@ -53,6 +53,12 @@ test("new companions inherit the character ownership, and a repeat import update
     getFlag: () => pending, setFlag: async (_scope, _key, data) => { pending = data; },
     unsetFlag: async () => { pending = undefined; } };
   globalThis.game = { actors, user: { can: () => canCreate } };
+  const testRoot = { id: "tests", name: "Tests" };
+  owner.folder = { id: "characters", name: "Testcharaktere", folder: testRoot };
+  game.folders = [
+    { id: "unrelated", name: "Test-Gefolge", type: "Actor" },
+    { id: "companions", name: "Test-Gefolge", type: "Actor", folder: testRoot }
+  ];
   globalThis.foundry = { documents: { Actor: { implementation: { create: async data => {
     actors.push({ ...data, isOwner: true,
       getFlag: (scope, key) => data.flags[scope]?.[key],
@@ -68,6 +74,7 @@ test("new companions inherit the character ownership, and a repeat import update
   canCreate = true;
   assert.deepEqual(await syncRetinue(owner, pending), []);
   assert.equal(actors.length, 1);
+  assert.equal(actors[0].folder, "companions");
   assert.deepEqual(actors[0].ownership, ownership);
   assert.equal(actors[0].getFlag("ucurifunke", "retinueOwner"), "owner");
   assert.equal(pending, undefined);
@@ -80,6 +87,9 @@ test("new companions inherit the character ownership, and a repeat import update
   ownership.playerC = 3;
   await syncRetinue(owner, source);
   assert.deepEqual(permissions, { "ownership.-=playerB": null, "ownership.playerC": 3 });
+  canCreate = true;
+  await syncRetinue(owner, retinueSource({ Animals: [{ ...animal, InventoryId: "other" }] }), { folder: "bulk" });
+  assert.equal(actors.at(-1).folder, "bulk");
 });
 
 test("explicit empty lists remove old members and their tokens while absent lists preserve them", async () => {

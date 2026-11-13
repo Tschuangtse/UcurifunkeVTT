@@ -4,16 +4,31 @@ import { conditionRows, SUPPRESSIONS } from "./conditions.js";
 import { planRetinue, retinueSource, syncRetinue } from "./retinue.js";
 import { convertNpc, isNpcFile, npcRetinue } from "./npc-import.js";
 
-export function chooseCharacterFile(label) {
+export function chooseCharacterFile(label, { chooseFolder = false } = {}) {
   const content = document.createElement("div");
   content.innerHTML = '<label>Pedipalpus- oder NSCGenerator-Datei <input type="file" name="character" accept=".json,application/json" required></label>' +
     '<label>Charakterporträt (optional) <input type="file" name="portrait" accept="image/png,image/jpeg,image/webp"></label>';
+  if (chooseFolder) {
+    const label = document.createElement("label");
+    label.textContent = "Akteursordner ";
+    const select = document.createElement("select");
+    select.name = "folder";
+    select.add(new Option("Akteursverzeichnis", ""));
+    for (const folder of game.folders.filter(folder => folder.type === "Actor" && folder.visible)) {
+      const path = [folder.name];
+      for (let parent = folder.folder; parent; parent = parent.folder) path.unshift(parent.name);
+      select.add(new Option(path.join(" / "), folder.id));
+    }
+    label.append(select);
+    content.append(label);
+  }
   return foundry.applications.api.DialogV2.prompt({
     window: { title: "Pedipalpus-Charakter importieren" },
     content, modal: true, rejectClose: false,
     ok: { label, callback: (_event, button) => ({
       file: button.form.elements.namedItem("character").files[0],
-      portrait: button.form.elements.namedItem("portrait").files[0]
+      portrait: button.form.elements.namedItem("portrait").files[0],
+      folder: button.form.elements.namedItem("folder")?.value || undefined
     }) }
   });
 }

@@ -48,15 +48,15 @@ function techniqueFields(settings, canBookTicks) {
 export async function importPedipalpus() {
   if (!game.user.can("ACTOR_CREATE")) return;
   try {
-    const { file, portrait } = await chooseCharacterFile("Neuen Charakter erstellen") ?? {};
+    const { file, portrait, folder } = await chooseCharacterFile("Neuen Charakter erstellen", { chooseFolder: true }) ?? {};
     if (!file) return;
     const json = await file.text();
     const source = JSON.parse(json.replace(/^\uFEFF/, ""));
     let actor, pending;
     if (isNpcFile(source)) {
-      ({ actor, pending } = await createNpcActor(source));
+      ({ actor, pending } = await createNpcActor(source, folder, { groupRetinue: false }));
     } else {
-      actor = await foundry.documents.Actor.implementation.create(parseCharacter(json));
+      actor = await foundry.documents.Actor.implementation.create({ ...parseCharacter(json), ...(folder ? { folder } : {}) });
       if (actor) await applyCharacterPortrait(actor, portrait);
       const retinue = retinueSource(source);
       pending = actor && Object.values(retinue).some(rows => rows.length) ? await syncRetinue(actor, retinue) : [];

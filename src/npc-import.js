@@ -112,12 +112,12 @@ export function npcRetinue(source) {
   return result;
 }
 
-export async function createNpcActor(source, folder) {
+export async function createNpcActor(source, folder, { groupRetinue = true } = {}) {
   const data = convertNpc(source);
   const retinue = retinueSource(npcRetinue(source));
   const actor = await foundry.documents.Actor.implementation.create({ ...data, ...(folder ? { folder } : {}) });
   if (!actor) throw new Error("Der NSC konnte nicht angelegt werden.");
   const pending = retinue.authoritative.some(group => retinue[group].length)
-    ? await syncRetinue(actor, retinue, { folder }) : [];
+    ? await syncRetinue(actor, retinue, { folder: groupRetinue ? folder : undefined }) : [];
   return { actor, pending };
 }
