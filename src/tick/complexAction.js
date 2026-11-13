@@ -1,3 +1,4 @@
+import { SYSTEM_DIALOG_CLASSES } from "../appearance.js";
 import { t } from "./i18n.js";
 import { getCombatantData, normalizeTicks, setCombatantData } from "./data.js";
 import { COMPLEX_ACTION_INTERVAL, isComplexActionDuration } from "./complexActionData.js";
@@ -131,6 +132,7 @@ export async function promptComplexAction() {
       </label>
     </div></div>`;
     const result = await foundry.applications.api.DialogV2.input({
+      classes: SYSTEM_DIALOG_CLASSES,
       window: { title: t("complexAction") },
       content, modal: true, rejectClose: false,
       actions: {

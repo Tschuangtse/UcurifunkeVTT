@@ -1,3 +1,4 @@
+import { SYSTEM_DIALOG_CLASSES } from "./appearance.js";
 import { addActionTicks, assertSameSelection, getSelection } from "./actions/combat.js";
 import { escapeHtml } from "./check-card.js";
 import { dodgeCheck, postRoll, prepareRoll, weaponCheck } from "./checks.js";
@@ -118,6 +119,7 @@ async function respond(message, action) {
   }
   if (action === "skip") {
     const confirmed = await foundry.applications.api.DialogV2.confirm({
+      classes: SYSTEM_DIALOG_CLASSES,
       window: { title: "Auf Parade verzichten" },
       content: "<p>Der Angriff wird ohne Parade abgewickelt.</p>", modal: true, rejectClose: false
     });
@@ -128,6 +130,7 @@ async function respond(message, action) {
   }
   if (action === "damage") {
     const options = await foundry.applications.api.DialogV2.input({
+      classes: SYSTEM_DIALOG_CLASSES,
       window: { title: "Schaden gegen " + token.name }, modal: true, rejectClose: false,
       content: `<div class="form-group"><label for="ucurifunke-damage">Schaden</label>
         <input id="ucurifunke-damage" name="damage" required value="${escapeHtml(attack.damage)}"></div>`,

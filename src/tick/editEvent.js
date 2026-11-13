@@ -1,3 +1,4 @@
+import { SYSTEM_DIALOG_CLASSES } from "../appearance.js";
 import { strings, t } from "./i18n.js";
 const TEMPLATE = "systems/ucurifunke/templates/editEvent.hbs";
 
@@ -19,6 +20,7 @@ export async function editEvent(sourceData, callback) {
   content.innerHTML = `<div class="tick-combat-dialog">${html}</div>`;
 
   const result = await foundry.applications.api.DialogV2.input({
+    classes: SYSTEM_DIALOG_CLASSES,
     window: { title },
     content,
     modal: true,

@@ -1,3 +1,4 @@
+import { SYSTEM_DIALOG_CLASSES } from "../appearance.js";
 import { t } from "./i18n.js";
 import { getCombatantData, setCombatantData } from "./data.js";
 import { conditionEffects } from "../conditions.js";
@@ -34,6 +35,7 @@ export async function rollInitiative(combatant) {
     </div>
     </div>`;
   const result = await foundry.applications.api.DialogV2.input({
+    classes: SYSTEM_DIALOG_CLASSES,
     window: { title: t("initiativeTitle", { name: combatant.name ?? t("combatant") }) },
     content, modal: true, rejectClose: false,
     ok: { label: t("rollInitiative"), icon: "fa-solid fa-dice-d6" }

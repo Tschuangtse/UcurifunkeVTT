@@ -1,3 +1,4 @@
+import { SYSTEM_DIALOG_CLASSES } from "./appearance.js";
 import { medianDie, renderCheckCard, skillDice } from "./check-card.js";
 import { postDiceMessage } from "./dice-message.js";
 import { combatFocus, focusModifier } from "./combat-focus.js";
@@ -89,6 +90,7 @@ const normalizeModifier = value => validModifier(Number(value)) ? Number(value) 
 export async function prepareRoll(check, fields = "", { allowBlind = true } = {}) {
   const type = { attribute: "Attributsprobe", skill: "Fertigkeitsprobe" }[check.kind];
   const options = await foundry.applications.api.DialogV2.input({
+    classes: SYSTEM_DIALOG_CLASSES,
     window: { title: type ? type + ": " + check.name : check.name },
     content: `<div class="ucurifunke-modifier-dialog">
       ${fields}

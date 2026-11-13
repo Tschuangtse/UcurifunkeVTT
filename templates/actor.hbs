@@ -107,6 +107,12 @@
       <button type="button" class="ucurifunke-roll ucurifunke-perception" data-action="rollCheck" data-kind="perception"
         title="Wahrnehmung würfeln" aria-label="Wahrnehmung würfeln"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>
     {{/if}}
+    {{#if canRollAstralSense}}
+      <button type="button" class="ucurifunke-roll ucurifunke-header-action ucurifunke-astral-sense" data-action="rollCheck"
+        data-kind="astralSense" title="Astralsinn würfeln" aria-label="Astralsinn würfeln">
+        <i class="fa-solid fa-eye" aria-hidden="true"></i><i class="fa-solid fa-wand-sparkles" aria-hidden="true"></i>
+      </button>
+    {{/if}}
     <button type="button" class="ucurifunke-roll ucurifunke-header-action" data-action="sheetPreferences"
       title="Bogendesign und Würfelklänge" aria-label="Bogendesign und Würfelklänge">
       <i class="fa-solid fa-gear" aria-hidden="true"></i>

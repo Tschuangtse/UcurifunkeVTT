@@ -18,6 +18,11 @@ export function perceptionAttributes(attributes) {
   return attributes.filter(isPrimary);
 }
 
+export function astralSenseCheck(data) {
+  const value = data.derived.find(row => row.key.toUpperCase() === "AS" || row.name === "Astralsinn")?.value;
+  return Number.isFinite(value) && value > 0 ? { kind: "attribute", name: "Astralsinn", value: Math.round(value) } : null;
+}
+
 export function attributeCheck(attributes, index) {
   const attribute = attributes[index];
   if (!attribute) return null;

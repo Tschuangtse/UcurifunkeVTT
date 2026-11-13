@@ -1,3 +1,4 @@
+import { SYSTEM_DIALOG_CLASSES } from "./appearance.js";
 import { escapeHtml } from "./check-card.js";
 import { parseCharacter } from "./import-data.js";
 import { conditionRows, SUPPRESSIONS } from "./conditions.js";
@@ -23,6 +24,7 @@ export function chooseCharacterFile(label, { chooseFolder = false } = {}) {
     content.append(label);
   }
   return foundry.applications.api.DialogV2.prompt({
+    classes: SYSTEM_DIALOG_CLASSES,
     window: { title: "Pedipalpus-Charakter importieren" },
     content, modal: true, rejectClose: false,
     ok: { label, callback: (_event, button) => ({
@@ -121,6 +123,7 @@ export async function updatePedipalpusActor(actor) {
       `<li>${escapeHtml(data.name)} · ${escapeHtml(data.system.companionKind)}</li>`).join("")}${removed.map(actor =>
       `<li>${escapeHtml(actor.name)} · Akteur und Token werden entfernt</li>`).join("")}</ul></details>` : "");
   const confirmed = await foundry.applications.api.DialogV2.confirm({
+    classes: SYSTEM_DIALOG_CLASSES,
     window: { title: "Änderungen an " + actor.name }, position: { width: 560 },
     content: `<div class="ucurifunke-import-preview">${preview}</div>`,
     yes: { label: "Charakter aktualisieren" }, modal: true, rejectClose: false

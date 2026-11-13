@@ -22,6 +22,8 @@
 .ucurifunke-identity h2 { margin: 0; border: 0; font-size: 1.65rem; overflow-wrap: anywhere; }
 .ucurifunke-identity p { margin: .25rem 0 0; }
 .ucurifunke-character-header :is(.ucurifunke-perception, .ucurifunke-header-action) { flex: 0 0 2.6rem; min-height: 2.6rem; align-self: flex-start; font-size: 1.1rem; }
+.ucurifunke-astral-sense { position: relative; }
+.ucurifunke-astral-sense .fa-wand-sparkles { position: absolute; top: .22rem; right: .18rem; font-size: .65rem; }
 .ucurifunke-overview-group { margin-bottom: .85rem; }
 .ucurifunke-combat-section:not(:has([data-filter-group]:not([hidden]))) { display: none; }
 .ucurifunke-combat-section { margin-bottom: .85rem; }
@@ -220,10 +222,16 @@
 .ucurifunke-modifier-dialog .form-group { display: grid; grid-template-columns: 1fr 7rem; align-items: center; }
 .ucurifunke-modifier-dialog input[type="checkbox"] { justify-self: start; }
 
-.ucurifunke-character[data-design="parchment"] { --uc-surface: #584732; --uc-accent: #d4a55d; background: #33291e; color: #fff0d4; }
-.ucurifunke-character[data-design="steel"] { --uc-surface: #303d4d; --uc-accent: #94b8df; background: #202a36; color: #e7f3ff; }
+html[data-ucurifunke-design="parchment"] {
+  --uc-frame: #291f16; --uc-frame-text: #fff0d4; --uc-paper: #33291e;
+  --uc-ink: #fff0d4; --uc-panel: #584732; --uc-field: #392e23; --uc-trim: #d4a55d;
+}
+html[data-ucurifunke-design="steel"] {
+  --uc-frame: #19232f; --uc-frame-text: #e7f3ff; --uc-paper: #202a36;
+  --uc-ink: #e7f3ff; --uc-panel: #303d4d; --uc-field: #263344; --uc-trim: #94b8df;
+}
 
-.ucurifunke-sheet:has([data-design="tavern"]) {
+html[data-ucurifunke-design="tavern"] {
   --uc-frame: #3c2418;
   --uc-frame-image: url("../assets/themes/wood.webp");
   --uc-frame-text: #fff0d5;
@@ -235,7 +243,7 @@
   --uc-field: #fff1d5;
   --uc-trim: #765035;
 }
-.ucurifunke-sheet:has([data-design="white-marble"]) {
+html[data-ucurifunke-design="white-marble"] {
   --uc-frame: #e7e4df;
   --uc-frame-image: url("../assets/themes/white-marble.webp");
   --uc-frame-text: #25262a;
@@ -247,7 +255,7 @@
   --uc-field: #fffdf9;
   --uc-trim: #635340;
 }
-.ucurifunke-sheet:has([data-design="black-marble"]) {
+html[data-ucurifunke-design="black-marble"] {
   --uc-frame: #1b1b20;
   --uc-frame-image: url("../assets/themes/black-marble.webp");
   --uc-frame-text: #f8eedb;
@@ -259,7 +267,7 @@
   --uc-field: #292830;
   --uc-trim: #dac08c;
 }
-.ucurifunke-sheet:has([data-design="leather"]) {
+html[data-ucurifunke-design="leather"] {
   --uc-frame: #3d211b;
   --uc-frame-image: url("../assets/themes/leather.webp");
   --uc-frame-text: #ffead4;
@@ -271,40 +279,58 @@
   --uc-field: #3d231d;
   --uc-trim: #f2c194;
 }
-.ucurifunke-sheet:has([data-design]:not([data-design="standard"], [data-design="parchment"], [data-design="steel"])) {
+html[data-ucurifunke-design="necromancer"] {
+  --uc-frame: #a4a5a3; --uc-frame-text: #232324;
+  --uc-paper: #e1dfd9; --uc-ink: #262526; --uc-panel: #e8e6e2;
+  --uc-field: #f1efeb; --uc-trim: #585457; --uc-wash: #e3e1db77;
+  --uc-frame-image: url("../assets/themes/necromancer.webp"); --uc-texture: var(--uc-frame-image);
+}
+html[data-ucurifunke-design="demonologist"] {
+  --uc-frame: #322146; --uc-frame-text: #f4e9ff;
+  --uc-paper: #2a1d39; --uc-ink: #f4e9ff; --uc-panel: #3d2a51;
+  --uc-field: #302240; --uc-trim: #d5a8f2; --uc-wash: #21142f88;
+  --uc-frame-image: url("../assets/themes/demonologist.webp"); --uc-texture: var(--uc-frame-image);
+}
+html[data-ucurifunke-design="divine"] {
+  --uc-frame: #c8ab66; --uc-frame-text: #35260c;
+  --uc-paper: #e9d39d; --uc-ink: #36270e; --uc-panel: #f4e4be;
+  --uc-field: #fff3d4; --uc-trim: #77551d; --uc-wash: #f6e6ba77;
+  --uc-frame-image: url("../assets/themes/divine.webp"); --uc-texture: var(--uc-frame-image);
+}
+html[data-ucurifunke-design]:not([data-ucurifunke-design="standard"]) :is(.ucurifunke-sheet, .ucurifunke-dialog, .tick-combat-app) {
   & > .window-header {
     color: var(--uc-frame-text);
-    background: linear-gradient(#17101822, #17101822), var(--uc-frame-image) center / cover var(--uc-frame);
+    background: linear-gradient(#17101822, #17101822), var(--uc-frame-image, none) center / cover var(--uc-frame);
   }
   & > .window-header :is(button, .window-title) { color: inherit; }
-  & .ucurifunke-character {
+  & :is(.ucurifunke-character, .window-content) {
     color: var(--uc-ink);
-    background: linear-gradient(var(--uc-wash), var(--uc-wash)), var(--uc-texture) center / cover var(--uc-paper);
+    background: linear-gradient(var(--uc-wash, transparent), var(--uc-wash, transparent)), var(--uc-texture, none) center / cover var(--uc-paper);
     --uc-surface: var(--uc-panel);
     --uc-line: color-mix(in srgb, var(--uc-ink) 32%, transparent);
     --uc-accent: var(--uc-trim);
   }
-  & .ucurifunke-character :is(h2, h3, input, select, button) { color: inherit; }
-  & .ucurifunke-character :is(input:not([type="checkbox"], [type="range"]), select, .ucurifunke-group) {
+  & .window-content :is(h2, h3, input, select, button) { color: inherit; }
+  & .window-content :is(input:not([type="checkbox"], [type="range"]), select, .ucurifunke-group) {
     background-color: var(--uc-field);
   }
-  & .ucurifunke-character :is(input, select, button):focus-visible {
+  & .window-content :is(input, select, button):focus-visible {
     outline: 2px solid var(--uc-accent);
     outline-offset: 1px;
   }
-  & .ucurifunke-character input::placeholder { color: var(--uc-ink); opacity: .76; }
-  & .ucurifunke-character button:not([role="tab"]) {
+  & .window-content input::placeholder { color: var(--uc-ink); opacity: .76; }
+  & .window-content button:not([role="tab"]) {
     background: var(--uc-panel);
     border-color: var(--uc-accent);
   }
   & .ucurifunke-character .ucurifunke-probe-star[aria-pressed="true"] { color: var(--uc-accent); }
   & .ucurifunke-sheet-tabs { background-color: var(--uc-panel); }
 }
-.ucurifunke-character[data-design="tavern"] .ucurifunke-character-header {
+html[data-ucurifunke-design="tavern"] .ucurifunke-character-header {
   color: var(--uc-frame-text);
-  background: linear-gradient(#25130980, #25130980), var(--uc-frame-image) center / cover var(--uc-frame);
+  background: linear-gradient(#25130980, #25130980), var(--uc-frame-image, none) center / cover var(--uc-frame);
 }
-.ucurifunke-sheet .ucurifunke-character[data-design="tavern"] .ucurifunke-character-header button {
+html[data-ucurifunke-design="tavern"] .ucurifunke-sheet .ucurifunke-character-header button {
   background: #392218;
   border-color: #cda979;
 }

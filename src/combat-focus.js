@@ -1,3 +1,4 @@
+import { SYSTEM_DIALOG_CLASSES } from "./appearance.js";
 export function combatFocus(actor) {
   const { combatFocus, offensiveFocus, defensiveFocus } = actor.system;
   const legacy = () => actor.items?.find(item => item.type === "weapon" && item.system.group !== "Fernkampf"
@@ -30,6 +31,7 @@ export async function requestFocus(actor, tokenName) {
   const content = await foundry.applications.handlebars.renderTemplate("systems/ucurifunke/templates/combat-focus.hbs",
     { focus: combatFocus(actor), focusMin: -limit, focusMax: limit, canEdit: true });
   const result = await foundry.applications.api.DialogV2.input({
+    classes: SYSTEM_DIALOG_CLASSES,
     window: { title: "Haltung wechseln – " + tokenName }, content, modal: true, rejectClose: false,
     ok: { label: "Haltung wechseln (4 Ticks)" },
     render: (_event, dialog) => bindFocus(dialog.element)

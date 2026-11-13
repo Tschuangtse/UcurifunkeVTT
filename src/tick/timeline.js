@@ -1,3 +1,4 @@
+import { SYSTEM_DIALOG_CLASSES } from "../appearance.js";
 import { getLanguage, strings, t } from "./i18n.js";
 import {
   addEvent,
@@ -90,6 +91,7 @@ export class TimelineApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (game.user?.isGM) keys.push("helpEdit", "helpTickCost");
     const content = "<ul>" + keys.map(key => `<li>${t(key)}</li>`).join("") + "</ul>";
     await foundry.applications.api.DialogV2.prompt({
+      classes: SYSTEM_DIALOG_CLASSES,
       window: { title: t("helpTitle") },
       content,
       rejectClose: false,

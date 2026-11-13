@@ -77,7 +77,7 @@ export function bindProbeShortcuts(root, actor, onRefresh) {
         type: "UcurifunkeProbe", actorId: actor.id, reference: ref, label: button.ariaLabel
       }));
     };
-    if (ref.kind === "perception") continue;
+    if (["perception", "astralSense"].includes(ref.kind)) continue;
     const star = document.createElement("button");
     star.type = "button";
     star.className = "ucurifunke-probe-star";

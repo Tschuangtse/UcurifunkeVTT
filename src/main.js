@@ -1,3 +1,4 @@
+import { applyDesign, registerDesign } from "./appearance.js";
 import "./tick/main.js";
 import "./actions/main.js";
 import "./creation-defaults.js";
@@ -11,7 +12,10 @@ import { refreshExchange, renderExchange } from "./combat-workflow.js";
 import { importNpcGroup } from "./npc-bulk-import.js";
 import { createProbeMacro, rollSavedProbe } from "./probe-shortcuts.js";
 
-Hooks.once("ready", () => { game.ucurifunke = { ...game.ucurifunke, rollSavedProbe }; });
+Hooks.once("ready", () => {
+  applyDesign(game.settings.get("ucurifunke", "sheetDesign"));
+  game.ucurifunke = { ...game.ucurifunke, rollSavedProbe };
+});
 Hooks.on("hotbarDrop", (_bar, data, slot) => {
   if (data?.type !== "UcurifunkeProbe") return;
   void createProbeMacro(data, slot).catch(error => ui.notifications.error(error.message));
@@ -24,10 +28,7 @@ Hooks.on("createChatMessage", refreshExchange);
 Hooks.on("deleteChatMessage", refreshExchange);
 
 Hooks.once("init", () => {
-  game.settings.register("ucurifunke", "sheetDesign", { name: "Bogendesign", scope: "client", config: true,
-    type: String, choices: { standard: "Standard", parchment: "Pergament", steel: "Stahl",
-      tavern: "Holz und Papier", "white-marble": "Weißer Marmor",
-      "black-marble": "Schwarzer Marmor", leather: "Leder" }, default: "standard" });
+  registerDesign();
   game.settings.register("ucurifunke", "rollSounds", { name: "Würfelklänge", scope: "client", config: true,
     type: Boolean, default: true });
   registerCheckCommands(foundry.applications.sidebar.tabs.ChatLog.CHAT_COMMANDS);

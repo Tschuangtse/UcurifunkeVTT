@@ -1,3 +1,4 @@
+import { SYSTEM_DIALOG_CLASSES } from "../appearance.js";
 import { VARIABLE_COST, parseCost } from "./actions.js";
 import { effectiveTicks, tickOverridePatch, weaponTickFields } from "../weapon-ticks.js";
 
@@ -77,6 +78,7 @@ export async function requestCost(action, selection) {
   content.append(fields);
 
   return foundry.applications.api.DialogV2.prompt({
+    classes: SYSTEM_DIALOG_CLASSES,
     window: { title: `${action.name} – Tickkosten` },
     classes: ["uqca-cost-dialog"],
     content,

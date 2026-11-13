@@ -1,3 +1,4 @@
+import { SYSTEM_DIALOG_CLASSES } from "./appearance.js";
 import { escapeHtml } from "./check-card.js";
 import { createNpcActor } from "./npc-import.js";
 
@@ -10,6 +11,7 @@ export async function importNpcGroup() {
   let folder;
   try {
     const name = await DialogV2.prompt({
+      classes: SYSTEM_DIALOG_CLASSES,
       window: { title: "NSC Massenimport" },
       content: '<label>Gruppenname <input type="text" name="group" required autofocus></label>',
       modal: true, rejectClose: false,
@@ -21,6 +23,7 @@ export async function importNpcGroup() {
     folder = await foundry.documents.Folder.implementation.create({ name, type: "Actor" });
     if (!folder) throw new Error("Der Akteursordner konnte nicht angelegt werden.");
     const files = await DialogV2.prompt({
+      classes: SYSTEM_DIALOG_CLASSES,
       window: { title: "NSC-Dateien auswählen" },
       content: '<label>Dateien aus dem NSCGenerator <input type="file" name="npcs" accept=".json,application/json" multiple required></label>',
       modal: true, rejectClose: false,
@@ -42,6 +45,7 @@ export async function importNpcGroup() {
     const summary = `${imported} von ${files.length} NSC importiert.`;
     if (!issues.length) ui.notifications.info(summary);
     else await DialogV2.prompt({
+      classes: SYSTEM_DIALOG_CLASSES,
       window: { title: "Ergebnis des NSC-Massenimports" },
       content: `<p>${summary}</p><ul>${issues.map(([file, message]) =>
         `<li><strong>${escapeHtml(file)}</strong> – ${escapeHtml(message)}</li>`).join("")}</ul>`,

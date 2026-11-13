@@ -1,3 +1,4 @@
+import { SYSTEM_DIALOG_CLASSES } from "./appearance.js";
 import { postDiceMessage } from "./dice-message.js";
 
 const CONTROL = "ucurifunkeDice";
@@ -14,6 +15,7 @@ async function openDiceMenu() {
       <input name="w${faces}" type="number" min="0" max="${MAX_COUNT}" step="1" value="0" required>
     </label>`).join("");
     const result = await foundry.applications.api.DialogV2.input({
+      classes: SYSTEM_DIALOG_CLASSES,
       window: { title: "Würfelmenü" },
       content: `<div class="ucurifunke-dice-pool">${fields}</div>`,
       rejectClose: false,

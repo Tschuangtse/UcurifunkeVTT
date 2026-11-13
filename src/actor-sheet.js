@@ -1,3 +1,4 @@
+import { SYSTEM_DIALOG_CLASSES, openAppearanceSettings } from "./appearance.js";
 import { parseCharacter } from "./import-data.js";
 import { createNpcActor, isNpcFile } from "./npc-import.js";
 import { dodgeCheck, dodgeValue, postRoll, prepareRoll, weaponCheck } from "./checks.js";
@@ -14,7 +15,7 @@ import { getCombatantInfo } from "./tick/data.js";
 import { equipmentImpairment } from "./equipment-state.js";
 import { readTechniqueSettings, techniqueCheck, techniqueFlag, techniqueSettings } from "./technique-check.js";
 import { attributeCheck, filterSheet, groupAttributes, groupItems, partitionSkills, perceptionAttributes,
-  perceptionCheck, skillCheck } from "./sheet-view.js";
+  perceptionCheck, astralSenseCheck, skillCheck } from "./sheet-view.js";
 
 const { api, sheets } = foundry.applications;
 const path = "systems/ucurifunke/templates/actor.hbs";
@@ -132,7 +133,8 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       companion, npcGenerator: data.npcGenerator, companionDetails, retinue, canImportRetinue: Boolean(pending && globalThis.game?.user?.isGM),
       pendingRetinue: pendingPlan ? pendingPlan.entries.length + pendingPlan.removed.length : 0,
       canEdit: this.isEditable, canRoll: this.actor.isOwner, canImport: this.actor.isOwner && !this.actor.isToken && !companion,
-      canRollPerception: this.actor.isOwner && Boolean(perceptionCheck(data)) };
+      canRollPerception: this.actor.isOwner && Boolean(perceptionCheck(data)),
+      canRollAstralSense: this.actor.isOwner && Boolean(astralSenseCheck(data)) };
   }
 
   _onRender(context, options) {
@@ -151,7 +153,6 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       });
     }
     const root = this.element.querySelector(".ucurifunke-character");
-    root.dataset.design = game.settings.get("ucurifunke", "sheetDesign");
     const tablist = root.querySelector('[role="tablist"]');
     tablist.onkeydown = event => {
       const tabs = [...tablist.querySelectorAll('[role="tab"]:not([hidden])')];
@@ -207,25 +208,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
     catch (error) { ui.notifications.error(error.message); }
   }
 
-  static async #sheetPreferences() {
-    const settings = game.settings;
-    const design = settings.get("ucurifunke", "sheetDesign");
-    const sounds = settings.get("ucurifunke", "rollSounds");
-    const choices = settings.settings.get("ucurifunke.sheetDesign").choices;
-    const result = await foundry.applications.api.DialogV2.input({
-      window: { title: "Bogendesign und Würfelklänge" },
-      content: `<div class="form-group"><label for="${this.id}-design">Bogendesign</label>
-        <select id="${this.id}-design" name="design">${Object.entries(choices).map(([key, label]) =>
-          `<option value="${key}" ${key === design ? "selected" : ""}>${label}</option>`).join("")}</select></div>
-        <div class="form-group"><label for="${this.id}-sounds">Würfelklänge beim eigenen Wurf</label>
-        <input id="${this.id}-sounds" type="checkbox" name="sounds" ${sounds ? "checked" : ""}></div>`,
-      rejectClose: false, modal: true, ok: { label: "Speichern" }
-    });
-    if (!result) return;
-    await settings.set("ucurifunke", "sheetDesign", result.design);
-    await settings.set("ucurifunke", "rollSounds", [true, 1, "1", "true", "on"].includes(result.sounds));
-    for (const sheet of document.querySelectorAll(".ucurifunke-character")) sheet.dataset.design = result.design;
-  }
+  static async #sheetPreferences() { await openAppearanceSettings(); }
 
   static async #toggleEquipment(_event, target) {
     if (!this.isEditable || !this.actor.isOwner) return;
@@ -253,6 +236,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
     const stored = actor.getFlag("ucurifunke", "weaponSets") ?? [];
     try {
       const result = await api.DialogV2.input({
+        classes: SYSTEM_DIALOG_CLASSES,
         window: { title: "Waffensets" },
         content: `<div><label>Gespeichertes Set <select name="set"><option value="">Neues Set</option>
           ${stored.map((set, i) => `<option value="${i}">${escapeHtml(set.name)}</option>`).join("")}</select></label>
@@ -298,6 +282,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
     }
     try {
       const result = await api.DialogV2.input({
+        classes: SYSTEM_DIALOG_CLASSES,
         window: { title: "Tickkosten – " + item.name }, content, modal: true, rejectClose: false,
         classes: ["uqca-cost-dialog"], ok: { label: "Speichern" },
         render: (_event, dialog) => {
@@ -333,7 +318,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       const { entries, removed } = planRetinue(this.actor, source);
       const names = [...entries.map(({ data }) => escapeHtml(data.name)),
         ...removed.map(actor => escapeHtml(actor.name) + " (Akteur und Token entfernen)")];
-      const confirmed = await api.DialogV2.confirm({ window: { title: "Gefolge übernehmen" },
+      const confirmed = await api.DialogV2.confirm({ classes: SYSTEM_DIALOG_CLASSES, window: { title: "Gefolge übernehmen" },
         content: `<p>${names.join(", ")}</p>`, modal: true, rejectClose: false });
       if (!confirmed) return;
       if (this.actor.getFlag("ucurifunke", "retinuePending") !== source) throw new Error("Die Gefolgedaten wurden zwischenzeitlich geändert.");
@@ -414,6 +399,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       : kind === "attribute" ? attributeCheck(data.attributes, Number(index))
       : kind === "skill" ? skillCheck(data.skills, Number(index))
       : kind === "perception" ? perceptionCheck(data)
+      : kind === "astralSense" ? astralSenseCheck(data)
       : companionAbility && (this.actor.type === "retinue" || data.npcGenerator) && companionAbility.rollable
         ? { ...companionAbility, kind: "skill" }
       : skill ? techniqueCheck(this.actor, skill, mode, settings) : null;
