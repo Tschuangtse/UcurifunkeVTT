@@ -135,7 +135,19 @@ export async function syncRetinue(owner, source, { folder } = {}) {
   for (const { sourceKey, data } of entries) {
     const actor = bySource.get(sourceKey);
     try {
-      if (actor?.isOwner) await actor.importPedipalpusData(data);
+      if (actor?.isOwner) {
+        await actor.importPedipalpusData(data);
+        if (game.user.isGM) {
+          const inherited = owner.toObject().ownership;
+          const ownership = actor.toObject().ownership;
+          const changes = Object.fromEntries(Object.keys(ownership)
+            .filter(id => !Object.hasOwn(inherited, id)).map(id => ["ownership.-=" + id, null]));
+          for (const [id, level] of Object.entries(inherited)) {
+            if (ownership[id] !== level) changes["ownership." + id] = level;
+          }
+          if (Object.keys(changes).length) await actor.update(changes);
+        }
+      }
       else if (actor || !game.user.can("ACTOR_CREATE")) pending.push(data.name);
       else await foundry.documents.Actor.implementation.create({ ...data, ...(folder ? { folder } : {}),
         ownership: owner.toObject().ownership, flags: { ucurifunke: { retinueOwner: owner.id, retinueSource: sourceKey } } });

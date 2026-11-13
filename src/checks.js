@@ -82,6 +82,10 @@ export function dodgeCheck(actor, { ticks = 0, running = false, posture = 0, cra
     breakdown: [base, 0, focus, 0], penalties, value: base + focus - impairment - penalties.reduce((n, [, v]) => n + v, 0) };
 }
 
+const MAX_MODIFIER = Number.MAX_SAFE_INTEGER;
+const validModifier = value => Number.isSafeInteger(value) && value >= 0;
+const normalizeModifier = value => validModifier(Number(value)) ? Number(value) : 0;
+
 export async function prepareRoll(check, fields = "", { allowBlind = true } = {}) {
   const type = { attribute: "Attributsprobe", skill: "Fertigkeitsprobe" }[check.kind];
   const options = await foundry.applications.api.DialogV2.input({
@@ -90,11 +94,11 @@ export async function prepareRoll(check, fields = "", { allowBlind = true } = {}
       ${fields}
       <div class="form-group">
         <label for="ucurifunke-difficulty">Erschwernis</label>
-        <input id="ucurifunke-difficulty" name="difficulty" type="number" min="0" step="1" value="0" autofocus>
+        <input id="ucurifunke-difficulty" name="difficulty" type="number" min="0" max="${MAX_MODIFIER}" step="1" value="0" placeholder="0">
       </div>
       <div class="form-group">
         <label for="ucurifunke-relief">Erleichterung</label>
-        <input id="ucurifunke-relief" name="relief" type="number" min="0" step="1" value="0">
+        <input id="ucurifunke-relief" name="relief" type="number" min="0" max="${MAX_MODIFIER}" step="1" value="0" placeholder="0">
       </div>
       ${allowBlind ? `<div class="form-group">
         <label for="ucurifunke-blind">Verdeckte Probe</label>
@@ -104,24 +108,42 @@ export async function prepareRoll(check, fields = "", { allowBlind = true } = {}
     rejectClose: false, modal: true,
     ok: { label: "Würfeln", icon: "fa-solid fa-dice-d20" },
     render: (_event, dialog) => {
-      for (const input of dialog.element.querySelectorAll('input[name="difficulty"], input[name="relief"]')) {
-        const clearZero = () => { if (input.value === "0") input.value = ""; };
-        input.addEventListener("focus", clearZero);
-        input.addEventListener("click", clearZero);
+      const inputs = [...dialog.element.querySelectorAll('input[name="difficulty"], input[name="relief"]')];
+      const submit = dialog.element.querySelector('button[data-action="ok"], button[type="submit"]');
+      const refresh = () => {
+        if (submit) submit.disabled = inputs.some(input => !input.validity.valid);
+      };
+      for (const input of inputs) {
+        input.addEventListener("click", () => {
+          if (input.value === "0") {
+            input.value = "";
+            refresh();
+          }
+        });
+        input.addEventListener("keydown", event => {
+          if (["-", "+", ".", ",", "e", "E"].includes(event.key) && !event.ctrlKey && !event.metaKey) event.preventDefault();
+        });
+        input.addEventListener("blur", () => {
+          if (!input.value && input.validity.valid) input.value = "0";
+        });
+        input.addEventListener("paste", event => {
+          if (!/^\d+$/.test(event.clipboardData?.getData("text")?.trim() ?? "")) event.preventDefault();
+        });
+        input.addEventListener("input", refresh);
       }
     }
   });
   if (!options) return null;
-  const nonNegativeInteger = value => Number.isFinite(Number(value)) ? Math.max(0, Math.trunc(Number(value))) : 0;
   return {
-    penalty: nonNegativeInteger(options.difficulty),
-    bonus: nonNegativeInteger(options.relief),
+    penalty: normalizeModifier(options.difficulty),
+    bonus: normalizeModifier(options.relief),
     blind: allowBlind && [true, 1, "1", "true", "on"].includes(options.blind),
     ...(fields ? { fields: options } : {})
   };
 }
 
-export async function postRoll(actor, check, modifiers, speaker) {
+export async function postRoll(actor, check, modifiers = {}, speaker) {
+  modifiers = { ...modifiers, penalty: normalizeModifier(modifiers.penalty), bonus: normalizeModifier(modifiers.bonus) };
   const Roll = foundry.dice.Roll;
   const combat = check.kind === "combat";
   const roll = await new Roll(combat ? "1d20" : "3d20").evaluate();

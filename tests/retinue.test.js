@@ -47,6 +47,7 @@ test("new companions inherit the character ownership, and a repeat import update
   const actors = [];
   let canCreate = false;
   let updated;
+  let permissions;
   let pending;
   const owner = { id: "owner", toObject: () => ({ ownership }),
     getFlag: () => pending, setFlag: async (_scope, _key, data) => { pending = data; },
@@ -55,6 +56,8 @@ test("new companions inherit the character ownership, and a repeat import update
   globalThis.foundry = { documents: { Actor: { implementation: { create: async data => {
     actors.push({ ...data, isOwner: true,
       getFlag: (scope, key) => data.flags[scope]?.[key],
+      toObject: () => ({ ownership: { default: 1, playerA: 3, playerB: 2 } }),
+      update: async changes => { permissions = changes; },
       importPedipalpusData: async entry => { updated = entry; }
     });
   } } } } };
@@ -72,6 +75,11 @@ test("new companions inherit the character ownership, and a repeat import update
   assert.deepEqual(await syncRetinue(owner, retinueSource({ Animals: [{ ...animal, Name: "Habicht" }] })), []);
   assert.equal(actors.length, 1);
   assert.equal(updated.name, "Habicht");
+  game.user.isGM = true;
+  delete ownership.playerB;
+  ownership.playerC = 3;
+  await syncRetinue(owner, source);
+  assert.deepEqual(permissions, { "ownership.-=playerB": null, "ownership.playerC": 3 });
 });
 
 test("explicit empty lists remove old members and their tokens while absent lists preserve them", async () => {

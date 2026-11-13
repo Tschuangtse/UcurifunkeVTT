@@ -129,6 +129,9 @@ test("the custom card keeps its roll and only the checkbox forces Foundry blind 
   assert.deepEqual(data.whisper, ["gm"]);
   assert.equal(mode, undefined);
   assert.equal(data.flags, undefined);
+  await postRoll({ name: "Rondrik" }, { kind: "attribute", name: "Mut", value: 14 }, { penalty: NaN });
+  assert.match(data.content, /Qualität: <strong>6/);
+  assert.doesNotMatch(data.content, /NaN|undefined/);
   await postRoll({ name: "Rondrik" }, { kind: "attribute", name: "Mut", value: 14 }, { penalty: 0, bonus: 0, blind: true });
   assert.equal(mode, "blind");
   assert.equal(data.blind, true);
