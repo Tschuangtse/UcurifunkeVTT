@@ -1,5 +1,5 @@
 import { parseCharacter } from "./import-data.js";
-import { convertNpc, isNpcFile, npcRetinue } from "./npc-import.js";
+import { createNpcActor, isNpcFile } from "./npc-import.js";
 import { dodgeCheck, dodgeValue, postRoll, prepareRoll, weaponCheck } from "./checks.js";
 import { escapeHtml } from "./check-card.js";
 import { effectiveTicks, tickOverridePatch, weaponTickFields } from "./weapon-ticks.js";
@@ -49,14 +49,15 @@ export async function importPedipalpus() {
     if (!file) return;
     const json = await file.text();
     const source = JSON.parse(json.replace(/^\uFEFF/, ""));
-    const npc = isNpcFile(source);
-    const character = npc ? convertNpc(source) : parseCharacter(json);
-    const actor = await foundry.documents.Actor.implementation.create(character);
-    const retinue = retinueSource(npc ? npcRetinue(source) : source);
-    if (actor && Object.values(retinue).some(rows => rows.length)) {
-      const pending = await syncRetinue(actor, retinue);
-      if (pending.length) ui.notifications.warn("Gefolge zur Übernahme vorgemerkt: " + pending.join(", "));
+    let actor, pending;
+    if (isNpcFile(source)) {
+      ({ actor, pending } = await createNpcActor(source));
+    } else {
+      actor = await foundry.documents.Actor.implementation.create(parseCharacter(json));
+      const retinue = retinueSource(source);
+      pending = actor && Object.values(retinue).some(rows => rows.length) ? await syncRetinue(actor, retinue) : [];
     }
+    if (pending.length) ui.notifications.warn("Gefolge zur Übernahme vorgemerkt: " + pending.join(", "));
     await actor?.sheet.render({ force: true });
   } catch (error) {
     ui.notifications.error(error.message);

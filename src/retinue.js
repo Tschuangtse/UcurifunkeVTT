@@ -125,7 +125,7 @@ export function planRetinue(owner, source, actors = game.actors) {
   return { entries, existing, removed };
 }
 
-export async function syncRetinue(owner, source) {
+export async function syncRetinue(owner, source, { folder } = {}) {
   const { entries, existing, removed } = planRetinue(owner, source);
   const bySource = new Map(existing.map(actor => [actor.getFlag("ucurifunke", "retinueSource"), actor]));
   const pending = [];
@@ -134,7 +134,7 @@ export async function syncRetinue(owner, source) {
     try {
       if (actor?.isOwner) await actor.importPedipalpusData(data);
       else if (actor || !game.user.can("ACTOR_CREATE")) pending.push(data.name);
-      else await foundry.documents.Actor.implementation.create({ ...data,
+      else await foundry.documents.Actor.implementation.create({ ...data, ...(folder ? { folder } : {}),
         ownership: owner.toObject().ownership, flags: { ucurifunke: { retinueOwner: owner.id, retinueSource: sourceKey } } });
     } catch (error) {
       pending.push(data.name);

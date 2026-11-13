@@ -8,6 +8,7 @@ import { CharacterSheet, CompanionSheet, importPedipalpus } from "./actor-sheet.
 import { renderHiddenCheck } from "./checks.js";
 import { registerCheckCommands } from "./chat-commands.js";
 import { refreshExchange, renderExchange } from "./combat-workflow.js";
+import { importNpcGroup } from "./npc-bulk-import.js";
 
 Hooks.on("renderChatMessageHTML", renderHiddenCheck);
 Hooks.on("renderChatMessageHTML", renderExchange);
@@ -41,4 +42,12 @@ Hooks.on("renderActorDirectory", (_directory, html) => {
   button.innerHTML = '<i class="fa-solid fa-file-import" aria-hidden="true"></i> Pedipalpus importieren';
   button.addEventListener("click", importPedipalpus);
   header.append(button);
+  if (game.user.isGM) {
+    const bulk = document.createElement("button");
+    bulk.type = "button";
+    bulk.className = "ucurifunke-import";
+    bulk.innerHTML = '<i class="fa-solid fa-file-import" aria-hidden="true"></i> NSC Massenimport';
+    bulk.addEventListener("click", importNpcGroup);
+    header.append(bulk);
+  }
 });

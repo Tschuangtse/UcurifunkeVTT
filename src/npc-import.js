@@ -1,3 +1,5 @@
+import { retinueSource, syncRetinue } from "./retinue.js";
+
 const PRIMARY = ["MU", "KL", "IN", "CH", "FF", "GE", "KO", "KK"];
 const GRADES = ["Amateur", "Lehrling", "Geselle", "Meister", "Legende"];
 const grade = name => (GRADES.indexOf(name) + 1) * 4;
@@ -106,4 +108,14 @@ export function npcRetinue(source) {
     });
   }
   return result;
+}
+
+export async function createNpcActor(source, folder) {
+  const data = convertNpc(source);
+  const retinue = retinueSource(npcRetinue(source));
+  const actor = await foundry.documents.Actor.implementation.create({ ...data, ...(folder ? { folder } : {}) });
+  if (!actor) throw new Error("Der NSC konnte nicht angelegt werden.");
+  const pending = retinue.authoritative.some(group => retinue[group].length)
+    ? await syncRetinue(actor, retinue, { folder }) : [];
+  return { actor, pending };
 }
