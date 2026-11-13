@@ -151,8 +151,7 @@ export class ActionDock {
         : weapon ? weaponCheck(actor, weapon, mode) : null;
       if (id === "dodge" && !check) throw new Error("Für diesen Akteur ist kein Ausweichwert hinterlegt.");
       const target = check && selectedAttackTarget(actor, check);
-      if (check) applyConditionEffects(actor, check);
-      const modifiers = check ? await prepareRoll(check, id === "dodge" ? dodgeFields : "") : null;
+      const modifiers = check ? await prepareRoll(applyConditionEffects(actor, check), id === "dodge" ? dodgeFields : "") : null;
       if (check && modifiers === null) return;
       if (id === "dodge") {
         const situation = dodgeOptions(modifiers.fields, getCombatantInfo(selection.combatant).ticks);

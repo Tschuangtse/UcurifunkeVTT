@@ -103,7 +103,7 @@ async function respond(message, action) {
     if (!combatant) throw new Error("Für Ausweichen muss das Ziel am laufenden Tickkampf teilnehmen.");
     if (!game.users.activeGM && !game.user.isGM) throw new Error("Für Tickbuchungen muss eine Spielleitung verbunden sein.");
     const check = dodgeCheck(defender);
-    const options = await prepareRoll(check, dodgeFields, { allowBlind: false });
+    const options = await prepareRoll(applyConditionEffects(defender, check), dodgeFields, { allowBlind: false });
     if (!options) return;
     ensure(message, action);
     const situation = dodgeOptions(options.fields, getCombatantInfo(combatant).ticks);
@@ -161,7 +161,7 @@ async function respond(message, action) {
     · ${check.ticks ?? 4} Ticks</option>`).join("");
   const selection = getSelection(game, canvas);
   const canBook = selection.token?.document?.uuid === token.uuid;
-  const options = await prepareRoll({ kind: "combat", name: "Parade gegen Angriff auf " + token.name },
+  const options = await prepareRoll({ ...applyConditionEffects(defender, checks[0]), name: "Parade gegen Angriff auf " + token.name },
     `<div class="form-group"><label for="ucurifunke-parry">Waffe oder Kampftechnik</label>
       <select id="ucurifunke-parry" name="parry">${choices}</select></div>
       ${canBook ? '<label><input type="checkbox" name="bookParry" checked> Tickkosten im laufenden Kampf buchen</label>' : ""}`, { allowBlind: false });

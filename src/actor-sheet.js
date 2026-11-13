@@ -407,7 +407,6 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
     try {
       const attackTarget = selectedAttackTarget(this.actor, check);
       const weaponDamage = kind === "weapon" ? this.actor.items.get(item)?.system.damage : "";
-      if (kind !== "perception" || companionPerception) applyConditionEffects(this.actor, check);
       const weaponAttack = kind === "weapon";
       const selection = skill || weaponAttack ? getSelection(game, canvas) : null;
       const canBookTicks = selection?.token?.actor?.uuid === this.actor.uuid;
@@ -420,7 +419,15 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
         : companionAbility ? perceptionFields(primary, [0, 1, 2].map(i => abilityDefaults[i]))
         : weaponAttack && canBookTicks && check.ticks > 0 && check.ticks <= 32
           ? `<label><input type="checkbox" name="bookTicks"> ${check.ticks} Ticks im laufenden Kampf buchen</label>` : "";
-      const modifier = await prepareRoll(check, fields);
+      const preview = companionAbility || kind === "perception" && !companionPerception
+        ? form => {
+          const attributes = [0, 1, 2].map(i => {
+            const key = form?.elements.namedItem("attribute" + i)?.value ?? abilityDefaults[i]?.key;
+            return primary.find(row => row.key.toUpperCase() === key?.toUpperCase()) ?? primary[0];
+          }).filter(Boolean);
+          return applyConditionEffects(this.actor, { ...check, attributes });
+        } : undefined;
+      const modifier = await prepareRoll(preview ? preview() : applyConditionEffects(this.actor, check), fields, { preview });
       if (!modifier || !this.actor.isOwner) return;
       let bookTicks = false;
       if (skill) {

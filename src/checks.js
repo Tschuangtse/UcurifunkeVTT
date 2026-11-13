@@ -1,5 +1,5 @@
 import { SYSTEM_DIALOG_CLASSES } from "./appearance.js";
-import { medianDie, renderCheckCard, skillDice } from "./check-card.js";
+import { escapeHtml, medianDie, renderCheckCard, skillDice } from "./check-card.js";
 import { postDiceMessage } from "./dice-message.js";
 import { combatFocus, focusModifier } from "./combat-focus.js";
 import { effectiveTicks, weaponTickFields } from "./weapon-ticks.js";
@@ -87,13 +87,24 @@ const MAX_MODIFIER = Number.MAX_SAFE_INTEGER;
 const validModifier = value => Number.isSafeInteger(value) && value >= 0;
 const normalizeModifier = value => validModifier(Number(value)) ? Number(value) : 0;
 
-export async function prepareRoll(check, fields = "", { allowBlind = true } = {}) {
+function conditionNotice(check) {
+  const penalties = [
+    ...(check.conditionPenalties ?? []).map(({ name, value }) => name + " −" + value),
+    ...(check.penalties ?? []).filter(([name]) => name === "Überanstrengung (RE)")
+      .map(([name, value]) => name + " −" + value)
+  ];
+  return penalties.length ? "Zustandsabzüge: " + penalties.join(" · ") : "";
+}
+
+export async function prepareRoll(check, fields = "", { allowBlind = true, preview } = {}) {
   const type = { attribute: "Attributsprobe", skill: "Fertigkeitsprobe" }[check.kind];
+  const notice = conditionNotice(check);
   const options = await foundry.applications.api.DialogV2.input({
     classes: SYSTEM_DIALOG_CLASSES,
     window: { title: type ? type + ": " + check.name : check.name },
     content: `<div class="ucurifunke-modifier-dialog">
       ${fields}
+      <p class="ucurifunke-condition-notice" aria-live="polite" ${notice ? "" : "hidden"}>${escapeHtml(notice)}</p>
       <div class="form-group">
         <label for="ucurifunke-difficulty">Erschwernis</label>
         <input id="ucurifunke-difficulty" name="difficulty" type="number" min="0" max="${MAX_MODIFIER}" step="1" value="0" placeholder="0">
@@ -110,6 +121,13 @@ export async function prepareRoll(check, fields = "", { allowBlind = true } = {}
     rejectClose: false, modal: true,
     ok: { label: "Würfeln", icon: "fa-solid fa-dice-d20" },
     render: (_event, dialog) => {
+      if (preview) dialog.element.addEventListener("change", event => {
+        if (!event.target.matches('select[name^="attribute"]')) return;
+        const element = dialog.element.querySelector(".ucurifunke-condition-notice");
+        const message = conditionNotice(preview(event.target.form));
+        element.textContent = message;
+        element.hidden = !message;
+      });
       const inputs = [...dialog.element.querySelectorAll('input[name="difficulty"], input[name="relief"]')];
       const submit = dialog.element.querySelector('button[data-action="ok"], button[type="submit"]');
       const refresh = () => {

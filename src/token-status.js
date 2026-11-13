@@ -71,7 +71,9 @@ function conditionButton(actor, row) {
   button.dataset.conditionKey = row.key;
   button.classList.toggle("active", Boolean(row.staged ? row.level : row.active));
   button.ariaLabel = row.staged ? row.name + ", Stufe " + row.level : row.name;
-  button.title = row.staged ? button.ariaLabel + " · Klick erhöht, Rechtsklick oder Minus senkt" : row.name;
+  const ignored = row.level - row.effective;
+  button.title = row.staged ? button.ariaLabel + (ignored ? " · Ignorierte Stufen: " + ignored : "")
+    + " · Klick erhöht, Rechtsklick oder Minus senkt" : row.name;
   const icon = new Image();
   icon.src = iconPath(row.key);
   icon.alt = "";
@@ -83,6 +85,12 @@ function conditionButton(actor, row) {
     if (button.disabled || !actor.isOwner) return;
     const current = conditionRows(actor.system).find(entry => entry.key === row.key);
     if (!current) return;
+    if (current.staged && delta > 0 && current.level >= current.max) {
+      const ignored = current.level - current.effective;
+      ui.notifications.warn(current.name + ": Alle " + current.max + " Stufen sind vergeben."
+        + (ignored ? " Ignorierte Stufen: " + ignored + "." : ""));
+      return;
+    }
     button.disabled = true;
     try {
       const value = row.staged ? Math.max(0, Math.min(current.max, current.level + delta)) : !current.active;

@@ -382,6 +382,13 @@ html[data-ucurifunke-design="tavern"] .ucurifunke-sheet .ucurifunke-character-he
   background: #5d3826;
 }
 .ucurifunke-probe-favorites { display: grid; gap: .35rem; }
+.ucurifunke-condition-notice {
+  margin: 0;
+  padding: .4rem .55rem;
+  border-inline-start: 3px solid var(--uc-trim, currentColor);
+  background: var(--uc-panel, #8882);
+  color: inherit;
+}
 #token-hud .status-effects [hidden] { display: none !important; }
 #token-hud .ucurifunke-hud-conditions {
   grid-column: 1 / -1;
