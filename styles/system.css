@@ -231,6 +231,14 @@
 .ucurifunke-modifier-dialog { display: grid; gap: .65rem; }
 .ucurifunke-modifier-dialog .form-group { display: grid; grid-template-columns: 1fr 7rem; align-items: center; }
 .ucurifunke-modifier-dialog input[type="checkbox"] { justify-self: start; }
+.ucurifunke-condition-choice {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: .55rem;
+  line-height: 1.35;
+}
+.ucurifunke-condition-choice span span { display: block; }
 
 html[data-ucurifunke-design="parchment"] {
   --uc-frame: #291f16; --uc-frame-text: #fff0d4; --uc-paper: #33291e;

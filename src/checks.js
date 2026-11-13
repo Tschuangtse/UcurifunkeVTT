@@ -110,13 +110,9 @@ export async function prepareRoll(check, fields = "", { allowBlind = true, actor
   const options = await foundry.applications.api.DialogV2.input({
     classes: SYSTEM_DIALOG_CLASSES,
     window: { title: type ? type + ": " + check.name : check.name },
+    ...(choices.length ? { position: { width: Math.min(520, window.innerWidth - 24) } } : {}),
     content: `<div class="ucurifunke-modifier-dialog">
       ${fields}
-      ${choices.map(({ key, name, label, value }) => `<div class="form-group">
-        <label for="ucurifunke-condition-${key}">${escapeHtml(name + ": " + label)} (${value ? "−" + value : "0"})</label>
-        <input id="ucurifunke-condition-${key}" type="checkbox" name="condition-${key}">
-      </div>`).join("")}
-      <p class="ucurifunke-condition-notice" aria-live="polite" ${notice ? "" : "hidden"}>${escapeHtml(notice)}</p>
       <div class="form-group">
         <label for="ucurifunke-difficulty">Erschwernis</label>
         <input id="ucurifunke-difficulty" name="difficulty" type="number" min="0" max="${MAX_MODIFIER}" step="1" value="0" placeholder="0">
@@ -125,6 +121,11 @@ export async function prepareRoll(check, fields = "", { allowBlind = true, actor
         <label for="ucurifunke-relief">Erleichterung</label>
         <input id="ucurifunke-relief" name="relief" type="number" min="0" max="${MAX_MODIFIER}" step="1" value="0" placeholder="0">
       </div>
+      ${choices.map(({ key, name, label, value }) => `<label class="ucurifunke-condition-choice">
+        <input type="checkbox" name="condition-${key}">
+        <span><strong>${escapeHtml(name)} (−${value})</strong><span>${escapeHtml(label)}</span></span>
+      </label>`).join("")}
+      <p class="ucurifunke-condition-notice" aria-live="polite" ${notice ? "" : "hidden"}>${escapeHtml(notice)}</p>
       ${allowBlind ? `<div class="form-group">
         <label for="ucurifunke-blind">Verdeckte Probe</label>
         <input id="ucurifunke-blind" name="blind" type="checkbox">
@@ -139,7 +140,8 @@ export async function prepareRoll(check, fields = "", { allowBlind = true, actor
         const element = dialog.element.querySelector(".ucurifunke-condition-notice");
         if (!element || !form) return;
         if (checked && ["condition-physical", "condition-mental"].includes(name)) {
-          form.elements.namedItem(name === "condition-physical" ? "condition-mental" : "condition-physical").checked = false;
+          const other = form.elements.namedItem(name === "condition-physical" ? "condition-mental" : "condition-physical");
+          if (other) other.checked = false;
         }
         const message = getNotice(form);
         element.textContent = message;

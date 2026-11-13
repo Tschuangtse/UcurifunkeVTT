@@ -91,9 +91,8 @@ export function situationalConditionOptions(data, check) {
     { key: "fear", name: "Angst", label: "Die Probe richtet sich gegen den Angstauslöser (keine Flucht oder Ausweichprobe)",
       value: check.title === "Ausweichen" ? 0 : scale[levels.get("angst") ?? 0] },
     { key: "physical", name: "Überanstrengung (körperlich)", label: "Die Probe ist körperlich anstrengend", value: scale[fatigue] },
-    { key: "mental", name: "Überanstrengung (geistig)", label: "Die Probe ist geistig fordernd", value: [0, 0, 2, 4][fatigue],
-      visible: fatigue > 0 }
-  ].filter(option => option.value || option.visible);
+    { key: "mental", name: "Überanstrengung (geistig)", label: "Die Probe ist geistig fordernd", value: [0, 0, 2, 4][fatigue] }
+  ].filter(option => option.value);
 }
 
 export function applyConditionEffects(actor, check, situation = {}) {
