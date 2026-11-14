@@ -14,6 +14,8 @@
 .ucurifunke-energy-strip button { width: auto; min-height: 1.85rem; }
 .ucurifunke-energy-strip [data-energy="rest"] { margin-inline-start: auto; }
 .ucurifunke-energy-dialog .window-content { overflow: auto; max-height: 78vh; }
+.ucurifunke-rest-options { max-height: 62vh; overflow: auto; padding-inline-end: .35rem; }
+.ucurifunke-rest-options fieldset { min-width: 0; }
 .ucurifunke-energy-dialog fieldset { display: grid; gap: .4rem; margin-block: .55rem; }
 .ucurifunke-energy-field { display: grid; grid-template-columns: minmax(0, 1fr) minmax(5rem, 45%); align-items: center; gap: .5rem; }
 .ucurifunke-energy-dialog output { font-weight: 700; }

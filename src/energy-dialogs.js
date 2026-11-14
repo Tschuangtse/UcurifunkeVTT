@@ -79,7 +79,7 @@ export async function openEnergyValue(actor,key) {
 
 const camp=["Im Freien, ungeschützt","Höhle, Bäume oder Ruine","Gebäude, geteilter Schlafsaal","Einzelzimmer oder eigenes Heim"];
 const bed=["Kein echtes Nachtlager","Schlafsack oder zwei Decken","Zelt, Bodenmatte und Decke","Richtiges Bett, Decke und Kissen"];
-const select=(label,name,options)=>`<label class="ucurifunke-energy-field"><span>${label}</span><select name="${name}">
+const select=(label,name,options)=>`<label class="ucurifunke-energy-field"><span>${label}</span><select name="${name}" ${name==="camp"?"autofocus":""}>
   ${options.map((text,i)=>`<option value="${i}">${i} – ${text}</option>`).join("")}</select></label>`;
 
 export async function openRegeneration(actor) {
@@ -92,9 +92,9 @@ export async function openRegeneration(actor) {
   const result=await DialogV2.prompt({
     classes:[...SYSTEM_DIALOG_CLASSES,"ucurifunke-energy-dialog"], window:{title:"Regeneration nach täglicher Ruhephase"},
     position:{width:650}, modal:true,rejectClose:false,
-    content:`<div>
+    content:`<div><div class="ucurifunke-rest-options">
       <fieldset><legend>Ruhephase</legend>${select("Lagerplatz","camp",camp)}${select("Nachtlager","bed",bed)}
-        ${field("Ruhezeit (Stunden)", "restHours",defaults.restHours)}
+        ${field("Ruhezeit (Stunden)", "restHours",defaults.restHours,24)}
         <small>${defaults.restHours ? "Benötigt " + defaults.restHours + " Stunden" : "Nicht-Schläfer II: kein Schlaf erforderlich"}</small>
         ${box("Ruhephase unterbrochen","interrupted")}
         ${defaults.nonSleeper===1?box("Schlaf muss noch nachgeholt werden (Nicht-Schläfer I)","sleepDebt"):""}
@@ -117,11 +117,13 @@ export async function openRegeneration(actor) {
         ${field("KE-Rückerstattung für misslungene Wunder","karmaRefund")}
         <small>Rückerstattungen bleiben auch bei gesperrter KE-Regeneration erhalten.</small>
         ${box("KE nicht regenerieren","preventKE")}<output data-preview="KE"></output></fieldset>`:""}
-    </div>`,
+    </div></div>`,
     render:(_event,dialog)=>{
       const root=dialog.element;
       const refresh=()=>{
         const report=regenerationAmounts(data,submit(null,{form:root.querySelector("form") ?? root}));
+        const leyLineStrength=root.querySelector('[name="leyLineStrength"]');
+        if (leyLineStrength) leyLineStrength.disabled=!root.querySelector('[name="useLeyLines"]').checked;
         const fast=root.querySelector("[data-fast]");
         if(fast)fast.textContent="(+"+report.fast+" LE)";
         for(const node of root.querySelectorAll("[data-preview]")){

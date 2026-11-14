@@ -24,4 +24,6 @@ test("damage preserves originals and heals blood magic before older wounds", () 
   assert.deepEqual(healed.damage,[{source:"Verletzungen",original:8,remaining:6,timestamp:""}]);
   assert.equal(isWound({...healed.damage[0],remaining:4},7),false);
   assert.equal(damageRows({energies:[{key:"LE",max:20,value:-1}]}).at(0).remaining,21);
+  assert.equal(regenerate({ ...data, energies:[{key:"LE",max:30,value:27}] },
+    {restHours:6,camp:3,bed:3}).energies[0].value,24);
 });

@@ -67,14 +67,19 @@ export function regenerationAmounts(data, options) {
   return {amounts,naturalKE,refund,fast,gains:Object.fromEntries(energies.map(r=>[r.key,Math.max(0,Math.min(amounts[r.key],r.max-r.value))]))};
 }
 export function regenerate(data, options) {
-  const { gains } = regenerationAmounts(data,options);
+  const { amounts, gains } = regenerationAmounts(data,options);
   const energies=energyRows(data), damage=damageRows(data);
-  let heal=gains.LE??0;
+  let heal=amounts.LE;
   const rank = row => Number(key(row.source)!=="blutmagie");
   for(const row of [...damage].sort((a,b)=>rank(a)-rank(b)||(a.timestamp||"").localeCompare(b.timestamp||""))) {
     const amount=Math.min(heal,row.remaining);
     row.remaining-=amount;
     heal-=amount;
   }
-  return {energies:energies.map(row=>({...row,value:row.value+(gains[row.key]??0)})),damage:damage.filter(row=>row.remaining>0)};
+  return {
+    energies: energies.map(row => ({ ...row, value: row.key === "LE" && amounts.LE > 0
+      ? row.max - damage.reduce((sum, entry) => sum + entry.remaining, 0)
+      : row.value + (gains[row.key] ?? 0) })),
+    damage: damage.filter(row=>row.remaining>0)
+  };
 }
