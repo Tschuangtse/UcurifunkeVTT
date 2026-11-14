@@ -98,6 +98,10 @@ export function convertRetinue(source) {
       system: { sourceName: name, race: text(member.Species) || text(member.Race?.Name),
         companionKind: categoryName, companionDetails: [...resources, ...details],
         attributes, skills, derived, reaction: positive(member.Reaction), impairment: positive(member.Impairment),
+        energies: resources.map(({ name, value }) => {
+          const [current, max] = value.split(" / ").map(Number);
+          return { key: name, value: current, max };
+        }),
         naturalArmor: positive(member.NaturalArmor),
         offensiveFocus: integer(member.Focus), defensiveFocus: -integer(member.Focus),
         companionArmor: typeof member.ArmorProtection === "number" ? positive(member.ArmorProtection) : null
@@ -142,7 +146,7 @@ function retinueFolder(owner, folders) {
     folder.folder?.id === parent?.id)?.id ?? parent?.id;
 }
 
-export async function syncRetinue(owner, source, { folder } = {}) {
+export async function syncRetinue(owner, source, { folder, keepEnergy = source.keepEnergy ?? true } = {}) {
   const { entries, existing, removed } = planRetinue(owner, source);
   const destination = folder ?? retinueFolder(owner, game.folders);
   const bySource = new Map(existing.map(actor => [actor.getFlag("ucurifunke", "retinueSource"), actor]));
@@ -151,7 +155,7 @@ export async function syncRetinue(owner, source, { folder } = {}) {
     const actor = bySource.get(sourceKey);
     try {
       if (actor?.isOwner) {
-        await actor.importPedipalpusData(data);
+        await actor.importPedipalpusData(data, { keepEnergy });
         if (game.user.isGM) {
           const inherited = owner.toObject().ownership;
           const ownership = actor.toObject().ownership;
@@ -187,7 +191,7 @@ export async function syncRetinue(owner, source, { folder } = {}) {
       console.warn("Ucurifunke | Gefolge konnte nicht entfernt werden", error);
     }
   }
-  if (pending.length) await owner.setFlag("ucurifunke", "retinuePending", source);
+  if (pending.length) await owner.setFlag("ucurifunke", "retinuePending", { ...source, keepEnergy });
   else if (owner.getFlag("ucurifunke", "retinuePending")) await owner.unsetFlag("ucurifunke", "retinuePending");
   return pending;
 }

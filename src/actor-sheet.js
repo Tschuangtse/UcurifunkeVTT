@@ -1,3 +1,5 @@
+import { energyRows } from "./energy.js";
+import { openEnergyValue, openHealth, openRegeneration } from "./energy-dialogs.js";
 import { SYSTEM_DIALOG_CLASSES, openAppearanceSettings } from "./appearance.js";
 import { parseCharacter } from "./import-data.js";
 import { createNpcActor, isNpcFile } from "./npc-import.js";
@@ -81,7 +83,8 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       showCondition: CharacterSheet.#showCondition, cycleCondition: CharacterSheet.#cycleCondition,
       openCompanion: CharacterSheet.#openCompanion, importRetinue: CharacterSheet.#importRetinue,
       editWeaponTicks: CharacterSheet.#editWeaponTicks, toggleEquipment: CharacterSheet.#toggleEquipment,
-      weaponSets: CharacterSheet.#weaponSets, sheetPreferences: CharacterSheet.#sheetPreferences }
+      weaponSets: CharacterSheet.#weaponSets, sheetPreferences: CharacterSheet.#sheetPreferences,
+      energy: CharacterSheet.#energy }
   };
 
   static PARTS = { character: { template: path, scrollable: [".ucurifunke-sheet-body"] } };
@@ -90,7 +93,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
     const context = await super._prepareContext(options);
     await foundry.applications.handlebars.loadTemplates([focusTemplate]);
     const data = this.actor.system;
-    const companionDetails = data.companionDetails.filter(row => row.name !== "Beschreibung")
+    const companionDetails = data.companionDetails.filter(row => !["Beschreibung", "LE", "AE", "KE"].includes(row.name))
       .map(row => ({ name: row.name, value: row.value, fullWidth: row.name === "Besondere Eigenschaften" }));
     const companion = this.actor.type === "retinue";
     const retinue = companion ? [] : (globalThis.game?.actors?.filter(actor => actor.type === "retinue" && actor.visible
@@ -114,7 +117,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
         })) : []
       };
     });
-    return { ...context, data, sheetId: this.id, actorName: this.actor.name, actorImage: this.actor.img,
+    return { ...context, data, sheetId: this.id, actorName: this.actor.name, actorImage: this.actor.img, energies: energyRows(data),
       ...partitionSkills(data.skills, companion, data.npcGenerator), focus: combatFocus(this.actor),
       focusMin: -2, focusMax: 2,
       dodge: dodgeValue(this.actor), canDodge: this.actor.isOwner && dodgeValue(this.actor) != null,
@@ -209,6 +212,16 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
   }
 
   static async #sheetPreferences() { await openAppearanceSettings(); }
+
+  static async #energy(_event, target) {
+    if (!this.isEditable || !this.actor.isOwner) return;
+    try {
+      const key = target.dataset.energy;
+      if (key === "LE") await openHealth(this.actor);
+      else if (key === "rest") await openRegeneration(this.actor);
+      else await openEnergyValue(this.actor, key);
+    } catch (error) { ui.notifications.error(error.message); }
+  }
 
   static async #toggleEquipment(_event, target) {
     if (!this.isEditable || !this.actor.isOwner) return;

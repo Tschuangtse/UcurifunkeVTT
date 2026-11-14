@@ -1,6 +1,7 @@
 import { convertCharacter, isPedipalpusCharacter } from "./import-data.js";
 import { retinueSource, syncRetinue } from "./retinue.js";
 import { convertNpc, isNpcFile, npcRetinue } from "./npc-import.js";
+import { damageRows, energyRows } from "./energy.js";
 
 export class UcurifunkeActor extends foundry.documents.Actor {
   async importFromJSON(json) {
@@ -23,8 +24,13 @@ export class UcurifunkeActor extends foundry.documents.Actor {
     return result;
   }
 
-  async importPedipalpusData({ name, system, items }) {
+  async importPedipalpusData({ name, system, items }, { keepEnergy = true } = {}) {
     const current = this.toObject();
+    if (keepEnergy && energyRows(current.system).length) {
+      const previous = energyRows(current.system);
+      system = { ...system, damage: damageRows(current.system),
+        energies: [...previous, ...energyRows(system).filter(row => !previous.some(old => old.key === row.key))] };
+    }
     const previousItems = new Map(current.items.filter(item => item.system?.sourceId)
       .map(item => [item.system.sourceId, item]));
     const importedItems = items.map(item => {
@@ -35,7 +41,7 @@ export class UcurifunkeActor extends foundry.documents.Actor {
     return super.importFromJSON(JSON.stringify({
       ...current,
       name,
-      system: { ...system, combatFocus: current.system?.combatFocus ?? null, dodgeOverride: current.system?.dodgeOverride ?? null },
+      system: { ...system, damage: system.damage ?? [], combatFocus: current.system?.combatFocus ?? null, dodgeOverride: current.system?.dodgeOverride ?? null },
       items: importedItems,
       prototypeToken: {
         ...current.prototypeToken,

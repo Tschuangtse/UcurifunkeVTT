@@ -85,7 +85,10 @@ export function convertNpc(source) {
     level: row.IsGraded ? num(row.Level) : 0 }));
   return { name: npc.Name.trim(), type: "npc", prototypeToken: { name: npc.Name.trim(), actorLink: false },
     items: [...weapons, ...armor], system: { npcGenerator: true, sourceVersion: source.Version, race: npc.RaceName,
-      attributes, derived, skills, conditions, reaction: Math.max(0, a("RE")), offensiveFocus: focus, defensiveFocus: -focus,
+      attributes, derived, skills, conditions,
+      energies: ["LE", "AE", "KE"].filter(key => key === "LE" || d(key) > 0)
+        .map(key => ({ key, max: Math.max(0, d(key)), value: npc["Current" + key] ?? d(key) })),
+      reaction: Math.max(0, a("RE")), offensiveFocus: focus, defensiveFocus: -focus,
       impairment: Math.max(0, num(npc.AdditionalImpairment) + npc.Armors.filter(row => row.Equipped !== false)
         .reduce((sum, row) => sum + Math.max(0, num(row.MobilityPenalty)), 0)),
       companionDetails: [["Kultur",npc.Culture],["Größenklasse",npc.SizeClass],["Repräsentation",npc.Representation],

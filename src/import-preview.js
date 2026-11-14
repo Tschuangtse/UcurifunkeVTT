@@ -4,6 +4,7 @@ import { parseCharacter } from "./import-data.js";
 import { conditionRows, SUPPRESSIONS } from "./conditions.js";
 import { planRetinue, retinueSource, syncRetinue } from "./retinue.js";
 import { convertNpc, isNpcFile, npcRetinue } from "./npc-import.js";
+import { energyRows } from "./energy.js";
 
 export function chooseCharacterFile(label, { chooseFolder = false } = {}) {
   const content = document.createElement("div");
@@ -122,20 +123,23 @@ export async function updatePedipalpusActor(actor) {
     + (entries.length || removed.length ? `<details open><summary>Gefolge (${entries.length})</summary><ul>${entries.map(({ data }) =>
       `<li>${escapeHtml(data.name)} · ${escapeHtml(data.system.companionKind)}</li>`).join("")}${removed.map(actor =>
       `<li>${escapeHtml(actor.name)} · Akteur und Token werden entfernt</li>`).join("")}</ul></details>` : "");
-  const confirmed = await foundry.applications.api.DialogV2.confirm({
+  const hasEnergy = energyRows(current.system).length || entries.length;
+  const confirmed = await foundry.applications.api.DialogV2.input({
     classes: SYSTEM_DIALOG_CLASSES,
     window: { title: "Änderungen an " + actor.name }, position: { width: 560 },
-    content: `<div class="ucurifunke-import-preview">${preview}</div>`,
-    yes: { label: "Charakter aktualisieren" }, modal: true, rejectClose: false
+    content: `<div><div class="ucurifunke-import-preview">${preview}</div>
+      ${hasEnergy ? '<label><input type="checkbox" name="keepEnergy" checked> LE, AE, KE und Schadensübersicht beibehalten</label>' : ""}</div>`,
+    ok: { label: "Charakter aktualisieren" }, modal: true, rejectClose: false
   });
   if (!confirmed || !actor.isOwner) return;
   if (JSON.stringify(snapshot()) !== JSON.stringify(current)) throw new Error("Der Charakter wurde zwischenzeitlich geändert. Bitte den Import erneut öffnen.");
   if (planRetinue(actor, retinue).removed.map(a => a.id).join() !== removed.map(a => a.id).join()) {
     throw new Error("Das Gefolge wurde zwischenzeitlich geändert. Bitte den Import erneut öffnen.");
   }
-  await actor.importPedipalpusData(data);
+  const keepEnergy = [true, "true", "on", 1, "1"].includes(confirmed.keepEnergy);
+  await actor.importPedipalpusData(data, { keepEnergy });
   if (!npc) await applyCharacterPortrait(actor, portrait);
-  const pending = await syncRetinue(actor, retinue);
+  const pending = await syncRetinue(actor, retinue, { keepEnergy });
   if (pending.length) ui.notifications.warn("Gefolge zur Übernahme durch die Spielleitung vorgemerkt: " + pending.join(", "));
   ui.notifications.info("Charakter aus Pedipalpus aktualisiert.");
 }

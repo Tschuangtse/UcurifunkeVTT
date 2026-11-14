@@ -9,6 +9,17 @@
   min-height: 0;
 }
 .ucurifunke-character [hidden] { display: none !important; }
+.ucurifunke-character:has(.ucurifunke-energy-strip) { grid-template-rows: auto auto auto minmax(0, 1fr); }
+.ucurifunke-energy-strip { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem; padding: .4rem 1rem; }
+.ucurifunke-energy-strip button { width: auto; min-height: 1.85rem; }
+.ucurifunke-energy-strip [data-energy="rest"] { margin-inline-start: auto; }
+.ucurifunke-energy-dialog .window-content { overflow: auto; max-height: 78vh; }
+.ucurifunke-energy-dialog fieldset { display: grid; gap: .4rem; margin-block: .55rem; }
+.ucurifunke-energy-field { display: grid; grid-template-columns: minmax(0, 1fr) minmax(5rem, 45%); align-items: center; gap: .5rem; }
+.ucurifunke-energy-dialog output { font-weight: 700; }
+.ucurifunke-energy-table { overflow-x: auto; }
+.ucurifunke-energy-table input { min-width: 4.5rem; }
+.ucurifunke-energy-dialog [hidden] { display: none !important; }
 .ucurifunke-character-header {
   display: flex;
   flex-wrap: wrap;

@@ -19,7 +19,14 @@ export class CharacterData extends foundry.abstract.TypeDataModel {
         level: integer(0), suppression: integer(0) }),
       offensiveFocus: optionalInteger(), defensiveFocus: optionalInteger(), combatFocus: optionalInteger(),
       dodgeOverride: optionalInteger(),
-      attributes: rows({ ...attribute(), kind: text() }), derived: rows(attribute()), energies: rows({ key: text(), value: number() }),
+      attributes: rows({ ...attribute(), kind: text() }), derived: rows(attribute()),
+      energies: rows({ key: text(), value: number(), max: optionalInteger() }),
+      damage: rows({ source: text(), original: integer(0), remaining: integer(0), timestamp: text() }),
+      regeneration: new SchemaField({
+        required: integer(0, 6), nonSleeper: integer(0), fastHealing: flag(), sleepDisorder: flag(),
+        metalAffinity: flag(), severeIronBan: flag(), penance: flag(), astralRegenerationLevel: integer(0),
+        useLeyLines: flag(), ordinationRank: integer(1, 1)
+      }),
       skills: rows({ name: text(), group: text(), rollName: text(), description: text(), value: number(), rollable: flag(), attributes: rows(attribute()) })
     };
   }

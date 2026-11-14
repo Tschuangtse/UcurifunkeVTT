@@ -1,3 +1,4 @@
+import { readDamage, regenerationTraits } from "./energy.js";
 const SKILLS = {
   BodySkills: "Körper", SocialSkills: "Gesellschaft", NatureSkills: "Natur",
   AcademicSkills: "Wissen", CraftingSkills: "Handwerk", HobbySkills: "Hobby",
@@ -149,7 +150,12 @@ export function convertCharacter(source) {
     derived: list(source.DerivedValues).filter(row => string(row.LongName))
       .map(row => ({ name: string(row.LongName), key: string(row.ShortName), value: number(row.TotalValue) })),
     energies: ["LE", "AE", "KE"].filter(key => key === "LE" || (key === "AE" ? source.HasMana : source.HasKarma))
-      .map(key => ({ key, value: integer(source["Current" + key]) })),
+      .map(key => {
+        const max = Math.max(0, Math.round(number(list(source.DerivedValues).find(row => row.ShortName === key)?.TotalValue)));
+        const current = source["Current" + key];
+        return { key, max, value: Number.isFinite(current) ? integer(current) : max };
+      }),
+    damage: readDamage(source), regeneration: regenerationTraits(source),
     hasJointPenalty: list(source.Disadvantages).some(row => germanKey(row.Name) === "schlechte gelenke")
   };
   const items = Object.entries(EQUIPMENT).flatMap(([field, group]) =>

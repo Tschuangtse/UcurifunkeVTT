@@ -118,6 +118,20 @@
       <i class="fa-solid fa-gear" aria-hidden="true"></i>
     </button>
   </header>
+  {{#if energies}}
+    <div class="ucurifunke-energy-strip" aria-label="Energien">
+      {{#each energies}}
+        {{#if @root.canEdit}}
+          <button type="button" data-action="energy" data-energy="{{key}}">{{key}} <strong>{{value}} / {{max}}</strong></button>
+        {{else}}
+          <span>{{key}} <strong>{{value}} / {{max}}</strong></span>
+        {{/if}}
+      {{/each}}
+      {{#if canEdit}}
+        <button type="button" data-action="energy" data-energy="rest"><i class="fa-solid fa-bed" aria-hidden="true"></i> Regeneration</button>
+      {{/if}}
+    </div>
+  {{/if}}
   <nav class="ucurifunke-sheet-tabs" role="tablist" aria-label="Charakterbogen">
     <button type="button" role="tab" id="{{sheetId}}-tab-favorites" aria-controls="{{sheetId}}-favorites"
       aria-selected="false" tabindex="-1" data-action="openSheetTab" data-sheet-tab="favorites" hidden>
