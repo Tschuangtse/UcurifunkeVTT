@@ -55,7 +55,7 @@ async function rollGroup(type) {
       const roll = await new foundry.dice.Roll("3d20").evaluate();
       const dice = roll.dice[0].results.map(die => die.result);
       const { quality } = evaluateCheck(adjusted, dice, options.bonus - options.penalty);
-      rows.push([token.name, quality, passesGroupThreshold(quality, threshold) ? "Bestanden" : "Nicht bestanden"]);
+      rows.push([token.name, quality, passesGroupThreshold(quality, threshold)]);
     }
     if (!rows.length) return;
     const ChatMessage = foundry.documents.ChatMessage;
@@ -63,9 +63,17 @@ async function rollGroup(type) {
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ alias: game.user.name }),
       whisper: [game.user.id],
-      content: `<article class="ucurifunke-check-card"><header>Verdeckte Gruppenprobe · <strong>${title}</strong></header>
-        <table><thead><tr><th>Name</th><th>Qualität</th><th>Ergebnis</th></tr></thead>
-        <tbody>${rows.map(row => "<tr>" + row.map(value => "<td>" + escapeHtml(String(value)) + "</td>").join("") + "</tr>").join("")}</tbody></table></article>`
+      content: `<article class="ucurifunke-check-card"><header>Verdeckte Gruppenprobe · <strong>${title}</strong> · Schwelle ${threshold}</header>
+        <table class="ucurifunke-group-results"><thead><tr><th>Name</th><th><abbr title="Qualität">Qual.</abbr></th><th>Bestanden?</th></tr></thead>
+        <tbody>${rows.map(([name, quality, result]) => {
+          const label = typeof result === "string" ? result : result ? "Bestanden" : "Nicht bestanden";
+          const icon = typeof result === "string" ? "circle-minus" : result ? "check" : "xmark";
+          const state = typeof result === "string" ? "blocked" : result ? "passed" : "failed";
+          return `<tr><td>${escapeHtml(name)}</td><td>${quality}</td><td>
+            <span class="ucurifunke-group-result ${state}" role="img" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">
+              <i class="fa-solid fa-${icon}" aria-hidden="true"></i>
+            </span></td></tr>`;
+        }).join("")}</tbody></table></article>`
     });
   } catch (error) { ui.notifications.error(error.message); }
   finally { running = false; }

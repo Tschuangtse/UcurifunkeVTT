@@ -63,6 +63,16 @@ html[data-ucurifunke-design]:not([data-ucurifunke-design="standard"]) .ucurifunk
   padding-top: .3rem;
   margin-top: .25rem;
 }
+.ucurifunke-group-results :is(th, td):nth-child(n+2) { width: 1%; white-space: nowrap; text-align: center; }
+.ucurifunke-group-result {
+  display: inline-grid;
+  place-items: center;
+  width: 1.35em;
+  height: 1.35em;
+  border-radius: 3px;
+}
+.ucurifunke-group-result.passed { color: #12592d; background: #e0f5e5; }
+.ucurifunke-group-result.failed { color: #9a2630; background: #fce3e4; }
 .ucurifunke-character:has(.ucurifunke-energy-strip) { grid-template-rows: auto auto auto minmax(0, 1fr); }
 .ucurifunke-energy-strip { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem; padding: .4rem 1rem; }
 .ucurifunke-energy-strip button { width: auto; min-height: 1.85rem; }
