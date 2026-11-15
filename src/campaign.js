@@ -53,15 +53,27 @@ function openExperience() {
   if (experience?.rendered) return experience.bringToFront();
   experience = new CampaignWindow("Abenteuerpunkte", 660, () => {
     const entries = read("partyExperience");
-    const history = entries.map(entry => `<tr><td>${esc(entry.reason)}</td><td>${entry.amount}</td><td>${esc(stamp(entry.at))}</td></tr>`).join("");
+    const history = entries.map((entry, index) => `<tr><td>${esc(entry.reason)}</td><td>${entry.amount}</td><td>${esc(stamp(entry.at))}</td>
+      ${game.user.isGM ? `<td><div class="ucurifunke-ap-actions">
+        <button type="button" data-ap="edit" data-index="${index}" aria-label="AP-Eintrag bearbeiten"><i class="fa-solid fa-pencil" aria-hidden="true"></i></button>
+        <button type="button" data-ap="delete" data-index="${index}" aria-label="AP-Eintrag löschen"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
+      </div></td>` : ""}</tr>`).join("");
     return `<p><strong>${entries.reduce((sum, entry) => sum + entry.amount, 0)} erspielte AP</strong></p>
       <div class="ucurifunke-ap-layout ${game.user.isGM ? "can-edit" : ""}">
       ${game.user.isGM ? '<fieldset><legend>Änderung</legend><label>Anlass <textarea name="reason" required maxlength="300" rows="2"></textarea></label><label>Menge <input type="number" name="amount" min="-1000000" max="1000000" step="1" value="100" required></label><button type="button" data-add-ap>Hinzufügen</button></fieldset>' : ""}
-      <fieldset><legend>Historie</legend>${history ? '<div class="ucurifunke-ap-history"><table><thead><tr><th>Anlass</th><th>Menge</th><th>Datum</th></tr></thead><tbody>' + history + '</tbody></table></div>' : "<p>Noch keine Einträge.</p>"}</fieldset></div>`;
+      <fieldset><legend>Historie</legend>${history ? '<div class="ucurifunke-ap-history"><table><thead><tr><th>Anlass</th><th>Menge</th><th>Datum</th>'
+        + (game.user.isGM ? '<th>Aktionen</th>' : '') + '</tr></thead><tbody>' + history + '</tbody></table></div>' : "<p>Noch keine Einträge.</p>"}</fieldset></div>`;
   }, view => {
     view.addEventListener("click", async event => {
-      const button = event.target.closest("[data-add-ap]");
+      const button = event.target.closest("[data-add-ap], [data-ap]");
       if (!button || !game.user.isGM || button.disabled) return;
+      if (button.dataset.ap) {
+        button.disabled = true;
+        try { await changeExperience(button.dataset.ap, Number(button.dataset.index)); }
+        catch (error) { ui.notifications.error(error.message); }
+        finally { button.disabled = false; }
+        return;
+      }
       const reason = experience.view.querySelector('[name="reason"]');
       const amount = experience.view.querySelector('[name="amount"]');
       if (!reason.value.trim() || !amount.reportValidity() || !amount.valueAsNumber) {
@@ -76,6 +88,39 @@ function openExperience() {
     });
   });
   return experience.render({ force: true });
+}
+
+async function changeExperience(action, index) {
+  const entries = read("partyExperience");
+  const entry = entries[index];
+  if (!entry || !game.user.isGM) return;
+  const dialog = { classes: [...SYSTEM_DIALOG_CLASSES, "ucurifunke-campaign-window"], modal: true, rejectClose: false };
+  let replacement;
+  if (action === "delete") {
+    if (!await DialogV2.confirm({ ...dialog, window: { title: "AP-Eintrag löschen" },
+      content: `<p>„${esc(entry.reason)}“ (${entry.amount} AP) löschen?</p>`, yes: { label: "Löschen" } })) return;
+  } else if (action === "edit") {
+    const result = await DialogV2.input({ ...dialog, window: { title: "AP-Eintrag bearbeiten" },
+      content: `<div class="ucurifunke-ap-edit"><label>Anlass<textarea name="reason" rows="3" required maxlength="300">${esc(entry.reason)}</textarea></label>
+        <label>Menge<input type="number" name="amount" min="-1000000" max="1000000" step="1" required value="${entry.amount}"></label></div>`,
+      ok: { label: "Speichern" } });
+    if (!result) return;
+    const reason = result.reason?.trim();
+    const amount = Number(result.amount);
+    if (!reason || reason.length > 300 || !Number.isSafeInteger(amount) || !amount || Math.abs(amount) > 1000000) {
+      throw new Error("Bitte einen Anlass und eine ganze Menge ungleich 0 eingeben.");
+    }
+    replacement = { ...entry, reason, amount };
+  } else return;
+  if (!game.user.isGM) return;
+  const latest = read("partyExperience");
+  if (JSON.stringify(latest[index]) !== JSON.stringify(entry) ||
+      JSON.stringify(latest.slice(0, index)) !== JSON.stringify(entries.slice(0, index))) {
+    throw new Error("Die AP-Historie wurde inzwischen geändert. Bitte erneut versuchen.");
+  }
+  const updated = [...latest];
+  updated.splice(index, 1, ...(replacement ? [replacement] : []));
+  await save("partyExperience", updated);
 }
 
 function drawCalendar() {
