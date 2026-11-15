@@ -45,6 +45,19 @@ html[data-ucurifunke-design]:not([data-ucurifunke-design="standard"]) .ucurifunk
 .ucurifunke-note-actions button { width: auto; padding-inline: .55rem; }
 .ucurifunke-note-compose { display: grid; gap: .35rem; border-top: 1px solid var(--uc-line, #8888); padding-top: .65rem; }
 .ucurifunke-campaign-window textarea { width: 100%; resize: vertical; }
+#scene-controls button[data-control="ucurifunkeGroupChecks"],
+#scene-controls:has(button[data-control="ucurifunkeGroupChecks"][aria-pressed="true"]) button:is([data-tool="perception"], [data-tool="kmr"], [data-tool="gmr"]) {
+  background: var(--control-bg-color, #282631);
+  border: 1px solid #464153;
+  box-shadow: none;
+  outline: none;
+  transition: none;
+  &:is(:hover, :focus-visible) {
+    border-color: #82addb;
+    outline: 1px solid #82addb;
+    outline-offset: -1px;
+  }
+}
 #scene-controls li:has(> button[data-control="ucurifunkeAP"]) {
   border-top: 3px solid #e7d8ba;
   padding-top: .3rem;

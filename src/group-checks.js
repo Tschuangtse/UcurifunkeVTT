@@ -74,8 +74,7 @@ async function rollGroup(type) {
 export function registerGroupControls(controls) {
   if (!game.user.isGM) return;
   const name = "ucurifunkeGroupChecks";
-  const order = controls.ucurifunkeAP ? controls.ucurifunkeAP.order - 0.5
-    : Math.max(-1, ...Object.values(controls).map(control => control.order)) + 1;
+  const order = Math.max(-1, ...Object.values(controls).map(control => control.order)) + 1;
   controls[name] = {
     name, order, title: "Verdeckte Gruppenproben", icon: "fa-solid fa-user-secret", activeTool: "perception",
     tools: Object.fromEntries(Object.entries(probes).map(([id, probe], order) => [id, {
