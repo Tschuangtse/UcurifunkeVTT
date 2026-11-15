@@ -1,0 +1,180 @@
+import { SYSTEM_DIALOG_CLASSES } from "./appearance.js";
+import { escapeHtml } from "./check-card.js";
+import { MONTHS, WEEKDAYS, ERAS, daysInMonth, weekday, dateKey, eraYear, validDate, monthShift, holidays } from "./aventurian-calendar.js";
+
+const scope = "ucurifunke";
+const read = key => game.settings.get(scope, key);
+const save = (key, value) => game.settings.set(scope, key, value);
+const esc = escapeHtml;
+const formatDate = (date, era) => date.day + ". " + MONTHS[date.month] + " " + eraYear(date.year, era) + " " + era;
+const stamp = value => new Date(value).toLocaleString("de-DE");
+const selected = (value, expected) => value === expected ? " selected" : "";
+const notes = () => game.users.contents.flatMap(user => Object.values(user.getFlag(scope, "calendarNotes") ?? {})
+  .filter(note => note && typeof note.text === "string").map(note => ({ ...note, author: user.name })));
+
+Hooks.once("init", () => {
+  game.settings.register(scope, "partyExperience", { scope: "world", config: false, type: Array, default: [], onChange: () => experience?.refresh() });
+  game.settings.register(scope, "calendarDate", { scope: "world", config: false, type: Object,
+    default: { year: 1040, month: 0, day: 1 }, onChange: () => calendar?.refresh() });
+  game.settings.register(scope, "calendarDisplay", { scope: "user", config: false, type: Object,
+    default: { era: "BF", weekdays: "aventurian" }, onChange: () => calendar?.refresh() });
+});
+Hooks.on("updateUser", (_user, changes) => {
+  if (changes.flags?.ucurifunke?.calendarNotes || changes.name) calendar?.refresh();
+});
+
+const { DialogV2 } = foundry.applications.api;
+class CampaignWindow extends DialogV2 {
+  constructor(title, width, render, bind) {
+    super({ classes: [...SYSTEM_DIALOG_CLASSES, "ucurifunke-campaign-window"], window: { title, resizable: true },
+      position: { width }, content: '<div><div data-campaign-view></div></div>',
+      buttons: [{ action: "close", label: "Schließen" }] });
+    this.draw = render;
+    this.bindView = bind;
+  }
+  _onRender(context, options) {
+    super._onRender(context, options);
+    const view = this.element.querySelector("[data-campaign-view]");
+    if (view !== this.view) this.bindView(view);
+    this.view = view;
+    this.refresh();
+  }
+  refresh() {
+    if (!this.view?.isConnected) return;
+    const note = this.view.querySelector('[name="note"]')?.value;
+    this.view.innerHTML = this.draw();
+    if (note) this.view.querySelector('[name="note"]').value = note;
+  }
+}
+
+let experience, calendar, viewed, picked;
+function openExperience() {
+  if (experience?.rendered) return experience.bringToFront();
+  experience = new CampaignWindow("Abenteuerpunkte", 660, () => {
+    const entries = read("partyExperience");
+    const history = entries.map(entry => `<tr><td>${esc(entry.reason)}</td><td>${entry.amount}</td><td>${esc(stamp(entry.at))}</td></tr>`).join("");
+    return `<p><strong>${entries.reduce((sum, entry) => sum + entry.amount, 0)} erspielte AP</strong></p>
+      <div class="ucurifunke-ap-layout ${game.user.isGM ? "can-edit" : ""}">
+      ${game.user.isGM ? '<fieldset><legend>Änderung</legend><label>Anlass <textarea name="reason" required maxlength="300" rows="2"></textarea></label><label>Menge <input type="number" name="amount" min="-1000000" max="1000000" step="1" value="100" required></label><button type="button" data-add-ap>Hinzufügen</button></fieldset>' : ""}
+      <fieldset><legend>Historie</legend>${history ? '<div class="ucurifunke-ap-history"><table><thead><tr><th>Anlass</th><th>Menge</th><th>Datum</th></tr></thead><tbody>' + history + '</tbody></table></div>' : "<p>Noch keine Einträge.</p>"}</fieldset></div>`;
+  }, view => {
+    view.addEventListener("click", async event => {
+      const button = event.target.closest("[data-add-ap]");
+      if (!button || !game.user.isGM || button.disabled) return;
+      const reason = experience.view.querySelector('[name="reason"]');
+      const amount = experience.view.querySelector('[name="amount"]');
+      if (!reason.value.trim() || !amount.reportValidity() || !amount.valueAsNumber) {
+        ui.notifications.warn("Bitte einen Anlass und eine Menge ungleich 0 eingeben.");
+        return;
+      }
+      button.disabled = true;
+      try {
+        await save("partyExperience", [...read("partyExperience"), { reason: reason.value.trim(), amount: amount.valueAsNumber, at: Date.now() }]);
+      } catch (error) { ui.notifications.error(error.message); }
+      finally { button.disabled = false; }
+    });
+  });
+  return experience.render({ force: true });
+}
+
+function drawCalendar() {
+  const current = read("calendarDate");
+  const { era, weekdays } = read("calendarDisplay");
+  const allNotes = notes();
+  const dayNotes = allNotes.filter(note => note.date === dateKey(picked));
+  const holidayList = holidays(picked);
+  const days = Array.from({length: daysInMonth(viewed.month)}, (_, i) => {
+    const date = { ...viewed, day: i + 1 };
+    const key = dateKey(date);
+    const active = key === dateKey(current);
+    const festival = holidays(date);
+    const annotated = allNotes.some(note => note.date === key);
+    return `<button type="button" data-calendar-day="${date.day}" aria-pressed="${key === dateKey(picked)}"
+      ${active ? 'aria-current="date"' : ""} title="${esc([formatDate(date, era), ...festival, ...(annotated ? ["Notizen vorhanden"] : [])].join(" · "))}">
+      ${date.day}${festival.length ? '<span aria-hidden="true">◆</span>' : ""}${annotated ? '<span aria-hidden="true">•</span>' : ""}</button>`;
+  }).join("");
+  return `<div class="ucurifunke-calendar-toolbar">
+    <button type="button" data-calendar="prev" aria-label="Voriger Monat">‹</button>
+    <select name="month" aria-label="Monat">${MONTHS.map((m,i) => `<option value="${i}"${selected(i,viewed.month)}>${m}</option>`).join("")}</select>
+    <input type="number" name="year" aria-label="Jahr ${esc(era)}" value="${eraYear(viewed.year,era)}" step="1">
+    <span>${esc(era)}</span><button type="button" data-calendar="next" aria-label="Nächster Monat">›</button>
+    <button type="button" data-calendar="settings" aria-label="Kalendereinstellungen"><i class="fa-solid fa-gear"></i></button>
+  </div>
+  <button type="button" data-calendar="today">Aktuell: ${esc(formatDate(current,era))}</button>
+  <div class="ucurifunke-calendar-grid">
+    ${(WEEKDAYS[weekdays] ?? WEEKDAYS.aventurian).map(name => `<abbr title="${name}">${name.slice(0,2)}</abbr>`).join("")}
+    ${"<span></span>".repeat(weekday({...viewed,day:1}))}${days}
+  </div>
+  <h3>${esc(formatDate(picked,era))}</h3>
+  ${holidayList.length ? "<p>◆ " + esc(holidayList.join(" · ")) + "</p>" : ""}
+  ${dayNotes.map(note => `<p class="ucurifunke-calendar-note"><strong>${esc(note.author)}</strong> <small>${esc(stamp(note.at))}</small><br>${esc(note.text)}</p>`).join("")}
+  <label>Tagesnotiz <textarea name="note" rows="2" maxlength="2000"></textarea></label>
+  <div class="ucurifunke-calendar-toolbar">
+    <button type="button" data-calendar="note">Notiz hinzufügen</button>
+    ${game.user.isGM ? '<button type="button" data-calendar="current">Als aktuelles Datum setzen</button>' : ""}
+  </div>`;
+}
+async function calendarSettings() {
+  const prefs = read("calendarDisplay");
+  const options = (choices, value) => Object.entries(choices).map(([key,label]) =>
+    `<option value="${key}"${selected(key,value)}>${label}</option>`).join("");
+  const result = await DialogV2.input({ classes:SYSTEM_DIALOG_CLASSES, window:{title:"Kalendereinstellungen"},
+    content:`<div><label>Zeitrechnung <select name="era">${options({BF:"Bosparans Fall (BF)",Hal:"nach Hal"},prefs.era)}</select></label>
+    <label>Wochentage <select name="weekdays">${options({aventurian:"Aventurisch",earthly:"Irdisch"},prefs.weekdays)}</select></label></div>`,
+    modal:true,rejectClose:false,ok:{label:"Speichern"} });
+  if (result && Object.hasOwn(ERAS,result.era) && Object.hasOwn(WEEKDAYS,result.weekdays)) await save("calendarDisplay",result);
+}
+function openCalendar() {
+  if (calendar?.rendered) return calendar.bringToFront();
+  picked = viewed = read("calendarDate");
+  calendar = new CampaignWindow("Aventurischer Kalender", 530, drawCalendar, view => {
+    const navigate = date => { if (validDate(date)) { picked = viewed = date; calendar.refresh(); } };
+    view.addEventListener("change", event => {
+      const era = read("calendarDisplay").era;
+      if (event.target.name === "year") navigate({ ...viewed, year: event.target.valueAsNumber + ERAS[era], day: 1 });
+      if (event.target.name === "month") navigate({ ...viewed, month: Number(event.target.value), day: 1 });
+    });
+    view.addEventListener("click", async event => {
+      const button = event.target.closest("button");
+      if (!button || button.disabled) return;
+      if (button.dataset.calendarDay) { navigate({ ...viewed, day: Number(button.dataset.calendarDay) }); return; }
+      const action = button.dataset.calendar;
+      button.disabled = true;
+      try {
+        if (action === "prev" || action === "next") navigate(monthShift(viewed,action === "prev" ? -1 : 1));
+        if (action === "today") navigate(read("calendarDate"));
+        if (action === "settings") await calendarSettings();
+        if (action === "current" && game.user.isGM) await save("calendarDate",picked);
+        if (action === "note") {
+          const text = view.querySelector('[name="note"]').value.trim();
+          if (!text || text.length > 2000) return;
+          const entry = { date: dateKey(picked), text, at: Date.now() };
+          await game.user.update({ ["flags.ucurifunke.calendarNotes." + foundry.utils.randomID()]: entry });
+          const draft = view.querySelector('[name="note"]');
+          if (draft.value.trim() === text) draft.value = "";
+        }
+      } catch (error) { ui.notifications.error(error.message); }
+      finally { button.disabled = false; }
+    });
+  });
+  return calendar.render({force:true});
+}
+
+const shortcuts = [
+  { id:"ucurifunkeAP", title:"Abenteuerpunkte", icon:"fa-solid fa-arrow-up", open:openExperience },
+  { id:"ucurifunkeCalendar", title:"Aventurischer Kalender", icon:"fa-solid fa-calendar-days", open:openCalendar }
+];
+Hooks.on("getSceneControlButtons", controls => {
+  const order = Math.min(...Object.values(controls).map(control => control.order));
+  shortcuts.forEach(({id,title,icon,open},i) => {
+    controls[id] = { name:id,title,icon,order:order-2+i,
+      tools:{open:{name:"open",title,icon,order:0,button:true,onChange:open}} };
+  });
+});
+Hooks.on("renderSceneControls", (_app,html) => {
+  for (const {id,open} of shortcuts) html.querySelector(`button[data-control="${id}"]`)?.addEventListener("click",event=>{
+    event.preventDefault();
+    event.stopPropagation();
+    void open();
+  }, {capture:true});
+});

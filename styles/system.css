@@ -9,6 +9,21 @@
   min-height: 0;
 }
 .ucurifunke-character [hidden] { display: none !important; }
+.ucurifunke-campaign-window .window-content { max-height: 82vh; overflow: auto; }
+.ucurifunke-ap-layout { display: grid; gap: .65rem; }
+.ucurifunke-ap-layout.can-edit { grid-template-columns: minmax(9rem, 1fr) minmax(0, 2fr); }
+.ucurifunke-ap-layout fieldset { min-width: 0; }
+.ucurifunke-ap-layout label { display: grid; gap: .25rem; margin-bottom: .5rem; }
+.ucurifunke-ap-history { max-height: 45vh; overflow: auto; }
+.ucurifunke-calendar-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; margin-block: .35rem; }
+.ucurifunke-calendar-toolbar :is(button, select) { width: auto; }
+.ucurifunke-calendar-toolbar input { width: 6rem; }
+.ucurifunke-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .25rem; margin-block: .65rem; }
+.ucurifunke-calendar-grid abbr { text-align: center; }
+.ucurifunke-calendar-grid button { min-width: 0; gap: .2rem; padding-inline: .15rem; }
+.ucurifunke-calendar-grid button[aria-current="date"] { outline: 2px solid var(--uc-trim, #d99b47); outline-offset: -2px; font-weight: 800; }
+.ucurifunke-calendar-grid button[aria-pressed="true"] { box-shadow: inset 0 -3px var(--uc-trim, #d99b47); }
+.ucurifunke-calendar-note { white-space: pre-wrap; overflow-wrap: anywhere; }
 .ucurifunke-character:has(.ucurifunke-energy-strip) { grid-template-rows: auto auto auto minmax(0, 1fr); }
 .ucurifunke-energy-strip { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem; padding: .4rem 1rem; }
 .ucurifunke-energy-strip button { width: auto; min-height: 1.85rem; }
