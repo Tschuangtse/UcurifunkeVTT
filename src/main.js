@@ -1,4 +1,5 @@
 import { applyDesign, currentDesign, registerDesign } from "./appearance.js";
+import { bindGroupControls, registerGroupControls } from "./group-checks.js";
 import "./tick/main.js";
 import "./actions/main.js";
 import "./creation-defaults.js";
@@ -24,6 +25,8 @@ Hooks.on("hotbarDrop", (_bar, data, slot) => {
   return false;
 });
 
+Hooks.on("getSceneControlButtons", registerGroupControls);
+Hooks.on("renderSceneControls", bindGroupControls);
 Hooks.on("renderChatMessageHTML", renderHiddenCheck);
 Hooks.on("renderChatMessageHTML", renderExchange);
 Hooks.on("createChatMessage", refreshExchange);
