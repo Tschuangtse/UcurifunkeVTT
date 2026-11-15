@@ -219,6 +219,13 @@ Hooks.on("createCombat", async combat => {
   if (combat === game.combat) await refreshTimeline({ open: true });
 });
 
+Hooks.on("preUpdateCombat", (combat, changes) => {
+  if (!combat.started && changes.round > 0) {
+    foundry.utils.setProperty(changes, "flags.ucurifunke.totalTicks", 0);
+    foundry.utils.setProperty(changes, "flags.ucurifunke.tickBaselineEstablished", false);
+  }
+});
+
 Hooks.on("updateCombat", async (combat, changes, options) => {
   if (combat.active && (changes.active === true || Object.hasOwn(changes, "scene"))) {
     await reconcileActiveEncounter(combat.scene?.id, combat);

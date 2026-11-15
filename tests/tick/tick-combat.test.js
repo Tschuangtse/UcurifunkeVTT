@@ -9,7 +9,7 @@ import { setTimelineApp } from "../../src/tick/state.js";
 function encounter(ticks, { started = true, events = [], waiting = [] } = {}) {
   const writes = [];
   const combat = {
-    started, flags: { events, totalTicks: 0 },
+    started, flags: { events, totalTicks: 0, tickBaselineEstablished: started },
     getFlag(_scope, key) { return this.flags[key]; },
     async update(changes, options) {
       if (options?.parent) {
@@ -58,7 +58,12 @@ test("initiative remains absolute before combat starts", async () => {
   combat.started = true;
   await normalizeTicks();
   assert.deepEqual(values(), [0, 4]);
-  assert.equal(combat.flags.totalTicks, 19);
+  assert.equal(combat.flags.totalTicks, 0);
+  assert.equal(combat.flags.tickBaselineEstablished, true);
+  await setTicks(combat.combatants[0], 3);
+  await normalizeTicks();
+  assert.deepEqual(values(), [0, 1]);
+  assert.equal(combat.flags.totalTicks, 3);
 });
 
 test("bookings arriving during a normalization survive and are consumed exactly once", async () => {

@@ -11,13 +11,25 @@ export function applyDesign(design) {
 }
 
 export function registerDesign() {
-  game.settings.register("ucurifunke", "sheetDesign", { name: "Bogendesign", scope: "user", config: true,
-    type: String, choices: SHEET_DESIGNS, default: "standard", onChange: applyDesign });
+  game.settings.register("ucurifunke", "sheetDesign", { name: "Bogendesign", scope: "user", config: false,
+    type: String, choices: SHEET_DESIGNS, default: "standard" });
+  class AppearanceMenu extends foundry.applications.api.DialogV2 {
+    constructor() { super({ buttons: [{ action: "close", label: "Schließen" }] }); }
+    render() { return openAppearanceSettings(); }
+  }
+  game.settings.registerMenu("ucurifunke", "appearance", {
+    name: "Bogendesign und Würfelklänge", label: "Darstellung öffnen", icon: "fa-solid fa-palette",
+    type: AppearanceMenu, restricted: false
+  });
+}
+
+export function currentDesign() {
+  return game.user.getFlag("ucurifunke", "appearanceDesign") ?? game.settings.get("ucurifunke", "sheetDesign");
 }
 
 export async function openAppearanceSettings() {
   const settings = game.settings;
-  const design = settings.get("ucurifunke", "sheetDesign");
+  const design = currentDesign();
   const sounds = settings.get("ucurifunke", "rollSounds");
   try {
     const result = await foundry.applications.api.DialogV2.input({
@@ -34,9 +46,9 @@ export async function openAppearanceSettings() {
       }
     });
     if (!result) return;
-    await settings.set("ucurifunke", "sheetDesign", result.design);
+    if (Object.hasOwn(SHEET_DESIGNS, result.design)) await game.user.setFlag("ucurifunke", "appearanceDesign", result.design);
     await settings.set("ucurifunke", "rollSounds", [true, 1, "1", "true", "on"].includes(result.sounds));
   } finally {
-    applyDesign(settings.get("ucurifunke", "sheetDesign"));
+    applyDesign(currentDesign());
   }
 }

@@ -1,4 +1,4 @@
-import { applyDesign, registerDesign } from "./appearance.js";
+import { applyDesign, currentDesign, registerDesign } from "./appearance.js";
 import "./tick/main.js";
 import "./actions/main.js";
 import "./creation-defaults.js";
@@ -15,7 +15,7 @@ import { importNpcGroup } from "./npc-bulk-import.js";
 import { createProbeMacro, rollSavedProbe } from "./probe-shortcuts.js";
 
 Hooks.once("ready", () => {
-  applyDesign(game.settings.get("ucurifunke", "sheetDesign"));
+  applyDesign(currentDesign());
   game.ucurifunke = { ...game.ucurifunke, rollSavedProbe };
 });
 Hooks.on("hotbarDrop", (_bar, data, slot) => {

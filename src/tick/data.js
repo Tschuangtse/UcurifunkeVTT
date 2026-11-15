@@ -129,6 +129,7 @@ export async function clearEvents(combat = game.combat) {
   if (!game.user?.isGM || !combat) return;
   await combat.unsetFlag(MODULE_ID, "events");
   await combat.unsetFlag(MODULE_ID, "totalTicks");
+  await combat.unsetFlag(MODULE_ID, "tickBaselineEstablished");
 }
 
 export async function addEvent(event) {
@@ -260,9 +261,11 @@ async function normalizeCombat(combat) {
   if (!active.length) return;
 
   const normalization = asInteger(active[0].ticks, 0);
-  if (normalization === 0) return;
+  const totalTicks = asInteger(combat.getFlag(MODULE_ID, "totalTicks"), 0);
+  const baseline = combat.getFlag(MODULE_ID, "tickBaselineEstablished") ?? (totalTicks > 0);
+  if (normalization === 0 && baseline) return;
 
-  const updates = active.filter(item => !item.isEvent).map(item => ({
+  const updates = active.filter(item => normalization !== 0 && !item.isEvent).map(item => ({
     _id: item.id,
     "flags.ucurifunke.data": JSON.stringify({
       ...getCombatantData(item.combatant),
@@ -276,13 +279,13 @@ async function normalizeCombat(combat) {
   const events = getEvents(combat).map(event => event.isWaiting ? event : {
     ...event, ticks: asInteger(event.ticks, 0) - normalization
   });
-  const totalTicks = asInteger(combat.getFlag(MODULE_ID, "totalTicks"), 0);
   // Embedded updates add their parent to the operation. Never reuse that
   // operation for the world-level Combat update.
   await combat.update({
     "flags.ucurifunke.events": events,
     // Corrections to earlier tick positions must not reduce elapsed time.
-    "flags.ucurifunke.totalTicks": totalTicks + Math.max(0, normalization)
+    "flags.ucurifunke.totalTicks": totalTicks + (baseline ? Math.max(0, normalization) : 0),
+    "flags.ucurifunke.tickBaselineEstablished": true
   }, { tickCombatNormalization: true });
 
   const app = getTimelineApp();
