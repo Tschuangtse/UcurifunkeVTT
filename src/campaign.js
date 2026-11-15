@@ -9,8 +9,9 @@ const esc = escapeHtml;
 const formatDate = (date, era) => date.day + ". " + MONTHS[date.month] + " " + eraYear(date.year, era) + " " + era;
 const stamp = value => new Date(value).toLocaleString("de-DE");
 const selected = (value, expected) => value === expected ? " selected" : "";
-const notes = () => game.users.contents.flatMap(user => Object.values(user.getFlag(scope, "calendarNotes") ?? {})
-  .filter(note => note && typeof note.text === "string").map(note => ({ ...note, author: user.name })));
+const notes = () => game.users.contents.flatMap(user => Object.entries(user.getFlag(scope, "calendarNotes") ?? {})
+  .filter(([, note]) => note && typeof note.text === "string")
+  .map(([id, note]) => ({ ...note, id, userId: user.id, author: user.name })));
 
 Hooks.once("init", () => {
   game.settings.register(scope, "partyExperience", { scope: "world", config: false, type: Array, default: [], onChange: () => experience?.refresh() });
@@ -107,8 +108,13 @@ function drawCalendar() {
   </div>
   <h3>${esc(formatDate(picked,era))}</h3>
   ${holidayList.length ? "<p>◆ " + esc(holidayList.join(" · ")) + "</p>" : ""}
-  ${dayNotes.map(note => `<p class="ucurifunke-calendar-note"><strong>${esc(note.author)}</strong> <small>${esc(stamp(note.at))}</small><br>${esc(note.text)}</p>`).join("")}
-  <label>Tagesnotiz <textarea name="note" rows="2" maxlength="2000"></textarea></label>
+  ${dayNotes.map(note => `<article class="ucurifunke-calendar-note">
+    <div><strong>${esc(note.author)}</strong> <small>${esc(stamp(note.at))}</small>
+    ${game.user.isGM || note.userId === game.user.id ? `<span class="ucurifunke-note-actions">
+      <button type="button" data-calendar="edit" data-user="${esc(note.userId)}" data-note="${esc(note.id)}" aria-label="Notiz bearbeiten"><i class="fa-solid fa-pencil"></i></button>
+      <button type="button" data-calendar="delete" data-user="${esc(note.userId)}" data-note="${esc(note.id)}" aria-label="Notiz löschen"><i class="fa-solid fa-trash"></i></button>
+    </span>` : ""}</div><p>${esc(note.text)}</p></article>`).join("")}
+  <label class="ucurifunke-note-compose">Tagesnotiz <textarea name="note" rows="3" maxlength="2000"></textarea></label>
   <div class="ucurifunke-calendar-toolbar">
     <button type="button" data-calendar="note">Notiz hinzufügen</button>
     ${game.user.isGM ? '<button type="button" data-calendar="current">Als aktuelles Datum setzen</button>' : ""}
@@ -123,6 +129,28 @@ async function calendarSettings() {
     <label>Wochentage <select name="weekdays">${options({aventurian:"Aventurisch",earthly:"Irdisch"},prefs.weekdays)}</select></label></div>`,
     modal:true,rejectClose:false,ok:{label:"Speichern"} });
   if (result && Object.hasOwn(ERAS,result.era) && Object.hasOwn(WEEKDAYS,result.weekdays)) await save("calendarDisplay",result);
+}
+async function changeNote(action, { user: userId, note: id }) {
+  if (!/^[a-zA-Z0-9]+$/.test(id ?? "") || (!game.user.isGM && userId !== game.user.id)) return;
+  const user = game.users.get(userId);
+  const note = user?.getFlag(scope, "calendarNotes")?.[id];
+  if (!note) return;
+  const path = "flags.ucurifunke.calendarNotes.";
+  const app = { classes: [...SYSTEM_DIALOG_CLASSES, "ucurifunke-campaign-window"], modal: true, rejectClose: false };
+  if (action === "delete") {
+    const confirmed = await DialogV2.confirm({ ...app, window: { title: "Notiz löschen" },
+      content: "<p>Soll diese Tagesnotiz gelöscht werden?</p>", yes: { label: "Löschen" } });
+    if (confirmed) await user.update({ [path + "-=" + id]: null });
+    return;
+  }
+  const result = await DialogV2.input({ ...app, window: { title: "Notiz bearbeiten" },
+    content: `<div><label class="ucurifunke-note-compose">Tagesnotiz<textarea name="text" rows="4" required maxlength="2000">${esc(note.text)}</textarea></label></div>`,
+    ok: { label: "Speichern" } });
+  const text = result?.text?.trim();
+  if (!text || text.length > 2000) return;
+  const current = user.getFlag(scope, "calendarNotes")?.[id];
+  if (!current || current.text !== note.text) throw new Error("Die Notiz wurde inzwischen geändert. Bitte erneut öffnen.");
+  await user.update({ [path + id + ".text"]: text });
 }
 function openCalendar() {
   if (calendar?.rendered) return calendar.bringToFront();
@@ -144,6 +172,7 @@ function openCalendar() {
         if (action === "prev" || action === "next") navigate(monthShift(viewed,action === "prev" ? -1 : 1));
         if (action === "today") navigate(read("calendarDate"));
         if (action === "settings") await calendarSettings();
+        if (action === "edit" || action === "delete") await changeNote(action, button.dataset);
         if (action === "current" && game.user.isGM) await save("calendarDate",picked);
         if (action === "note") {
           const text = view.querySelector('[name="note"]').value.trim();
@@ -165,11 +194,13 @@ const shortcuts = [
   { id:"ucurifunkeCalendar", title:"Aventurischer Kalender", icon:"fa-solid fa-calendar-days", open:openCalendar }
 ];
 Hooks.on("getSceneControlButtons", controls => {
-  const order = Math.min(...Object.values(controls).map(control => control.order));
+  const order = Math.max(-1, ...Object.values(controls)
+    .filter(control => control.name !== "ucurifunkeDice").map(control => control.order)) + 1;
   shortcuts.forEach(({id,title,icon,open},i) => {
-    controls[id] = { name:id,title,icon,order:order-2+i,
+    controls[id] = { name:id,title,icon,order:order+i,
       tools:{open:{name:"open",title,icon,order:0,button:true,onChange:open}} };
   });
+  if (controls.ucurifunkeDice) controls.ucurifunkeDice.order = order + shortcuts.length;
 });
 Hooks.on("renderSceneControls", (_app,html) => {
   for (const {id,open} of shortcuts) html.querySelector(`button[data-control="${id}"]`)?.addEventListener("click",event=>{

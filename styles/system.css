@@ -23,7 +23,18 @@
 .ucurifunke-calendar-grid button { min-width: 0; gap: .2rem; padding-inline: .15rem; }
 .ucurifunke-calendar-grid button[aria-current="date"] { outline: 2px solid var(--uc-trim, #d99b47); outline-offset: -2px; font-weight: 800; }
 .ucurifunke-calendar-grid button[aria-pressed="true"] { box-shadow: inset 0 -3px var(--uc-trim, #d99b47); }
-.ucurifunke-calendar-note { white-space: pre-wrap; overflow-wrap: anywhere; }
+.ucurifunke-calendar-toolbar [data-calendar="settings"] { margin-inline-start: auto; }
+.ucurifunke-calendar-note > div { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; }
+.ucurifunke-calendar-note p { white-space: pre-wrap; overflow-wrap: anywhere; margin-block: .15rem .55rem; }
+.ucurifunke-note-actions { display: flex; gap: .25rem; margin-inline-start: auto; }
+.ucurifunke-note-actions button { width: auto; padding-inline: .55rem; }
+.ucurifunke-note-compose { display: grid; gap: .35rem; border-top: 1px solid var(--uc-line, #8888); padding-top: .65rem; }
+.ucurifunke-campaign-window textarea { width: 100%; resize: vertical; }
+#scene-controls li:has(> button[data-control="ucurifunkeAP"]) {
+  border-top: 1px solid #b8b1a0a8;
+  padding-top: .3rem;
+  margin-top: .25rem;
+}
 .ucurifunke-character:has(.ucurifunke-energy-strip) { grid-template-rows: auto auto auto minmax(0, 1fr); }
 .ucurifunke-energy-strip { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem; padding: .4rem 1rem; }
 .ucurifunke-energy-strip button { width: auto; min-height: 1.85rem; }
@@ -374,9 +385,10 @@ html[data-ucurifunke-design]:not([data-ucurifunke-design="standard"]) :is(.ucuri
   & .window-content :is(button, a, summary) { transition: none; }
   & .window-content :is(label, legend, summary, dt, dd, th, td) { color: var(--uc-ink); }
   & .window-content option { background-color: var(--uc-field); color: var(--uc-ink); }
-  & .window-content :is(input:not([type="checkbox"], [type="range"]), select, .ucurifunke-group) {
+  & .window-content :is(input:not([type="checkbox"], [type="range"]), select, textarea, .ucurifunke-group) {
     background-color: var(--uc-field);
   }
+  & .window-content textarea { color: var(--uc-ink); border-color: var(--uc-line); }
   & .window-content :is(input, select, button):focus-visible {
     outline: 2px solid var(--uc-accent);
     outline-offset: 1px;
