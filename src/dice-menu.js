@@ -5,15 +5,21 @@ const CONTROL = "ucurifunkeDice";
 const ICON = "fa-solid fa-dice-d20";
 const DICE = [3, 6, 20];
 const MAX_COUNT = 100;
+const MAX_MODIFIER = 999999;
 let rolling = false;
 
 async function openDiceMenu() {
   if (rolling) return;
   rolling = true;
   try {
-    const fields = DICE.map(faces => `<label>W${faces}
-      <input name="w${faces}" type="number" min="0" max="${MAX_COUNT}" step="1" value="0" required>
-    </label>`).join("");
+    const fields = [...DICE.map(faces => ({ name: "w" + faces, label: "W" + faces, min: 0, max: MAX_COUNT })),
+      { name: "modifier", label: "Fester Wert", min: -MAX_MODIFIER, max: MAX_MODIFIER }]
+      .map(({ name, label, min, max }) => `<div class="ucurifunke-dice-field">
+        <label for="ucurifunke-dice-${name}">${label}</label>
+        <div><button type="button" data-step="-1" aria-label="${label} senken">−</button>
+          <input id="ucurifunke-dice-${name}" name="${name}" type="number" min="${min}" max="${max}" step="1" value="0" required>
+          <button type="button" data-step="1" aria-label="${label} erhöhen">+</button></div>
+      </div>`).join("");
     const result = await foundry.applications.api.DialogV2.input({
       classes: SYSTEM_DIALOG_CLASSES,
       window: { title: "Würfelmenü" },
@@ -27,9 +33,17 @@ async function openDiceMenu() {
         if (!submit) return;
         const refresh = () => {
           submit.disabled = !inputs.every(input => input.validity.valid)
-            || !inputs.some(input => input.valueAsNumber > 0);
+            || !inputs.some(input => input.name !== "modifier" && input.valueAsNumber > 0);
         };
         for (const input of inputs) input.addEventListener("input", refresh);
+        for (const button of dialog.element.querySelectorAll("[data-step]")) {
+          button.addEventListener("click", () => {
+            const input = button.parentElement.querySelector("input");
+            if (Number(button.dataset.step) > 0) input.stepUp();
+            else input.stepDown();
+            refresh();
+          });
+        }
         refresh();
       }
     });
@@ -43,8 +57,11 @@ async function openDiceMenu() {
     const selected = pool.filter(({ count }) => count > 0);
     if (!selected.length) return;
 
-    const formula = selected.map(({ count, faces }) => `${count}d${faces}`).join(" + ");
-    const notation = selected.map(({ count, faces }) => `${count}W${faces}`).join(" + ");
+    const modifier = Number(result.modifier ?? 0);
+    if (!Number.isSafeInteger(modifier) || Math.abs(modifier) > MAX_MODIFIER) return;
+    const suffix = modifier ? ` ${modifier < 0 ? "-" : "+"} ${Math.abs(modifier)}` : "";
+    const formula = selected.map(({ count, faces }) => `${count}d${faces}`).join(" + ") + suffix;
+    const notation = selected.map(({ count, faces }) => `${count}W${faces}`).join(" + ") + suffix;
     const roll = await new foundry.dice.Roll(formula).evaluate();
     const groups = selected.map(({ count, faces }) => {
       const dice = roll.dice.find(die => die.faces === faces).results.map(({ result }) =>

@@ -31,7 +31,7 @@
 .ucurifunke-note-compose { display: grid; gap: .35rem; border-top: 1px solid var(--uc-line, #8888); padding-top: .65rem; }
 .ucurifunke-campaign-window textarea { width: 100%; resize: vertical; }
 #scene-controls li:has(> button[data-control="ucurifunkeAP"]) {
-  border-top: 1px solid #b8b1a0a8;
+  border-top: 3px solid #e7d8ba;
   padding-top: .3rem;
   margin-top: .25rem;
 }
@@ -263,10 +263,12 @@
 .ucurifunke-card-outcome.is-success { text-decoration: underline; }
 .ucurifunke-free-roll .ucurifunke-card-die { border-color: color-mix(in srgb, currentColor 28%, transparent); }
 .ucurifunke-free-roll footer > strong { font-size: 1.2em; }
-.ucurifunke-dice-pool { display: flex; gap: .65rem; }
-.ucurifunke-dice-pool label { display: grid; flex: 1; gap: .3rem; }
-.ucurifunke-dice-pool input[type="number"] { appearance: auto; }
-.ucurifunke-dice-pool input::-webkit-inner-spin-button { appearance: auto; opacity: 1; }
+.ucurifunke-dice-pool { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
+.ucurifunke-dice-field { display: grid; gap: .3rem; }
+.ucurifunke-dice-field > div { display: grid; grid-template-columns: 2rem minmax(0, 1fr) 2rem; gap: .25rem; }
+.ucurifunke-dice-field input { appearance: textfield; text-align: center; }
+.ucurifunke-dice-field input::-webkit-inner-spin-button { appearance: none; }
+.ucurifunke-dice-field button { padding: 0; }
 .ucurifunke-modifier-dialog { display: grid; gap: .65rem; }
 .ucurifunke-modifier-dialog .form-group { display: grid; grid-template-columns: 1fr 7rem; align-items: center; }
 .ucurifunke-modifier-dialog input[type="checkbox"] { justify-self: start; }
@@ -421,11 +423,12 @@ html[data-ucurifunke-design="tavern"] .ucurifunke-character-header {
   color: var(--uc-frame-text);
   background: linear-gradient(#25130980, #25130980), var(--uc-frame-image, none) center / cover var(--uc-frame);
 }
-html[data-ucurifunke-design="tavern"] .ucurifunke-sheet .ucurifunke-character-header button {
+html[data-ucurifunke-design="tavern"] .ucurifunke-sheet .window-content .ucurifunke-character-header button:not([role="tab"]) {
+  color: var(--uc-frame-text);
   background: #392218;
   border-color: #cda979;
 }
-html[data-ucurifunke-design="tavern"] .ucurifunke-sheet .ucurifunke-character-header button:is(:hover, :focus-visible) {
+html[data-ucurifunke-design="tavern"] .ucurifunke-sheet .window-content .ucurifunke-character-header button:not([role="tab"]):is(:hover, :focus-visible) {
   color: var(--uc-frame-text);
   background: #5d3826;
 }
