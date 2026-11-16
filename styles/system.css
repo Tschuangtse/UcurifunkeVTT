@@ -46,7 +46,7 @@ html[data-ucurifunke-design]:not([data-ucurifunke-design="standard"]) .ucurifunk
 .ucurifunke-note-compose { display: grid; gap: .35rem; border-top: 1px solid var(--uc-line, #8888); padding-top: .65rem; }
 .ucurifunke-campaign-window textarea { width: 100%; resize: vertical; }
 #scene-controls button[data-control="ucurifunkeGroupChecks"],
-#scene-controls:has(button[data-control="ucurifunkeGroupChecks"][aria-pressed="true"]) button:is([data-tool="perception"], [data-tool="kmr"], [data-tool="gmr"]) {
+#scene-controls:has(button[data-control="ucurifunkeGroupChecks"][aria-pressed="true"]) button:is([data-tool="perception"], [data-tool="kmr"], [data-tool="gmr"], [data-tool="shared"]) {
   background: var(--control-bg-color, #282631);
   border: 1px solid #464153;
   box-shadow: none;
@@ -64,6 +64,8 @@ html[data-ucurifunke-design]:not([data-ucurifunke-design="standard"]) .ucurifunk
   margin-top: .25rem;
 }
 .ucurifunke-group-results :is(th, td):nth-child(n+2) { width: 1%; white-space: nowrap; text-align: center; }
+.ucurifunke-group-skill-picker label { display: grid; gap: .3rem; margin-bottom: .55rem; }
+.ucurifunke-group-skill-picker select { height: auto; width: 100%; }
 .ucurifunke-group-result {
   display: inline-grid;
   place-items: center;
