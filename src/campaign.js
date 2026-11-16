@@ -137,7 +137,7 @@ function drawCalendar() {
     const annotated = allNotes.some(note => note.date === key);
     return `<button type="button" data-calendar-day="${date.day}" aria-pressed="${key === dateKey(picked)}"
       ${active ? 'aria-current="date"' : ""} title="${esc([formatDate(date, era), ...festival, ...(annotated ? ["Notizen vorhanden"] : [])].join(" · "))}">
-      ${date.day}${festival.length ? '<span aria-hidden="true">◆</span>' : ""}${annotated ? '<span aria-hidden="true">•</span>' : ""}</button>`;
+      ${date.day}${festival.length ? '<span aria-hidden="true">◆</span>' : ""}${annotated ? '<i class="fa-solid fa-note-sticky ucurifunke-calendar-note-icon" aria-hidden="true"></i>' : ""}</button>`;
   }).join("");
   return `<div class="ucurifunke-calendar-toolbar">
     <button type="button" data-calendar="prev" aria-label="Voriger Monat">‹</button>

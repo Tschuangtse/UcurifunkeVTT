@@ -36,6 +36,7 @@ html[data-ucurifunke-design]:not([data-ucurifunke-design="standard"]) .ucurifunk
 .ucurifunke-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .25rem; margin-block: .65rem; }
 .ucurifunke-calendar-grid abbr { text-align: center; }
 .ucurifunke-calendar-grid button { min-width: 0; gap: .2rem; padding-inline: .15rem; }
+.ucurifunke-calendar-note-icon { font-size: .9em; }
 .ucurifunke-calendar-grid button[aria-current="date"] { outline: 2px solid var(--uc-trim, #d99b47); outline-offset: -2px; font-weight: 800; }
 .ucurifunke-calendar-grid button[aria-pressed="true"] { box-shadow: inset 0 -3px var(--uc-trim, #d99b47); }
 .ucurifunke-calendar-toolbar [data-calendar="settings"] { margin-inline-start: auto; }
