@@ -26,6 +26,21 @@ Hooks.on("hotbarDrop", (_bar, data, slot) => {
 });
 
 Hooks.on("getSceneControlButtons", registerGroupControls);
+Hooks.on("getSceneControlButtons", controls => {
+  const name = "ucurifunkeAvesmaps";
+  const title = "Avesmaps öffnen";
+  const icon = "fa-solid fa-map";
+  const order = Math.max(-1, ...Object.values(controls).map(control => control.order)) + 1;
+  controls[name] = { name, title, icon, order,
+    tools: { openMap: { name: "openMap", title, icon, order: 0, button: true } } };
+});
+Hooks.on("renderSceneControls", (_app, html) => {
+  html.querySelector('button[data-control="ucurifunkeAvesmaps"]')?.addEventListener("click", event => {
+    event.preventDefault();
+    event.stopPropagation();
+    window.open("https://avesmaps.de/", "_blank", "noopener,noreferrer");
+  }, { capture: true });
+});
 Hooks.on("renderSceneControls", bindGroupControls);
 Hooks.on("renderChatMessageHTML", renderHiddenCheck);
 Hooks.on("renderChatMessageHTML", renderExchange);

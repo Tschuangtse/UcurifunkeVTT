@@ -1,6 +1,6 @@
 import { energyRows } from "./energy.js";
 import { openEnergyValue, openHealth, openRegeneration } from "./energy-dialogs.js";
-import { SYSTEM_DIALOG_CLASSES, openAppearanceSettings } from "./appearance.js";
+import { SYSTEM_DIALOG_CLASSES, mundaneTabsEnabled, openAppearanceSettings } from "./appearance.js";
 import { parseCharacter } from "./import-data.js";
 import { createNpcActor, isNpcFile } from "./npc-import.js";
 import { dodgeCheck, dodgeValue, postRoll, prepareRoll, weaponCheck } from "./checks.js";
@@ -78,6 +78,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
 
   static DEFAULT_OPTIONS = {
     classes: ["ucurifunke-sheet"], position: { width: 710, height: 720 },
+    window: { resizable: true },
     actions: { rollCheck: CharacterSheet.#roll, saveCombatValues: CharacterSheet.#saveCombatValues,
       openSheetTab: CharacterSheet.#openTab, updatePedipalpus: CharacterSheet.#updatePedipalpus,
       showCondition: CharacterSheet.#showCondition, cycleCondition: CharacterSheet.#cycleCondition,
@@ -98,7 +99,8 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
     const companion = this.actor.type === "retinue";
     const retinue = companion ? [] : (globalThis.game?.actors?.filter(actor => actor.type === "retinue" && actor.visible
       && actor.getFlag("ucurifunke", "retinueOwner") === this.actor.id)
-      .map(actor => ({ id: actor.id, name: actor.name, kind: actor.system.companionKind })) ?? []);
+      .map(actor => ({ id: actor.id, name: actor.name, kind: actor.system.companionKind,
+        note: this.actor.getFlag("ucurifunke", "retinueNotes")?.[actor.id] ?? "" })) ?? []);
     const pending = !companion && this.actor.getFlag?.("ucurifunke", "retinuePending");
     const pendingPlan = pending && planRetinue(this.actor, pending);
     const effects = conditionEffects(data);
@@ -117,8 +119,12 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
         })) : []
       };
     });
+    const { combatGroups, skillTabs } = partitionSkills(data.skills, companion, data.npcGenerator);
+    const visibleTabs = skillTabs.filter(tab => (tab.id !== "magic" || this.actor.getFlag("ucurifunke", "showMagic") !== false)
+      && (tab.id !== "clerical" || this.actor.getFlag("ucurifunke", "showClerical") !== false));
     return { ...context, data, sheetId: this.id, actorName: this.actor.name, actorImage: this.actor.img, energies: energyRows(data),
-      ...partitionSkills(data.skills, companion, data.npcGenerator), focus: combatFocus(this.actor),
+      combatGroups, skillTabs: visibleTabs.map(tab => ({ ...tab, categoryTabs: tab.id === "munda" && mundaneTabsEnabled() })),
+      hasRetinue: Boolean(retinue.length || pending), focus: combatFocus(this.actor),
       focusMin: -2, focusMax: 2,
       dodge: dodgeValue(this.actor), canDodge: this.actor.isOwner && dodgeValue(this.actor) != null,
       focusTemplate,
@@ -170,12 +176,16 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
     for (const panel of root.querySelectorAll("[data-searchable]")) {
       const input = panel.querySelector('input[type="search"]');
       const category = panel.querySelector(".ucurifunke-filter select");
+      const categories = [...panel.querySelectorAll("[data-skill-category]")];
       const key = panel.dataset.sheetPanel;
       const saved = this.#filters[key];
       input.value = saved?.query ?? "";
-      if (category) category.value = saved?.category ?? "";
+      let activeCategory = saved?.category ?? "";
+      if (category) category.value = activeCategory;
+      if (categories.length && !categories.some(button => button.dataset.skillCategory === activeCategory)) activeCategory = "";
       const apply = () => {
-        const filter = { query: input.value, category: category?.value ?? "" };
+        const filter = { query: input.value, category: category?.value ?? activeCategory };
+        for (const button of categories) button.setAttribute("aria-pressed", String(button.dataset.skillCategory === activeCategory));
         this.#filters[key] = filter;
         filterSheet(panel, filter.query, filter.category);
       };
@@ -184,6 +194,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
         if (event.key === "Enter") event.preventDefault();
       };
       if (category) category.onchange = apply;
+      for (const button of categories) button.onclick = () => { activeCategory = button.dataset.skillCategory; apply(); };
       apply();
     }
     bindProbeShortcuts(root, this.actor, hasFavorites => {
@@ -204,6 +215,16 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       await this.#updateCondition(event.target, conditionField, value);
     };
     this.#selectTab(this.#activeTab);
+    const retinue = root.querySelector('[data-sheet-panel="retinue"]');
+    if (retinue) retinue.onchange = async event => {
+      const input = event.target.closest("[data-retinue-note]");
+      if (!input || !this.isEditable || !this.actor.isOwner) return;
+      const member = game.actors.get(input.dataset.retinueNote);
+      if (member?.getFlag("ucurifunke", "retinueOwner") !== this.actor.id) return;
+      try {
+        await this.actor.update({ ["flags.ucurifunke.retinueNotes." + member.id]: input.value.trim().slice(0, 200) });
+      } catch (error) { ui.notifications.error(error.message); }
+    };
   }
 
   static async #updatePedipalpus() {
@@ -211,7 +232,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
     catch (error) { ui.notifications.error(error.message); }
   }
 
-  static async #sheetPreferences() { await openAppearanceSettings(); }
+  static async #sheetPreferences() { await openAppearanceSettings(this.actor); }
 
   static async #energy(_event, target) {
     if (!this.isEditable || !this.actor.isOwner) return;
@@ -378,7 +399,8 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
   }
 
   #selectTab(name, resetScroll = false) {
-    if (name === "favorites" && this.element.querySelector('[data-sheet-tab="favorites"]').hidden) name = "overview";
+    const tab = [...this.element.querySelectorAll("[data-sheet-tab]")].find(button => button.dataset.sheetTab === name);
+    if (!tab || tab.hidden) name = "overview";
     this.#activeTab = name;
     for (const tab of this.element.querySelectorAll("[data-sheet-tab]")) {
       const selected = tab.dataset.sheetTab === name;

@@ -5,6 +5,8 @@ import { activeEncounterForScene, getEncounterChoices, openTimeline, sceneEncoun
 test("timeline redraws and closes without constructing or closing a context menu", async () => {
   let prepared = 0;
   let closed = 0;
+  let visibilityChanges = 0;
+  globalThis.Hooks = { callAll(name) { if (name === "ucurifunkeTimelineVisibility") visibilityChanges++; } };
   globalThis.foundry = { applications: { api: {
     ApplicationV2: class {
       async _preRender() { prepared++; }
@@ -20,6 +22,7 @@ test("timeline redraws and closes without constructing or closing a context menu
   await app._onClose({});
   assert.equal(prepared, 2);
   assert.equal(closed, 1);
+  assert.equal(visibilityChanges, 1);
 });
 
 test("starting combat updates the timeline without opening a context menu first", async () => {

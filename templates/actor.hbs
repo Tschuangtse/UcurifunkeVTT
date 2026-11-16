@@ -151,6 +151,12 @@
       aria-selected="false" tabindex="-1" data-action="openSheetTab" data-sheet-tab="conditions">
       <i class="fa-solid fa-heart-pulse" aria-hidden="true"></i> Zustände
     </button>
+    {{#if hasRetinue}}
+      <button type="button" role="tab" id="{{sheetId}}-tab-retinue" aria-controls="{{sheetId}}-retinue"
+        aria-selected="false" tabindex="-1" data-action="openSheetTab" data-sheet-tab="retinue">
+        <i class="fa-solid fa-people-group" aria-hidden="true"></i> Gefolge
+      </button>
+    {{/if}}
   </nav>
   <div class="ucurifunke-sheet-body">
     <section role="tabpanel" id="{{sheetId}}-favorites" aria-labelledby="{{sheetId}}-tab-favorites" data-sheet-panel="favorites" data-searchable hidden>
@@ -202,24 +208,6 @@
           </dl>
         </section>
       {{/if}}
-      {{#if retinue.length}}
-        <section class="ucurifunke-group" data-filter-group="Gefolge">
-          <h3>Gefolge</h3>
-          <ul>
-            {{#each retinue}}
-              <li class="ucurifunke-row" data-filter-row="Gefolge {{name}} {{kind}}">
-                <button type="button" data-action="openCompanion" data-companion-id="{{id}}">{{name}}</button>
-                <small>{{kind}}</small>
-              </li>
-            {{/each}}
-          </ul>
-        </section>
-      {{/if}}
-      {{#if canImportRetinue}}
-        <button type="button" data-action="importRetinue">Gefolge übernehmen ({{pendingRetinue}})</button>
-      {{else}}{{#if pendingRetinue}}
-        <p>Gefolge zur Übernahme durch die Spielleitung vorgemerkt ({{pendingRetinue}}).</p>
-      {{/if}}{{/if}}
       <p class="ucurifunke-empty" role="status" data-no-results hidden>Keine passenden Grundwerte.</p>
     </section>
 
@@ -257,10 +245,17 @@
         <div class="ucurifunke-filter">
           {{> searchField label="Fertigkeiten suchen"}}
           {{#if groups.length}}
+            {{#if categoryTabs}}
+              <div class="ucurifunke-category-tabs" role="group" aria-label="Fertigkeitsbereich">
+                <button type="button" data-skill-category="" aria-pressed="true">Alle Bereiche</button>
+                {{#each groups}}<button type="button" data-skill-category="{{name}}" aria-pressed="false">{{name}}</button>{{/each}}
+              </div>
+            {{else}}
             <select aria-label="Fertigkeitsbereich">
               <option value="">Alle Bereiche</option>
               {{#each groups}}<option value="{{name}}">{{name}}</option>{{/each}}
             </select>
+            {{/if}}
           {{/if}}
         </div>
         {{> skillRows groups=groups}}
@@ -316,5 +311,28 @@
       </div>
       <p class="ucurifunke-empty" role="status" data-no-results hidden>Keine passenden Zustände.</p>
     </section>
+    {{#if hasRetinue}}
+    <section role="tabpanel" id="{{sheetId}}-retinue" aria-labelledby="{{sheetId}}-tab-retinue" data-sheet-panel="retinue" hidden>
+      {{#if retinue.length}}
+        <section class="ucurifunke-group" data-filter-group="Gefolge">
+          <h3>Gefolge</h3>
+          <ul>
+            {{#each retinue}}
+              <li class="ucurifunke-row is-item ucurifunke-retinue-row">
+                <button type="button" data-action="openCompanion" data-companion-id="{{id}}">{{name}}</button>
+                <small>{{kind}}</small>
+                <label>Notiz <input type="text" maxlength="200" data-retinue-note="{{id}}" value="{{note}}" {{#unless @root.canEdit}}readonly{{/unless}}></label>
+              </li>
+            {{/each}}
+          </ul>
+        </section>
+      {{/if}}
+      {{#if canImportRetinue}}
+        <button type="button" data-action="importRetinue">Gefolge übernehmen ({{pendingRetinue}})</button>
+      {{else}}{{#if pendingRetinue}}
+        <p>Gefolge zur Übernahme durch die Spielleitung vorgemerkt ({{pendingRetinue}}).</p>
+      {{/if}}{{/if}}
+    </section>
+    {{/if}}
   </div>
 </div>

@@ -14,6 +14,7 @@
 .ucurifunke-ap-layout.can-edit { grid-template-columns: minmax(9rem, 1fr) minmax(0, 2fr); }
 .ucurifunke-ap-layout fieldset { min-width: 0; }
 .ucurifunke-ap-layout label { display: grid; gap: .25rem; margin-bottom: .5rem; }
+.ucurifunke-ap-layout [data-quick-ap] { margin-top: .45rem; }
 .ucurifunke-ap-history { max-height: 45vh; overflow: auto; }
 .ucurifunke-ap-actions { display: flex; gap: .25rem; }
 .ucurifunke-ap-actions button { width: 1.8rem; min-height: 1.8rem; padding: 0; }
@@ -119,19 +120,18 @@ html[data-ucurifunke-design]:not([data-ucurifunke-design="standard"]) .ucurifunk
 .ucurifunke-combat-section { margin-bottom: .85rem; }
 
 .ucurifunke-sheet-tabs {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: .25rem;
   padding: 0 .9rem;
   border-bottom: 1px solid var(--uc-line);
 }
-.ucurifunke-character.is-companion .ucurifunke-sheet-tabs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.ucurifunke-character .ucurifunke-sheet-tabs:has([data-sheet-tab="favorites"]:not([hidden])) {
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-}
-.ucurifunke-character.is-companion .ucurifunke-sheet-tabs:has([data-sheet-tab="favorites"]:not([hidden])) {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-}
+.ucurifunke-category-tabs { display: flex; flex-wrap: wrap; gap: .35rem; width: 100%; }
+.ucurifunke-category-tabs button { width: auto; }
+.ucurifunke-category-tabs button[aria-pressed="true"] { font-weight: 700; border-bottom: 3px solid var(--uc-accent); }
+.ucurifunke-retinue-row { flex-wrap: wrap; }
+.ucurifunke-retinue-row > button { width: auto; flex: 1 1 auto; }
+.ucurifunke-retinue-row label { display: grid; gap: .25rem; flex: 1 0 100%; }
 .ucurifunke-companion-details dd { white-space: pre-line; text-align: end; overflow-wrap: anywhere; }
 .ucurifunke-companion-details .ucurifunke-companion-properties {
   grid-column: 1 / -1;
@@ -141,6 +141,8 @@ html[data-ucurifunke-design]:not([data-ucurifunke-design="standard"]) .ucurifunk
 .ucurifunke-companion-properties dt { font-weight: 700; }
 .ucurifunke-companion-properties dd { text-align: start; line-height: 1.5; }
 .ucurifunke-sheet-tabs button {
+  flex: 1 0 auto;
+  width: auto;
   display: flex;
   justify-content: center;
   gap: .4rem;

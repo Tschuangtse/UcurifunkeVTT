@@ -25,7 +25,7 @@ Hooks.once("ready", () => {
   dock.refresh();
 });
 
-for (const hook of ["controlToken", "canvasReady", "canvasTearDown", "createCombat", "updateCombat", "deleteCombat",
+for (const hook of ["ucurifunkeTimelineVisibility", "controlToken", "canvasReady", "canvasTearDown", "createCombat", "updateCombat", "deleteCombat",
   "createCombatant", "updateCombatant", "deleteCombatant", "updateToken", "deleteToken", "updateActor", "updateUser", "renderCombatTracker"]) {
   Hooks.on(hook, refresh);
 }

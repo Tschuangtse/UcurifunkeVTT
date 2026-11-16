@@ -60,12 +60,12 @@ function openExperience() {
       </div></td>` : ""}</tr>`).join("");
     return `<p><strong>${entries.reduce((sum, entry) => sum + entry.amount, 0)} erspielte AP</strong></p>
       <div class="ucurifunke-ap-layout ${game.user.isGM ? "can-edit" : ""}">
-      ${game.user.isGM ? '<fieldset><legend>Änderung</legend><label>Anlass <textarea name="reason" required maxlength="300" rows="2"></textarea></label><label>Menge <input type="number" name="amount" min="-1000000" max="1000000" step="1" value="100" required></label><button type="button" data-add-ap>Hinzufügen</button></fieldset>' : ""}
+      ${game.user.isGM ? '<fieldset><legend>Änderung</legend><label>Anlass <textarea name="reason" required maxlength="300" rows="2"></textarea></label><label>Menge <input type="number" name="amount" min="-1000000" max="1000000" step="1" value="100" required></label><button type="button" data-add-ap>Hinzufügen</button><button type="button" data-quick-ap>Kritischer Erfolg / Patzer · +50 AP</button></fieldset>' : ""}
       <fieldset><legend>Historie</legend>${history ? '<div class="ucurifunke-ap-history"><table><thead><tr><th>Anlass</th><th>Menge</th><th>Datum</th>'
         + (game.user.isGM ? '<th>Aktionen</th>' : '') + '</tr></thead><tbody>' + history + '</tbody></table></div>' : "<p>Noch keine Einträge.</p>"}</fieldset></div>`;
   }, view => {
     view.addEventListener("click", async event => {
-      const button = event.target.closest("[data-add-ap], [data-ap]");
+      const button = event.target.closest("[data-add-ap], [data-quick-ap], [data-ap]");
       if (!button || !game.user.isGM || button.disabled) return;
       if (button.dataset.ap) {
         button.disabled = true;
@@ -76,13 +76,16 @@ function openExperience() {
       }
       const reason = experience.view.querySelector('[name="reason"]');
       const amount = experience.view.querySelector('[name="amount"]');
-      if (!reason.value.trim() || !amount.reportValidity() || !amount.valueAsNumber) {
+      const quick = button.hasAttribute("data-quick-ap");
+      if (!quick && (!reason.value.trim() || !amount.reportValidity() || !amount.valueAsNumber)) {
         ui.notifications.warn("Bitte einen Anlass und eine Menge ungleich 0 eingeben.");
         return;
       }
       button.disabled = true;
       try {
-        await save("partyExperience", [...read("partyExperience"), { reason: reason.value.trim(), amount: amount.valueAsNumber, at: Date.now() }]);
+        const entry = { reason: quick ? "Kritischer Erfolg / Patzer" : reason.value.trim(),
+          amount: quick ? 50 : amount.valueAsNumber, at: Date.now() };
+        await save("partyExperience", [...read("partyExperience"), entry]);
       } catch (error) { ui.notifications.error(error.message); }
       finally { button.disabled = false; }
     });

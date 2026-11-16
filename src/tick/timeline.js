@@ -145,11 +145,25 @@ export class TimelineApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     this.fitToTimeline();
+    Hooks.callAll("ucurifunkeTimelineVisibility");
   }
 
   async _onClose(options) {
     await super._onClose(options);
     refreshTokenHighlights(false);
+    Hooks.callAll("ucurifunkeTimelineVisibility");
+  }
+
+  async minimize(...args) {
+    const result = await super.minimize(...args);
+    Hooks.callAll("ucurifunkeTimelineVisibility");
+    return result;
+  }
+
+  async maximize(...args) {
+    const result = await super.maximize(...args);
+    Hooks.callAll("ucurifunkeTimelineVisibility");
+    return result;
   }
 
   fitToTimeline() {

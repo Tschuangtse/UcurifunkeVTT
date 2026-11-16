@@ -3,6 +3,34 @@ import assert from "node:assert/strict";
 import { CATEGORIES, ACTIONS, parseCost } from "../../src/actions/actions.js";
 import { getSelection, addActionTicks } from "../../src/actions/combat.js";
 import { ActionDock } from "../../src/actions/dock.js";
+import { setTimelineApp } from "../../src/tick/state.js";
+
+test("the action dock requires a started encounter and a visible timeline", () => {
+  const game = { user: {}, combat: { started: false }, settings: { get: () => true } };
+  const timeline = { rendered: true, minimized: false };
+  const dock = new ActionDock({ getGame: () => game });
+  dock.mount = () => {
+    dock.root = { isConnected: true, style: { setProperty() {} }, remove() {} };
+  };
+  dock.update = () => {};
+  setTimelineApp(timeline);
+  try {
+    dock.refresh();
+    assert.equal(dock.root, null);
+    game.combat.started = true;
+    dock.refresh();
+    assert.ok(dock.root);
+    timeline.minimized = true;
+    dock.refresh();
+    assert.equal(dock.root, null);
+    timeline.minimized = false;
+    dock.refresh();
+    assert.ok(dock.root);
+    timeline.rendered = false;
+    dock.refresh();
+    assert.equal(dock.root, null);
+  } finally { setTimelineApp(null); }
+});
 
 function fixture() {
   const combatant = { id: "combatant-a", tokenId: "token-a", sceneId: "scene-a", actor: { id: "shared-actor" } };

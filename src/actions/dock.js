@@ -6,6 +6,7 @@ import { dodgeCheck, postRoll, prepareRoll, weaponCheck } from "../checks.js";
 import { applyConditionEffects } from "../conditions.js";
 import { dodgeFields, dodgeOptions, linkAttack, selectedAttackTarget } from "../combat-workflow.js";
 import { getCombatantInfo } from "../tick/data.js";
+import { getTimelineApp } from "../tick/state.js";
 
 export class ActionDock {
   constructor({ getGame = () => game, getCanvas = () => globalThis.canvas, notify = message => ui.notifications.warn(message),
@@ -17,7 +18,9 @@ export class ActionDock {
 
   refresh() {
     const game = this.getGame();
-    if (!game.user || !game.settings.get(SETTINGS_SCOPE, "enabled")) {
+    const timeline = getTimelineApp();
+    if (!game.user || !game.combat?.started || !timeline?.rendered || timeline.minimized
+      || !game.settings.get(SETTINGS_SCOPE, "enabled")) {
       this.root?.remove();
       this.root = null;
       this.expanded = null;
