@@ -100,8 +100,14 @@ export function describeImport(current, imported) {
   ];
 }
 
+export function pedipalpusImportTarget(actor) {
+  const target = actor?.isToken ? game.actors.get(actor.token?.actorId) : actor;
+  return target?.isOwner && ["character", "npc"].includes(target.type) ? target : null;
+}
+
 export async function updatePedipalpusActor(actor) {
-  if (!actor.isOwner || actor.isToken) return;
+  actor = pedipalpusImportTarget(actor);
+  if (!actor) return;
   const { file, portrait } = await chooseCharacterFile("Änderungen ansehen") ?? {};
   if (!file || !actor.isOwner) return;
   const json = await file.text();

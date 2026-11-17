@@ -3,7 +3,21 @@ import { test } from "node:test";
 import { applyConditionEffects, conditionEffects, conditionRows } from "../src/conditions.js";
 import { armorProtection, damageFormula, linkAttack } from "../src/combat-workflow.js";
 import { convertCharacter } from "../src/import-data.js";
-import { describeImport } from "../src/import-preview.js";
+import { describeImport, pedipalpusImportTarget } from "../src/import-preview.js";
+
+test("the import from an unlinked NPC token targets the owned directory actor", () => {
+  const npc = { id: "npc", isOwner: true, type: "npc" };
+  const tokenActor = { isToken: true, token: { actorId: npc.id } };
+  const previousGame = globalThis.game;
+  globalThis.game = { actors: new Map([[npc.id, npc]]) };
+  try {
+    assert.equal(pedipalpusImportTarget(tokenActor), npc);
+    assert.equal(pedipalpusImportTarget(npc), npc);
+    npc.isOwner = false;
+    assert.equal(pedipalpusImportTarget(tokenActor), null);
+    assert.equal(pedipalpusImportTarget({ isOwner: true, type: "retinue" }), null);
+  } finally { globalThis.game = previousGame; }
+});
 
 const sample = {
   Name: "Test", Version: 17,

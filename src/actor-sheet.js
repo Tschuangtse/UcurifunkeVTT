@@ -8,7 +8,7 @@ import { escapeHtml } from "./check-card.js";
 import { bindProbeShortcuts } from "./probe-shortcuts.js";
 import { effectiveTicks, tickOverridePatch, weaponTickFields } from "./weapon-ticks.js";
 import { bindFocus, combatFocus } from "./combat-focus.js";
-import { applyCharacterPortrait, chooseCharacterFile, updatePedipalpusActor } from "./import-preview.js";
+import { applyCharacterPortrait, chooseCharacterFile, pedipalpusImportTarget, updatePedipalpusActor } from "./import-preview.js";
 import { applyConditionEffects, conditionEffects, conditionRows, conditionSummary, setConditionField, SUPPRESSIONS } from "./conditions.js";
 import { armorProtection, dodgeFields, dodgeOptions, linkAttack, selectedAttackTarget } from "./combat-workflow.js";
 import { planRetinue, retinueSource, syncRetinue } from "./retinue.js";
@@ -141,7 +141,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       conditionRule: conditions.find(row => row.key === this.#selectedCondition),
       companion, npcGenerator: data.npcGenerator, companionDetails, retinue, canImportRetinue: Boolean(pending && globalThis.game?.user?.isGM),
       pendingRetinue: pendingPlan ? pendingPlan.entries.length + pendingPlan.removed.length : 0,
-      canEdit: this.isEditable, canRoll: this.actor.isOwner, canImport: this.actor.isOwner && !this.actor.isToken && !companion,
+      canEdit: this.isEditable, canRoll: this.actor.isOwner, canImport: Boolean(pedipalpusImportTarget(this.actor)),
       canRollPerception: this.actor.isOwner && Boolean(perceptionCheck(data)),
       canRollAstralSense: this.actor.isOwner && Boolean(astralSenseCheck(data)) };
   }
