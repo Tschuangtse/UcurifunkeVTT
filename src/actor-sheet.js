@@ -142,6 +142,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       companion, npcGenerator: data.npcGenerator, companionDetails, retinue, canImportRetinue: Boolean(pending && globalThis.game?.user?.isGM),
       pendingRetinue: pendingPlan ? pendingPlan.entries.length + pendingPlan.removed.length : 0,
       canEdit: this.isEditable, canRoll: this.actor.isOwner, canImport: Boolean(pedipalpusImportTarget(this.actor)),
+      importLabel: this.actor.type === "npc" ? "NSC aus NSCGenerator importieren" : "Aus Pedipalpus aktualisieren",
       canRollPerception: this.actor.isOwner && Boolean(perceptionCheck(data)),
       canRollAstralSense: this.actor.isOwner && Boolean(astralSenseCheck(data)) };
   }

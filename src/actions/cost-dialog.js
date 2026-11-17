@@ -36,7 +36,7 @@ export async function requestCost(action, selection) {
   const hint = document.createElement("p");
   hint.textContent = action.hint ?? "Gesamtkosten der Handlung in Ticks eingeben.";
   const label = document.createElement("label");
-  label.textContent = "Ticks ";
+  label.textContent = "Ticks";
   const input = document.createElement("input");
   const initialCost = String(action.ticks ?? VARIABLE_COST.default);
   Object.assign(input, {
@@ -44,14 +44,16 @@ export async function requestCost(action, selection) {
     step: "1", defaultValue: initialCost, value: initialCost, required: true, autofocus: true
   });
   input.setAttribute("aria-label", "Tickkosten");
-  label.append(input);
+  input.id = "uqca-action-ticks";
+  label.htmlFor = input.id;
   fields.append(actor, hint);
   const owner = selection.combatant.actor;
   const overrides = owner?.getFlag?.("ucurifunke", "actionTickOverrides")?.[action.id] ?? {};
   const choices = weaponChoices(action, owner?.items, owner);
   if (choices.length) {
     const weaponLabel = document.createElement("label");
-    weaponLabel.textContent = "Waffe ";
+    weaponLabel.textContent = "Waffe";
+    weaponLabel.className = "uqca-weapon-field";
     const select = document.createElement("select");
     select.name = "weapon";
     const manual = document.createElement("option");
@@ -73,14 +75,14 @@ export async function requestCost(action, selection) {
   reset.textContent = "Zurücksetzen";
   const row = document.createElement("div");
   row.className = "uqca-tick-field";
-  row.append(label, reset);
+  row.append(label, input, reset);
   fields.append(row);
   content.append(fields);
 
   return foundry.applications.api.DialogV2.prompt({
-    classes: SYSTEM_DIALOG_CLASSES,
+    classes: [...SYSTEM_DIALOG_CLASSES, "uqca-cost-dialog"],
     window: { title: `${action.name} – Tickkosten` },
-    classes: ["uqca-cost-dialog"],
+    position: { width: Math.min(520, (globalThis.innerWidth ?? 544) - 24) },
     content,
     modal: true,
     rejectClose: false,
