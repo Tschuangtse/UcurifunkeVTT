@@ -1,22 +1,42 @@
 import { SYSTEM_DIALOG_CLASSES } from "./appearance.js";
 import { escapeHtml as esc } from "./check-card.js";
 import { DEFAULT_LIGHT_PRESETS, campaignLightPresets, lightUpdate, validateLight, validatePresetName } from "./light-presets.js";
+import { emitsLight, suspendLightUpdate, restoreLightUpdate } from "./token-light-state.js";
+import "./token-light-ring.js";
 
 const scope = "ucurifunke";
 const animations = () => Object.keys(CONFIG.Canvas.lightAnimations);
 const presets = () => campaignLightPresets(game.users, animations());
 const dialogs = new Map();
 const pending = new Set();
-const initialLight = token => token.actor?.getFlag(scope, "lastTokenLight")
-  ?? token.getFlag(scope, "lastTokenLight") ?? DEFAULT_LIGHT_PRESETS[0];
+const initialLight = token => {
+  const last = token.actor?.getFlag(scope, "lastTokenLight") ?? token.getFlag(scope, "lastTokenLight") ?? DEFAULT_LIGHT_PRESETS[0];
+  return { ...last, alpha: last.alpha ?? token.light.alpha ?? 0.5 };
+};
 const owned = token => token.isOwner && (!token.actor || token.actor.isOwner);
 
 async function applyLight(token, values) {
   if (!owned(token)) throw new Error("Du benötigst Besitzrechte für diesen Token.");
   const light = validateLight(values, animations());
+  if (!light.bright) {
+    const update = suspendLightUpdate(token);
+    if (update) await token.update(update);
+    return;
+  }
   const last = { ...light, presetId: values.presetId ?? values.id ?? "" };
-  await token.update({ ...lightUpdate(light), [`flags.${scope}.lastTokenLight`]: last });
+  await token.update({ ...lightUpdate(light), [`flags.${scope}.lastTokenLight`]: last,
+    [`flags.${scope}.suspendedTokenLight`]: null });
   if (token.actor) await token.actor.setFlag(scope, "lastTokenLight", last);
+}
+
+async function toggleLight(token) {
+  if (!owned(token)) throw new Error("Du benötigst Besitzrechte für diesen Token.");
+  const update = emitsLight(token) ? suspendLightUpdate(token) : restoreLightUpdate(token);
+  if (update) await token.update(update);
+  else {
+    const last = initialLight(token);
+    await applyLight(token, last.bright > 0 ? last : DEFAULT_LIGHT_PRESETS[0]);
+  }
 }
 
 async function savePreset(values, id, name) {
@@ -48,6 +68,7 @@ class TokenLightDialog extends foundry.applications.api.DialogV2 {
         <label for="uq-light-bright">Lichtstufe</label><input id="uq-light-bright" type="number" name="bright" min="0" max="16" step="1" value="4" required>
         <span>Gedämpftes Licht</span><output data-dim></output>
         <label for="uq-light-color">Lichtfarbe</label><input id="uq-light-color" type="color" name="color" value="#ffc314" required>
+        <label for="uq-light-alpha">Farbintensität</label><div class="ucurifunke-light-range"><input id="uq-light-alpha" type="range" name="alpha" min="0" max="1" step="0.05" value="0.5"><output data-alpha></output></div>
         <label for="uq-light-type">Animation</label><select id="uq-light-type" name="type">${animationOptions}</select>
         <label for="uq-light-speed">Geschwindigkeit</label><input id="uq-light-speed" type="number" name="speed" min="0" max="10" step="1" value="2" required>
         <label for="uq-light-intensity">Intensität</label><input id="uq-light-intensity" type="number" name="intensity" min="1" max="10" step="1" value="5" required>
@@ -72,11 +93,11 @@ class TokenLightDialog extends foundry.applications.api.DialogV2 {
     super._onRender(context, options);
     this.lightForm = this.element.querySelector("form");
     this.fields = this.lightForm.elements;
-    for (const key of ["bright", "color", "type", "speed", "intensity"]) this.fields[key].value = this.light[key];
+    for (const key of ["bright", "color", "alpha", "type", "speed", "intensity"]) this.fields[key].value = this.light[key];
     this.lightForm.addEventListener("input", () => this.refresh());
     this.fields.presetId.addEventListener("change", () => {
       const preset = presets().find(entry => entry.id === this.fields.presetId.value);
-      if (preset) for (const key of ["bright", "color", "type", "speed", "intensity"]) this.fields[key].value = preset[key];
+      if (preset) for (const key of ["bright", "color", "alpha", "type", "speed", "intensity"]) this.fields[key].value = preset[key];
       this.refresh();
     });
     this.refresh();
@@ -89,7 +110,7 @@ class TokenLightDialog extends foundry.applications.api.DialogV2 {
   }
 
   values() {
-    return Object.fromEntries(["bright", "color", "type", "speed", "intensity", "presetId"]
+    return Object.fromEntries(["bright", "color", "alpha", "type", "speed", "intensity", "presetId"]
       .map(key => [key, this.fields[key].value]));
   }
 
@@ -98,6 +119,7 @@ class TokenLightDialog extends foundry.applications.api.DialogV2 {
     this.element.querySelector("[data-new-preset]").hidden = !create;
     this.fields.presetName.disabled = !create;
     this.fields.presetName.required = create;
+    this.element.querySelector("[data-alpha]").textContent = Number(this.fields.alpha.value).toLocaleString("de-DE");
     const dim = Number(this.fields.bright.value) * 1.5;
     this.element.querySelector("[data-dim]").textContent = this.fields.bright.validity.valid
       ? dim.toLocaleString("de-DE") : "–";
@@ -152,7 +174,8 @@ function decorateLight(hud, html) {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "control-icon ucurifunke-token-light";
-  button.ariaLabel = "Lichtquelle · Klick anwenden, Rechtsklick bearbeiten";
+  button.ariaLabel = `Licht ${emitsLight(token) ? "ausschalten" : "einschalten"} · Rechtsklick bearbeiten`;
+  button.classList.toggle("active", emitsLight(token));
   button.dataset.tooltipText = button.ariaLabel;
   button.innerHTML = '<i class="fa-solid fa-fire-flame-curved" inert></i>';
   button.addEventListener("click", event => {
@@ -160,7 +183,7 @@ function decorateLight(hud, html) {
     event.stopPropagation();
     if (pending.has(token.uuid)) return;
     pending.add(token.uuid);
-    void applyLight(token, initialLight(token)).catch(error => ui.notifications.error(error.message))
+    void toggleLight(token).catch(error => ui.notifications.error(error.message))
       .finally(() => pending.delete(token.uuid));
   });
   button.addEventListener("contextmenu", event => {

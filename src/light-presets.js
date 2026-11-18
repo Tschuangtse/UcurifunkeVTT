@@ -1,7 +1,7 @@
 export const DEFAULT_LIGHT_PRESETS = [
-  { id: "fackel", name: "Fackel", bright: 4, color: "#ffc314", type: "flame", speed: 2, intensity: 5 },
-  { id: "laterne", name: "Laterne", bright: 6, color: "#ffc314", type: "torch", speed: 2, intensity: 5 },
-  { id: "flim-flam", name: "Flim Flam", bright: 4, color: "#befaff", type: "pulse", speed: 2, intensity: 1 }
+  { id: "fackel", name: "Fackel", bright: 4, color: "#ffc314", alpha: 0.3, type: "flame", speed: 2, intensity: 5 },
+  { id: "laterne", name: "Laterne", bright: 6, color: "#ffc314", alpha: 0.3, type: "torch", speed: 2, intensity: 5 },
+  { id: "flim-flam", name: "Flim Flam", bright: 4, color: "#befaff", alpha: 0.5, type: "pulse", speed: 2, intensity: 1 }
 ];
 
 const key = name => name.trim().normalize("NFKC").toLocaleLowerCase("de-DE");
@@ -24,13 +24,18 @@ export function validateLight(values, animationTypes) {
   if (typeof values.type !== "string" || (values.type && !animationTypes.includes(values.type))) {
     throw new Error("Bitte einen gültigen Animationstyp wählen.");
   }
-  return { ...numbers, color: values.color.toLowerCase(), type: values.type };
+  const alpha = values.alpha === undefined ? 0.5
+    : values.alpha === "" || values.alpha === null || typeof values.alpha === "boolean" ? NaN : Number(values.alpha);
+  if (!Number.isFinite(alpha) || alpha < 0 || alpha > 1) {
+    throw new Error("Die Farbintensität muss zwischen 0 und 1 liegen.");
+  }
+  return { ...numbers, color: values.color.toLowerCase(), alpha, type: values.type };
 }
 
 export function lightUpdate(values) {
   return {
     "light.bright": values.bright, "light.dim": values.bright * 1.5,
-    "light.color": values.color, "light.animation.type": values.type || null,
+    "light.color": values.color, "light.alpha": values.alpha, "light.animation.type": values.type || null,
     "light.animation.speed": values.speed, "light.animation.intensity": values.intensity
   };
 }
@@ -48,7 +53,8 @@ export function campaignLightPresets(users, animationTypes) {
       if (previous && (previous.revision > record.revision
         || (previous.revision === record.revision && previous.author >= user.id))) continue;
       try {
-        const light = validateLight(record, animationTypes);
+        const fallback = DEFAULT_LIGHT_PRESETS.find(preset => preset.id === id);
+        const light = validateLight({ ...record, alpha: record.alpha ?? fallback?.alpha ?? 0.5 }, animationTypes);
         validatePresetName(record.name, [], id);
         presets.set(id, { ...light, id, name: record.name.trim(), revision: record.revision, author: user.id });
       } catch { /* Ignore malformed user flags instead of breaking the token HUD. */ }

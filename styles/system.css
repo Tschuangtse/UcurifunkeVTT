@@ -545,3 +545,6 @@ html[data-ucurifunke-design="tavern"] .ucurifunke-sheet .window-content .ucurifu
 .ucurifunke-light-dialog .form-footer { display: flex; flex-wrap: wrap; gap: .5rem; }
 .ucurifunke-light-dialog .form-footer > button { flex: 1 1 12rem; }
 .ucurifunke-light-dialog button:disabled { opacity: .5; cursor: default; }
+.ucurifunke-light-range { display: flex; align-items: center; gap: .7rem; }
+.ucurifunke-light-range input { flex: 1; min-width: 0; }
+.ucurifunke-light-range output { min-width: 2.5rem; text-align: right; font-variant-numeric: tabular-nums; }

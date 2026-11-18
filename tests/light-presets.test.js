@@ -9,13 +9,15 @@ const user = (id, records) => ({ id, getFlag: () => records });
 test("light defaults use Foundry V14 animation identifiers and always derive dim from bright", () => {
   assert.deepEqual(DEFAULT_LIGHT_PRESETS.map(({ bright, type, speed, intensity }) => [bright, type, speed, intensity]),
     [[4, "flame", 2, 5], [6, "torch", 2, 5], [4, "pulse", 2, 1]]);
+  assert.deepEqual(DEFAULT_LIGHT_PRESETS.map(preset => preset.alpha), [0.3, 0.3, 0.5]);
   for (let bright = 0; bright <= 16; bright++) {
     const light = validateLight({ ...torch, bright: String(bright) }, types);
     const update = lightUpdate(light);
     assert.equal(update["light.bright"], bright);
     assert.equal(update["light.dim"], 1.5 * bright);
     assert.equal(update["light.animation.type"], "flame");
-    assert.equal(Object.keys(update).length, 6, "unrelated token light settings are preserved");
+    assert.equal(update["light.alpha"], 0.3);
+    assert.equal(Object.keys(update).length, 7, "unrelated token light settings are preserved");
   }
   assert.equal(lightUpdate(validateLight({ ...torch, type: "" }, types))["light.animation.type"], null);
 });
@@ -26,6 +28,21 @@ test("invalid light values are rejected before writing token or preset data", ()
   for (const [field, invalid] of [["speed", -1], ["speed", 11], ["intensity", 0], ["intensity", 11],
     ["type", "missing"], ["color", "red"], ["color", "#ff0000;background:url(x)"]])
     assert.throws(() => validateLight({ ...torch, [field]: invalid }, types));
+});
+
+test("color intensity validates zero through one and upgrades old saved presets without discarding them", () => {
+  for (const alpha of [0, 0.3, "0.5", 1]) {
+    assert.equal(validateLight({ ...torch, alpha }, types).alpha, Number(alpha));
+  }
+  for (const alpha of ["", null, true, NaN, Infinity, -0.1, 1.1])
+    assert.throws(() => validateLight({ ...torch, alpha }, types), /Farbintensität/);
+  const { alpha, ...legacy } = torch;
+  const merged = campaignLightPresets([user("player", {
+    fackel: { ...legacy, revision: 1 }, custom: { ...legacy, name: "Altes Licht", revision: 2 }
+  })], types);
+  assert.equal(merged.find(preset => preset.id === "fackel").alpha, 0.3);
+  assert.equal(merged.find(preset => preset.id === "custom").alpha, 0.5);
+  assert.equal(validateLight(legacy, types).alpha, 0.5);
 });
 
 test("new names require four letters and reject existing names regardless of case or surrounding whitespace", () => {
