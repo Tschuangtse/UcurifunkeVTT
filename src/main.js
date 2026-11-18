@@ -6,6 +6,7 @@ import "./creation-defaults.js";
 import "./dice-menu.js";
 import "./campaign.js";
 import "./token-status.js";
+import "./token-light.js";
 import { UcurifunkeActor } from "./actor.js";
 import { CharacterData, EquipmentData, WeaponData } from "./models.js";
 import { CharacterSheet, CompanionSheet, importPedipalpus } from "./actor-sheet.js";

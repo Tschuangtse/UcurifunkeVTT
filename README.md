@@ -30,6 +30,8 @@ Für eine manuelle Installation den Inhalt des Release-ZIPs nach `Data/systems/u
 
 ## Umfang der Testversion
 
+Rechts im Token-Menü öffnet ein Rechtsklick auf die Flamme den Lichtdialog. Fackel, Laterne und Flim Flam füllen die Felder vor. Die Lichtstufe ist von 0 bis 16 einstellbar, gedämpftes Licht beträgt immer das 1,5-Fache. **Licht anwenden** merkt sich die Einstellung am Charakter, ein späterer Linksklick auf die Flamme wendet sie erneut an. Lichtstufe 0 schaltet das Licht aus. Neue benannte Presets und Änderungen an bestehenden Presets gelten für die ganze Kampagne. Spieler mit Besitzrechten am Token können sie ebenso nutzen und bearbeiten wie die Spielleitung.
+
 Über den Reitern stehen aktuelle und maximale Energien. **LE** öffnet die Schadensübersicht, **AE** und **KE** lassen sich direkt bearbeiten. **Regeneration** zeigt die Gutschrift vor dem Anwenden an. Beim Aktualisieren über den Bogen ist **LE, AE, KE und Schadensübersicht beibehalten** vorausgewählt.
 
 In einem laufenden Tickkampf kann das Ziel eines öffentlichen Nahkampfangriffs im Chat **Ausweichen** wählen. Die Reaktion kostet auch bei einem Fehlschlag 4 Ticks. Die Berechnung berücksichtigt BE, den aktuellen Tickwert, Kampffokus und Überanstrengung. Wahrnehmung des Angriffs, Umzingelung, Rennen, Körperlage und beengte Umgebung werden im Dialog angegeben. Bei gleicher Qualität trifft der Angriff.

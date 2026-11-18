@@ -530,3 +530,18 @@ html[data-ucurifunke-design="tavern"] .ucurifunke-sheet .window-content .ucurifu
 .ucurifunke-row:not(.is-item):has(.ucurifunke-probe-star) { grid-template-columns: minmax(0, 1fr) auto 1.75rem 2.1rem 1.7rem; }
 .ucurifunke-row:not(.is-item):has([data-kind="technique"]):has(.ucurifunke-probe-star) { grid-template-columns: minmax(0, 1fr) auto 1.75rem 2.1rem 1.7rem 2.1rem 1.7rem; }
 .ucurifunke-row:not(.is-item):has(.ucurifunke-probe-star) [data-kind="technique"][data-mode="PA"] { grid-column: 6; }
+.ucurifunke-light-dialog { max-width: calc(100vw - 2rem); }
+.ucurifunke-light-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(8rem, 1fr);
+  align-items: center;
+  gap: .65rem 1rem;
+}
+.ucurifunke-light-fields > :is(input, select) { width: 100%; min-width: 0; }
+.ucurifunke-light-fields input[type="color"] { height: 2.2rem; padding: .15rem; }
+.ucurifunke-light-new { display: flex; align-items: center; gap: .5rem; margin-block: 1rem; }
+.ucurifunke-light-error { margin-block: .65rem 0; font-weight: bold; }
+.ucurifunke-light-dialog [hidden] { display: none !important; }
+.ucurifunke-light-dialog .form-footer { display: flex; flex-wrap: wrap; gap: .5rem; }
+.ucurifunke-light-dialog .form-footer > button { flex: 1 1 12rem; }
+.ucurifunke-light-dialog button:disabled { opacity: .5; cursor: default; }
