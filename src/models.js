@@ -7,6 +7,19 @@ const flag = () => new BooleanField({ required: true, initial: false });
 const rows = fields => new ArrayField(new SchemaField(fields), { initial: [] });
 const attribute = () => ({ name: text(), key: text(), value: number() });
 
+export class ObjectData extends foundry.abstract.TypeDataModel {
+  static defineSchema() {
+    return {
+      hardness: new NumberField({ required: true, nullable: false, integer: true, min: 0, max: 30, initial: 0 }),
+      structure: new SchemaField({
+        value: new NumberField({ required: true, nullable: false, integer: true, min: 0, max: 3, initial: 3 }),
+        max: new NumberField({ required: true, nullable: false, integer: true, min: 3, max: 3, initial: 3 })
+      }),
+      description: text(), size: text(), weight: new NumberField({ required: true, nullable: false, min: 0, initial: 0 })
+    };
+  }
+}
+
 export class CharacterData extends foundry.abstract.TypeDataModel {
   static defineSchema() {
     return {

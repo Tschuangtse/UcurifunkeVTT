@@ -7,8 +7,10 @@ import "./dice-menu.js";
 import "./campaign.js";
 import "./token-status.js";
 import "./token-light.js";
+import "./object-tokens.js";
 import { UcurifunkeActor } from "./actor.js";
-import { CharacterData, EquipmentData, WeaponData } from "./models.js";
+import { CharacterData, EquipmentData, ObjectData, WeaponData } from "./models.js";
+import { ObjectSheet } from "./object-sheet.js";
 import { CharacterSheet, CompanionSheet, importPedipalpus } from "./actor-sheet.js";
 import { renderHiddenCheck } from "./checks.js";
 import { registerCheckCommands } from "./chat-commands.js";
@@ -57,6 +59,9 @@ Hooks.once("init", () => {
   CONFIG.Actor.dataModels.character = CharacterData;
   CONFIG.Actor.dataModels.npc = CharacterData;
   CONFIG.Actor.dataModels.retinue = CharacterData;
+  CONFIG.Actor.dataModels.object = ObjectData;
+  CONFIG.Actor.trackableAttributes ??= {};
+  CONFIG.Actor.trackableAttributes.object = { bar: ["structure"], value: [] };
   CONFIG.Item.dataModels.equipment = EquipmentData;
   CONFIG.Item.dataModels.weapon = WeaponData;
   foundry.applications.apps.DocumentSheetConfig.registerSheet(
@@ -64,6 +69,9 @@ Hooks.once("init", () => {
   );
   foundry.applications.apps.DocumentSheetConfig.registerSheet(
     foundry.documents.Actor, game.system.id, CompanionSheet, { types: ["retinue"], makeDefault: true, label: "Gefolge" }
+  );
+  foundry.applications.apps.DocumentSheetConfig.registerSheet(
+    foundry.documents.Actor, game.system.id, ObjectSheet, { types: ["object"], makeDefault: true, label: "Gegenstand" }
   );
 });
 

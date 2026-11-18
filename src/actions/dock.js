@@ -20,6 +20,7 @@ export class ActionDock {
     const game = this.getGame();
     const timeline = getTimelineApp();
     if (!game.user || !game.combat?.started || !timeline?.rendered || timeline.minimized
+      || this.getCanvas()?.tokens?.controlled?.some(token => token.actor?.type === "object")
       || !game.settings.get(SETTINGS_SCOPE, "enabled")) {
       this.root?.remove();
       this.root = null;

@@ -1,1 +1,1 @@
-{"TYPES":{"Actor":{"character":"Character","npc":"NPC","retinue":"Gefolge"},"Item":{"equipment":"Equipment","weapon":"Weapon"}}}
+{"TYPES":{"Actor":{"character":"Character","npc":"NPC","retinue":"Gefolge","object":"Gegenstand"},"Item":{"equipment":"Equipment","weapon":"Weapon"}}}

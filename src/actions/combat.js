@@ -13,6 +13,7 @@ export function getSelection(game, canvas) {
   const selected = canvas.tokens?.controlled ?? [];
   if (selected.length !== 1) return { error: "Genau ein Token auswählen." };
   const token = selected[0];
+  if (token.actor?.type === "object") return { error: "Gegenstände können keine Handlungen durchführen." };
   if (!game.user.isGM && !token.document?.isOwner) return { error: OWNERSHIP_ERROR };
   const sceneId = token.document?.parent?.id ?? canvas.scene.id;
   const combatants = [...(combat.combatants ?? [])].filter(candidate =>

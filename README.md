@@ -30,6 +30,8 @@ Für eine manuelle Installation den Inhalt des Release-ZIPs nach `Data/systems/u
 
 ## Umfang der Testversion
 
+Beim Anlegen eines Akteurs steht zusätzlich **Gegenstand** zur Auswahl. Sein eigener Bogen enthält Härte (0–30), Struktur (0–3, anfänglich 3), Beschreibung, Größe und Gewicht. Gegenstands-Token zeigen ihren Struktur-Balken bei Beschädigung an und blenden ihn bei 3 Punkten aus. Sie haben keine Handlungen, Ausrüstung oder Zustände. Die Lichtsteuerung mit Presets und den beiden Reichweitenringen steht ihnen zur Verfügung.
+
 Rechts im Token-Menü öffnet ein Rechtsklick auf die Flamme den Lichtdialog. Fackel, Laterne und Flim Flam füllen die Felder vor. Die Lichtstufe ist von 0 bis 16 einstellbar, gedämpftes Licht beträgt immer das 1,5-Fache. Ein Regler steuert die Farbintensität von 0 bis 1. Fackel und Laterne verwenden 0,3, Flim Flam 0,5. **Licht anwenden** merkt sich die Einstellung am Charakter. Ein Linksklick auf die Flamme schaltet vorhandenes Licht aus und stellt beim nächsten Klick die vollständigen vorherigen Einstellungen wieder her. Auch Lichtstufe 0 schaltet das Licht aus. Dünne Kreise markieren die Ränder des hellen und gedämpften Lichts und berücksichtigen Wände und die Sichtbarkeit des Tokens. Neue benannte Presets und Änderungen an bestehenden Presets gelten für die ganze Kampagne. Spieler mit Besitzrechten am Token können sie ebenso nutzen und bearbeiten wie die Spielleitung.
 
 Über den Reitern stehen aktuelle und maximale Energien. **LE** öffnet die Schadensübersicht, **AE** und **KE** lassen sich direkt bearbeiten. **Regeneration** zeigt die Gutschrift vor dem Anwenden an. Beim Aktualisieren über den Bogen ist **LE, AE, KE und Schadensübersicht beibehalten** vorausgewählt.

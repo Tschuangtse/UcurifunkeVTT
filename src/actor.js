@@ -4,6 +4,11 @@ import { convertNpc, isNpcFile, npcRetinue } from "./npc-import.js";
 import { damageRows, energyRows } from "./energy.js";
 
 export class UcurifunkeActor extends foundry.documents.Actor {
+  async toggleStatusEffect(...args) {
+    if (this.type === "object") return null;
+    return super.toggleStatusEffect(...args);
+  }
+
   async importFromJSON(json) {
     const source = JSON.parse(json.replace(/^\uFEFF/, ""));
     if (isNpcFile(source)) {
@@ -25,6 +30,7 @@ export class UcurifunkeActor extends foundry.documents.Actor {
   }
 
   async importPedipalpusData({ name, system, items }, { keepEnergy = true } = {}) {
+    if (this.type === "object") throw new Error("Charakterdaten können nicht in Gegenstände importiert werden.");
     const current = this.toObject();
     if (keepEnergy && energyRows(current.system).length) {
       const previous = energyRows(current.system);

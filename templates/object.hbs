@@ -1,0 +1,23 @@
+<div class="ucurifunke-character ucurifunke-object">
+  <header class="ucurifunke-character-header">
+    <img src="{{actorImage}}" alt="">
+    <div><label for="{{sheetId}}-name">Gegenstand</label>
+      <input id="{{sheetId}}-name" name="name" type="text" value="{{actorName}}" aria-label="Name" required {{#unless canEdit}}disabled{{/unless}}>
+    </div>
+    <button type="button" class="ucurifunke-roll ucurifunke-header-action" data-action="appearance" title="Darstellung" aria-label="Darstellung"><i class="fa-solid fa-gear" aria-hidden="true"></i></button>
+  </header>
+  <div class="ucurifunke-sheet-body">
+    <div class="ucurifunke-object-values">
+      <label for="{{sheetId}}-hardness">Härte</label>
+      <input id="{{sheetId}}-hardness" name="system.hardness" type="number" min="0" max="30" step="1" value="{{data.hardness}}" required {{#unless canEdit}}disabled{{/unless}}>
+      <label for="{{sheetId}}-structure">Struktur</label>
+      <div class="ucurifunke-object-structure"><input id="{{sheetId}}-structure" name="system.structure.value" type="number" min="0" max="3" step="1" value="{{data.structure.value}}" required {{#unless canEdit}}disabled{{/unless}}><span>/ 3</span></div>
+      <label for="{{sheetId}}-size">Größe</label>
+      <input id="{{sheetId}}-size" name="system.size" type="text" value="{{data.size}}" {{#unless canEdit}}disabled{{/unless}}>
+      <label for="{{sheetId}}-weight">Gewicht</label>
+      <input id="{{sheetId}}-weight" name="system.weight" type="number" min="0" step="any" value="{{data.weight}}" required {{#unless canEdit}}disabled{{/unless}}>
+    </div>
+    <label for="{{sheetId}}-description">Beschreibung</label>
+    <textarea id="{{sheetId}}-description" name="system.description" rows="7" {{#unless canEdit}}disabled{{/unless}}>{{data.description}}</textarea>
+  </div>
+</div>

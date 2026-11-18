@@ -22,7 +22,7 @@ const enabled = () => ({ ...defaults, ...game.settings.get("ucurifunke", "tokenS
 const statusName = entry => german[entry.id] ?? game.i18n.localize(entry.name);
 
 function refreshBadges(token) {
-  if (token.destroyed || token.isPreview || !token.actor) return;
+  if (token.destroyed || token.isPreview || !token.actor || token.actor.type === "object") return;
   const settings = enabled();
   const rows = conditionRows(token.actor.system).filter(row => row.effective && settings[row.key] && conditionIcons.has(row.key));
   let badge = tokenBadges.get(token);
@@ -108,6 +108,10 @@ function conditionButton(actor, row) {
 
 function decorateHud(hud, html) {
   html.querySelectorAll('[data-palette="movementActions"]').forEach(el => el.remove());
+  if (hud.actor?.type === "object") {
+    html.querySelectorAll('[data-palette="effects"], [data-action="combat"]').forEach(el => el.remove());
+    return;
+  }
   const palette = html.querySelector('.status-effects[data-palette="effects"]');
   if (!palette) return;
   const settings = enabled();

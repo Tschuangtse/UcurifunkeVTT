@@ -60,6 +60,7 @@ export function conditionEffects(data) {
 
 export async function setConditionField(actor, key, field, value) {
   if (!actor?.isOwner) return;
+  if (actor.type === "object") throw new Error("Gegenstände können keine Zustände erhalten.");
   const rows = conditionRows(actor.system);
   const row = rows.find(entry => entry.key === key);
   if (!row) return;

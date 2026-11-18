@@ -548,3 +548,17 @@ html[data-ucurifunke-design="tavern"] .ucurifunke-sheet .window-content .ucurifu
 .ucurifunke-light-range { display: flex; align-items: center; gap: .7rem; }
 .ucurifunke-light-range input { flex: 1; min-width: 0; }
 .ucurifunke-light-range output { min-width: 2.5rem; text-align: right; font-variant-numeric: tabular-nums; }
+.ucurifunke-object { grid-template-rows: auto minmax(0, 1fr); }
+.ucurifunke-object .ucurifunke-character-header { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; }
+.ucurifunke-object .ucurifunke-character-header input { width: 100%; font-size: 1.2rem; }
+.ucurifunke-object-values { display: grid; grid-template-columns: minmax(0, 1fr) minmax(5rem, 1fr); gap: .8rem; align-items: center; margin-bottom: 1rem; }
+.ucurifunke-object-values input { width: 100%; min-width: 0; }
+.ucurifunke-object-structure { display: flex; align-items: center; gap: .5rem; }
+.ucurifunke-object-structure span { white-space: nowrap; }
+.ucurifunke-object textarea { width: 100%; min-height: 9rem; margin-top: .5rem; resize: vertical; }
+html[data-ucurifunke-design] .ucurifunke-object-sheet .window-content .ucurifunke-character-header input {
+  color: var(--uc-ink, var(--color-text-primary));
+}
+html[data-ucurifunke-design] .ucurifunke-object-sheet .window-content .ucurifunke-character-header label {
+  color: var(--uc-frame-text, var(--color-text-primary));
+}
