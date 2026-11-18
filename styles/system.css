@@ -414,6 +414,10 @@ html[data-ucurifunke-design]:not([data-ucurifunke-design="standard"]) :is(.ucuri
     background: linear-gradient(#17101822, #17101822), var(--uc-frame-image, none) center / cover var(--uc-frame);
   }
   & > .window-header :is(button, .window-title) { color: inherit; }
+  & > .window-header button {
+    --button-text-color: var(--uc-frame-text);
+    --button-hover-text-color: var(--uc-frame-text);
+  }
   & :is(.ucurifunke-character, .window-content) {
     color: var(--uc-ink);
     background: linear-gradient(var(--uc-wash, transparent), var(--uc-wash, transparent)), var(--uc-texture, none) center / cover var(--uc-paper);
