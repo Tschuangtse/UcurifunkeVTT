@@ -3,8 +3,10 @@ const rings = new WeakMap();
 export function refreshLightRing(token) {
   if (token.destroyed || token.isPreview) return;
   const source = token.light;
-  const radius = source?.data.bright;
-  const visible = source?.active && radius > 0 && !token.document.light.negative
+  const bright = source?.data.bright ?? 0;
+  const dim = source?.data.dim ?? 0;
+  const radii = [...new Set([bright, dim].filter(radius => radius > 0))];
+  const visible = source?.active && radii.length > 0 && !token.document.light.negative
     && token.isVisible && token.document.level === canvas.level?.id;
   let ring = rings.get(token);
   if (!visible || !source.shape) {
@@ -25,14 +27,19 @@ export function refreshLightRing(token) {
   // Source polygons use scene coordinates; cancel the token's translation.
   ring.container.position.set(-token.x, -token.y);
   const zoom = canvas.stage.scale.x || 1;
-  const key = [source.updateId, source.x, source.y, radius, zoom].join("|");
+  const key = [source.updateId, source.x, source.y, bright, dim, zoom].join("|");
   if (ring.key === key && ring.source === source) return;
   ring.key = key;
   ring.source = source;
   ring.mask.clear().beginFill(0xffffff).drawShape(source.shape).endFill();
-  ring.line.clear()
-    .lineStyle(3 / zoom, 0x17131b, 0.55).drawCircle(source.x, source.y, radius)
-    .lineStyle(1.3 / zoom, 0xfff3d4, 0.85).drawCircle(source.x, source.y, radius);
+  ring.line.clear();
+  for (const radius of radii) {
+    // Keep the outer stroke just inside the source polygon so its circular
+    // approximation does not cut gaps into the dim-light border.
+    const edge = radius === Math.max(bright, dim) ? Math.max(0, radius - 1.5 / zoom) : radius;
+    ring.line.lineStyle(3 / zoom, 0x17131b, 0.55).drawCircle(source.x, source.y, edge)
+      .lineStyle(1.3 / zoom, 0xfff3d4, 0.85).drawCircle(source.x, source.y, edge);
+  }
 }
 
 const refreshAll = () => {
