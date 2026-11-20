@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { FOOTPRINT_DEFAULTS, footprintOptions, portraitPosition, portraitScale } from "../src/token-footprint-data.js";
 
 const hooks = new Map();
-globalThis.Hooks = { on: (name, handler) => hooks.set(name, handler) };
+globalThis.Hooks = { on: (name, handler) => hooks.set(name, handler), once: (name, handler) => hooks.set(name, handler) };
 class Shadow {
   constructor() { this.position = { set: (x, y) => { this.x = x; this.y = y; } }; }
   clear() { return this; }
@@ -26,6 +26,33 @@ test("footprint is opt-in and malformed flags cannot introduce invalid color or 
   }
   assert.deepEqual(footprintOptions({ flags: { ucurifunke: { footprint: { enabled: true, color: "#123456", opacity: 0 } } } }),
     { enabled: true, color: "#123456", opacity: 0 });
+});
+
+test("the world default is applied only to newly created tokens without an explicit choice", () => {
+  let enabled = false;
+  const writes = [];
+  globalThis.game = { settings: { get: () => enabled, register: (scope, key, data) => {
+    assert.equal(scope, "ucurifunke"); assert.equal(key, "footprintDefault");
+    assert.equal(data.scope, "world"); assert.equal(data.default, false);
+    assert.equal(data.onChange, undefined, "changing the setting never rewrites existing documents");
+  } } };
+  hooks.get("init")();
+  const create = saved => hooks.get("preCreateToken")({ getFlag: () => saved, updateSource: change => writes.push(change) });
+  create(undefined);
+  assert.equal(writes.length, 0);
+  enabled = true;
+  create(undefined);
+  create({ color: "#123456", opacity: 0.3 });
+  assert.deepEqual(writes, [
+    { "flags.ucurifunke.footprint.enabled": true }, { "flags.ucurifunke.footprint.enabled": true }
+  ]);
+  create({ enabled: false });
+  create({ enabled: true });
+  assert.equal(writes.length, 2, "explicit prototype and token choices are preserved");
+  assert.equal(footprintOptions({ flags: {} }).enabled, false, "existing token rendering ignores the world default");
+  assert.equal(footprintOptions({ flags: {} }, { defaultEnabled: true }).enabled, true, "prototype UI shows the new-token default");
+  assert.equal(footprintOptions({ flags: { ucurifunke: { footprint: { enabled: false } } } }, { defaultEnabled: true }).enabled, false);
+  delete globalThis.game;
 });
 
 test("portrait remains centered at the bottom for square, tall, wide and large footprints", () => {

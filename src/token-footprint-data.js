@@ -1,10 +1,10 @@
 export const FOOTPRINT_DEFAULTS = { enabled: false, color: "#211c16", opacity: 0.65 };
 
-export function footprintOptions(document) {
+export function footprintOptions(document, { defaultEnabled = false } = {}) {
   const saved = document.getFlag?.("ucurifunke", "footprint") ?? document.flags?.ucurifunke?.footprint ?? {};
   const opacity = saved.opacity === "" || saved.opacity == null ? NaN : Number(saved.opacity);
   return {
-    enabled: saved.enabled === true,
+    enabled: saved.enabled === true || (saved.enabled === undefined && defaultEnabled),
     color: typeof saved.color === "string" && /^#[0-9a-f]{6}$/i.test(saved.color) ? saved.color : FOOTPRINT_DEFAULTS.color,
     opacity: Number.isFinite(opacity) && opacity >= 0 && opacity <= 1 ? opacity : FOOTPRINT_DEFAULTS.opacity
   };

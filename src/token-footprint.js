@@ -69,7 +69,9 @@ export function refreshFootprint(token) {
 function renderFootprintOptions(app, html) {
   const tab = html.querySelector('[data-application-part="appearance"]');
   if (!tab || tab.querySelector(".ucurifunke-footprint-options")) return;
-  const options = footprintOptions(app.token ?? app.document);
+  const options = footprintOptions(app.token ?? app.document, {
+    defaultEnabled: Boolean(app.isPrototype && game.settings.get("ucurifunke", "footprintDefault"))
+  });
   const prefix = `${app.id}-uc-footprint`;
   const section = document.createElement("fieldset");
   section.className = "ucurifunke-footprint-options";
@@ -105,3 +107,17 @@ Hooks.on("updateToken", (document, changes) => {
 });
 Hooks.on("renderTokenConfig", renderFootprintOptions);
 Hooks.on("renderPrototypeTokenConfig", renderFootprintOptions);
+
+Hooks.once("init", () => {
+  game.settings.register("ucurifunke", "footprintDefault", {
+    name: "Neue Token: Unverzerrtes Bild mit Schatten",
+    hint: "Aktiviert die Darstellung für neu erstellte Token ohne eigene Einstellung. Individuelle Token- und Prototyp-Einstellungen haben Vorrang. Bereits platzierte Token bleiben unverändert.",
+    scope: "world", config: true, type: Boolean, default: false
+  });
+});
+
+Hooks.on("preCreateToken", token => {
+  if (!game.settings.get("ucurifunke", "footprintDefault")) return;
+  if (token.getFlag("ucurifunke", "footprint")?.enabled !== undefined) return;
+  token.updateSource({ "flags.ucurifunke.footprint.enabled": true });
+});
