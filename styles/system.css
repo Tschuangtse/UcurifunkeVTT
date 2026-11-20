@@ -566,3 +566,6 @@ html[data-ucurifunke-design] .ucurifunke-object-sheet .window-content .ucurifunk
 html[data-ucurifunke-design] .ucurifunke-object-sheet .window-content .ucurifunke-character-header label {
   color: var(--uc-frame-text, var(--color-text-primary));
 }
+.ucurifunke-footprint-options .form-fields { align-items: center; }
+.ucurifunke-footprint-options input[type="color"] { width: 100%; height: 2rem; }
+.ucurifunke-footprint-options output { min-width: 2.5rem; text-align: right; font-variant-numeric: tabular-nums; }

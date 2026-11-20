@@ -8,6 +8,7 @@ import "./campaign.js";
 import "./token-status.js";
 import "./token-light.js";
 import "./object-tokens.js";
+import "./token-footprint.js";
 import { UcurifunkeActor } from "./actor.js";
 import { CharacterData, EquipmentData, ObjectData, WeaponData } from "./models.js";
 import { ObjectSheet } from "./object-sheet.js";
