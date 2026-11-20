@@ -4,8 +4,32 @@ import { convertNpc, isNpcFile, npcRetinue } from "./npc-import.js";
 import { damageRows, energyRows } from "./energy.js";
 
 export class UcurifunkeActor extends foundry.documents.Actor {
+  async update(data, options = {}) {
+    if (this.type === "bodypart" && this.isToken && this.token?.getFlag("ucurifunke", "segment") && !options.uqAutomation) {
+      const expanded = foundry.utils.expandObject(data);
+      const health = expanded.system?.health;
+      if (health) {
+        delete expanded.system.health;
+        if (!Object.keys(expanded.system).length) delete expanded.system;
+        if (Object.keys(expanded).length) await super.update(expanded, options);
+        const { requestAutomation } = await import("./automation-queue.js");
+        await requestAutomation("partHealth", this.token.uuid, health);
+        return this;
+      }
+    }
+    return super.update(data, options);
+  }
+
+  async modifyTokenAttribute(attribute, value, isDelta, isBar) {
+    if (this.type === "bodypart" && this.isToken && attribute === "health" && this.token?.getFlag("ucurifunke", "segment")) {
+      const { requestAutomation } = await import("./automation-queue.js");
+      return requestAutomation("partHealth", this.token.uuid, isDelta ? { delta: Number(value) } : { value: Number(value) });
+    }
+    return super.modifyTokenAttribute(attribute, value, isDelta, isBar);
+  }
+
   async toggleStatusEffect(...args) {
-    if (this.type === "object") return null;
+    if (["object", "bodypart"].includes(this.type)) return null;
     return super.toggleStatusEffect(...args);
   }
 
@@ -30,7 +54,7 @@ export class UcurifunkeActor extends foundry.documents.Actor {
   }
 
   async importPedipalpusData({ name, system, items }, { keepEnergy = true } = {}) {
-    if (this.type === "object") throw new Error("Charakterdaten können nicht in Gegenstände importiert werden.");
+    if (["object", "bodypart"].includes(this.type)) throw new Error("Charakterdaten können nicht in Gegenstände oder Körperteile importiert werden.");
     const current = this.toObject();
     if (keepEnergy && energyRows(current.system).length) {
       const previous = energyRows(current.system);

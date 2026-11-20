@@ -50,8 +50,18 @@ Ein erneuter Import aus Pedipalpus ergänzt bei älteren Foundry-Charakteren die
 
 Die Tickleiste basiert auf TickBasedCombat 0.3.12 von Tschuangtse und Phil Reif. Die Aktionsleiste basiert auf Ucurifunke Quick Combat Actions 0.2.1 von Tschuangtse.
 
-## Entwicklung
+## Segmentierte Token und Effekte
+
+Körperteile werden als eigener Akteurtyp **Körperteil** angelegt. Sie besitzen nur Namen, Bild und aktuelle/maximale LE. Zuerst Haupttoken und Körperteile auf einer Szene anordnen, dann als Spielleitung im Token-Menü des Haupttokens über das Puzzle-Symbol die Körperteile auswählen und die Anordnung speichern. Weitere Platzierungen des Hauptakteurs erzeugen jeweils eine eigene Gruppe. Gruppen verwenden unverbundene Token, damit ihre LE voneinander unabhängig bleiben. Beim Bewegen des Haupttokens folgen die Körperteile; sie können auch einzeln umpositioniert und die neue Anordnung erneut gespeichert werden. LE-Verlust eines Körperteils wird in derselben Höhe beim Haupttoken vermerkt. Überkill zählt nur bis zu den tatsächlich vorhandenen Körperteil-LE; Heilung bleibt beim Körperteil. Körperteile erhalten keine eigenen Kampfzüge oder Zustände.
+
+Das Kompendium **Ucurifunke · Effekte** enthält Regeneration I, Astrale Regeneration und zwei Verlangsamungs-Vorlagen. Eine Vorlage auf einen Token oder seinen Bogen ziehen und Intervall, Wiederholung, Dauer beziehungsweise „Permanent“ wählen. Ohne Begegnung wartet der Effekt auf den nächsten aktiven Kampf dieser Szene. Die Dauer läuft anhand der verstrichenen Kampfticks, nicht anhand der Uhrzeit.
+
+Wiederkehrende Effekte stehen als **Effektname (Tokenname)** in der Zeitleiste und werden bei Fälligkeit über den Vorwärts-Knopf manuell ausgelöst. Sie würfeln oder verändern keine Ressourcen von allein. Durchgängige Wirkungen gelten sofort und stehen rechts in einer einklappbaren, scrollbaren Effektspalte. Beim Darüberfahren wird der betroffene Token markiert. Das Zauberstab-Symbol im Token-Menü öffnet die Effektverwaltung, auch vor Kampfbeginn.
+
+Eigene Vorlagen lassen sich im Gegenstandsverzeichnis mit dem Typ **Effektvorlage** erstellen. Der Editor unterstützt aktuelle und maximale Energien bei periodischen Wirkungen sowie Attribute, abgeleitete Werte, BE und Tickkosten. Durchgängige Änderungen werden nur für den betroffenen Token berechnet und verändern die importierten Grundwerte nicht. Absolute Änderungen werden zuerst addiert, danach wird die Summe der Prozentänderungen angewendet. Tickkosten werden aufgerundet. Erneutes Anwenden derselben Vorlage erneuert den Effekt, außer „Mehrfachanwendung addiert sich“ ist aktiviert. Für Spieleranfragen muss eine Spielleitung verbunden sein; sie führt Schadensweitergabe und Effekte über eine gemeinsame Warteschlange aus.
+
+## Entwicklung und Paketbau
 
 Der Importknopf im Akteursverzeichnis erkennt auch Dateien `*.nsc.json` aus dem NSCGenerator und legt einen Akteur vom Typ **NSC** an. Einen bestehenden NSC kann man über seinen Bogen oder **Daten importieren** aktualisieren. Aufgabenbereiche verwenden drei im Probenfenster gewählte Attribute. Zauber, Rituale und Liturgien übernehmen die hinterlegten Attribute. Merkmale und Kräfte ohne gültige Probe erscheinen ohne Würfelknopf.
 
-Mit Node.js lassen sich die Tests über `npm test` ausführen. `npm run package` legt das Manifest und das installierbare ZIP in `dist/` ab. Für den Paketbau wird ein `tar` mit ZIP-Unterstützung benötigt, wie es Windows mitliefert.
+Nach `npm ci` lassen sich mit Node.js die Tests über `npm test` ausführen. `npm run package` erstellt das Effektkompendium aus `pack-sources/effects` und legt Manifest und installierbares ZIP in `dist/` ab. Für den Paketbau wird ein `tar` mit ZIP-Unterstützung benötigt, wie es Windows mitliefert.

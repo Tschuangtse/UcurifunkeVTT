@@ -1,1 +1,16 @@
-{"TYPES":{"Actor":{"character":"Character","npc":"NPC","retinue":"Gefolge","object":"Gegenstand"},"Item":{"equipment":"Equipment","weapon":"Weapon"}}}
+{
+  "TYPES": {
+    "Actor": {
+      "character": "Character",
+      "npc": "NPC",
+      "retinue": "Gefolge",
+      "object": "Gegenstand",
+      "bodypart": "Body Part"
+    },
+    "Item": {
+      "equipment": "Equipment",
+      "weapon": "Weapon",
+      "effect": "Effect Template"
+    }
+  }
+}

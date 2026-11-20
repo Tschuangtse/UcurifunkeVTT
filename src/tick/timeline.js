@@ -1,3 +1,5 @@
+import { effectEntries } from "../effect-timeline.js";
+import { bindEffectHighlights, clearEffectHighlight } from "../effect-highlights.js";
 import { SYSTEM_DIALOG_CLASSES } from "../appearance.js";
 import { getLanguage, strings, t } from "./i18n.js";
 import {
@@ -48,6 +50,8 @@ export class TimelineApp extends HandlebarsApplicationMixin(ApplicationV2) {
       minimizable: true
     },
     actions: {
+      triggerEffect: this._onTriggerEffect,
+      removeEffect: this._onRemoveEffect,
       timelineHelp: this._onHelp,
       addEvent: this._onAddEvent,
       beginComplexAction: this._onBeginComplexAction,
@@ -84,6 +88,21 @@ export class TimelineApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const help = header.querySelector('[data-action="timelineHelp"]');
     const controls = header.querySelector('[data-action="toggleControls"]');
     if (help && controls) controls.before(help);
+  }
+
+  static async _onTriggerEffect(_event, target) {
+    const { requestAutomation } = await import("../automation-queue.js");
+    target.disabled = true;
+    try { await requestAutomation("effectTrigger", target.dataset.tokenUuid, {id:target.dataset.effectId, expectedNextAt:Number(target.dataset.nextAt)}); }
+    catch (error) { ui.notifications.error(error.message); }
+    finally { await this.render(); }
+  }
+
+  static async _onRemoveEffect(_event, target) {
+    const { requestAutomation } = await import("../automation-queue.js");
+    try { await requestAutomation("effectRemove", target.dataset.tokenUuid, {id:target.dataset.effectId}); }
+    catch (error) { ui.notifications.error(error.message); }
+    await this.render();
   }
 
   static async _onHelp() {
@@ -126,6 +145,8 @@ export class TimelineApp extends HandlebarsApplicationMixin(ApplicationV2) {
       labels: strings(),
       language: getLanguage().toUpperCase(),
       list,
+      continuousEffects: effectEntries(game.combat, {continuous:true}),
+      continuousOpen: this.element?.querySelector(".uq-continuous-effects")?.open ?? true,
       isGM: Boolean(game.user?.isGM),
       scale,
       limited: Number(game.settings.get(MODULE_ID, "visibleTickGroups")) === 3,
@@ -144,6 +165,7 @@ export class TimelineApp extends HandlebarsApplicationMixin(ApplicationV2) {
       input.addEventListener("keydown", event => this._onTickKeydown(event));
     }
 
+    bindEffectHighlights(this.element);
     this.fitToTimeline();
     Hooks.callAll("ucurifunkeTimelineVisibility");
   }
@@ -151,10 +173,12 @@ export class TimelineApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onClose(options) {
     await super._onClose(options);
     refreshTokenHighlights(false);
+    clearEffectHighlight();
     Hooks.callAll("ucurifunkeTimelineVisibility");
   }
 
   async minimize(...args) {
+    clearEffectHighlight();
     const result = await super.minimize(...args);
     Hooks.callAll("ucurifunkeTimelineVisibility");
     return result;
@@ -170,7 +194,7 @@ export class TimelineApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Later data refreshes must preserve a manually resized window.
     if (this._hasInitialSize) return;
     const groups = groupedTimeline().length;
-    const desired = 40 + (groups * 190);
+    const desired = 40 + (groups * 190) + (effectEntries(game.combat, {continuous:true}).length ? 250 : 0);
     const viewportLimit = Math.max(360, (globalThis.innerWidth ?? 1280) - 120);
     const width = Math.min(Math.max(desired, 360), viewportLimit);
     const scale = Number(game.settings.get(MODULE_ID, "scale") ?? 1);

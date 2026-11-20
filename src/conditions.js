@@ -1,3 +1,4 @@
+import { effectiveActor } from "./effect-values.js";
 import { CONDITION_CATALOG } from "./condition-catalog.js";
 
 export const conditionKey = name => name.toLocaleLowerCase("de").replaceAll("ä", "ae")
@@ -60,7 +61,7 @@ export function conditionEffects(data) {
 
 export async function setConditionField(actor, key, field, value) {
   if (!actor?.isOwner) return;
-  if (actor.type === "object") throw new Error("Gegenstände können keine Zustände erhalten.");
+  if (["object", "bodypart"].includes(actor.type)) throw new Error("Gegenstände können keine Zustände erhalten.");
   const rows = conditionRows(actor.system);
   const row = rows.find(entry => entry.key === key);
   if (!row) return;
@@ -97,6 +98,7 @@ export function situationalConditionOptions(data, check) {
 }
 
 export function applyConditionEffects(actor, check, situation = {}) {
+  actor = effectiveActor(actor);
   const effects = conditionEffects(actor.system);
   const combat = check.kind === "combat";
   if (effects.blocked) throw new Error("Keine Probe möglich: handlungsunfähig durch Lähmung (GS 0).");

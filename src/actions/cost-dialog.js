@@ -1,3 +1,4 @@
+import { actionTickCost } from "../effect-values.js";
 import { SYSTEM_DIALOG_CLASSES } from "../appearance.js";
 import { VARIABLE_COST, parseCost } from "./actions.js";
 import { effectiveTicks, tickOverridePatch, weaponTickFields } from "../weapon-ticks.js";
@@ -77,6 +78,10 @@ export async function requestCost(action, selection) {
   row.className = "uqca-tick-field";
   row.append(label, input, reset);
   fields.append(row);
+  const preview = document.createElement("p");
+  preview.setAttribute("data-effect-tick-preview", "");
+  preview.hidden = true;
+  fields.append(preview);
   content.append(fields);
 
   return foundry.applications.api.DialogV2.prompt({
@@ -108,9 +113,19 @@ export async function requestCost(action, selection) {
       const key = () => selected()?.id ?? "manual";
       const source = () => selected()?.ticks ?? Number(initialCost);
       const drafts = new Map();
+      const preview = dialog.element.querySelector("[data-effect-tick-preview]");
+      const updatePreview = () => {
+        if (!preview) return;
+        const base = field.valueAsNumber ?? Number(field.value);
+        const final = actionTickCost(base, selection.token?.document);
+        preview.hidden = !Number.isFinite(base) || final === base;
+        preview.textContent = "Mit aktiven Effekten: " + final + " Ticks";
+      };
       const updateCost = () => {
         field.value = drafts.get(key()) ?? String(overrides[key()] ?? source());
+        updatePreview();
       };
+      field.addEventListener("input", updatePreview);
       field.addEventListener("input", () => drafts.set(key(), field.value));
       resetButton.addEventListener("click", async () => {
         const resetKey = key();

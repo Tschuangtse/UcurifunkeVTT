@@ -1,0 +1,9 @@
+<div class="ucurifunke-character ucurifunke-object">
+  <header class="ucurifunke-character-header"><img src="{{img}}" data-edit="img" alt="Körperteilbild"><div><label>Körperteil</label><input name="name" aria-label="Name" value="{{name}}" required {{#unless editable}}disabled{{/unless}}></div>
+    <button type="button" data-action="appearance" aria-label="Darstellung"><i class="fa-solid fa-gear" inert></i></button></header>
+  <div class="ucurifunke-sheet-body">{{#if parentName}}<p>Haupttoken: <strong>{{parentName}}</strong></p>{{/if}}
+    <div class="ucurifunke-object-values"><label for="{{rootId}}-le">Lebensenergie</label><input id="{{rootId}}-le" name="system.health.value" type="number" min="0" max="{{health.max}}" step="1" value="{{health.value}}" required {{#unless editable}}disabled{{/unless}}>
+      <label for="{{rootId}}-max">Maximale LE</label><input id="{{rootId}}-max" name="system.health.max" type="number" min="1" max="1000000" step="1" value="{{health.max}}" required {{#unless editable}}disabled{{/unless}}></div>
+    <p>Verlorene LE werden auch vom Haupttoken abgezogen. Heilung wirkt ausschließlich auf dieses Körperteil.</p>
+  </div>
+</div>

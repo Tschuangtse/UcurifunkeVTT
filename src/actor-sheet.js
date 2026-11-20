@@ -1,3 +1,5 @@
+import { effectiveActor, effectToken } from "./effect-values.js";
+import { applyEffectTemplate } from "./effects.js";
 import { energyRows } from "./energy.js";
 import { openEnergyValue, openHealth, openRegeneration } from "./energy-dialogs.js";
 import { SYSTEM_DIALOG_CLASSES, mundaneTabsEnabled, openAppearanceSettings } from "./appearance.js";
@@ -88,12 +90,17 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       energy: CharacterSheet.#energy }
   };
 
+  async _onDropItem(event, item) {
+    if (item.type === "effect") return applyEffectTemplate(effectToken(this.actor, this.token), item);
+    return super._onDropItem(event, item);
+  }
+
   static PARTS = { character: { template: path, scrollable: [".ucurifunke-sheet-body"] } };
 
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
     await foundry.applications.handlebars.loadTemplates([focusTemplate]);
-    const data = this.actor.system;
+    const data = effectiveActor(this.actor, this.token).system;
     const companionDetails = data.companionDetails.filter(row => !["Beschreibung", "LE", "AE", "KE"].includes(row.name))
       .map(row => ({ name: row.name, value: row.value, fullWidth: row.name === "Besondere Eigenschaften" }));
     const companion = this.actor.type === "retinue";
@@ -420,34 +427,35 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
 
   static async #roll(_event, target) {
     if (!this.actor.isOwner) return;
+    const actor = effectiveActor(this.actor, this.token);
     const { kind, index, item, mode } = target.dataset;
-    const data = this.actor.system;
+    const data = effectiveActor(actor, this.token).system;
     const skill = kind === "technique" ? data.skills[Number(index)] : null;
     const companionAbility = kind === "companionAbility" ? data.skills[Number(index)] : null;
-    const settings = skill ? techniqueSettings(this.actor, skill) : null;
-    const companionPerception = kind === "perception" && this.actor.type === "retinue";
+    const settings = skill ? techniqueSettings(actor, skill) : null;
+    const companionPerception = kind === "perception" && actor.type === "retinue";
     const dodgeSelection = kind === "dodge" ? getSelection(game, canvas) : null;
-    const bookDodge = dodgeSelection?.token?.actor?.uuid === this.actor.uuid;
-    let check = kind === "weapon" ? weaponCheck(this.actor, this.actor.items.get(item), mode)
-      : kind === "dodge" ? dodgeCheck(this.actor, { ticks: bookDodge ? getCombatantInfo(dodgeSelection.combatant).ticks : 0 })
+    const bookDodge = dodgeSelection?.token?.actor?.uuid === actor.uuid;
+    let check = kind === "weapon" ? weaponCheck(actor, actor.items.get(item), mode)
+      : kind === "dodge" ? dodgeCheck(actor, { ticks: bookDodge ? getCombatantInfo(dodgeSelection.combatant).ticks : 0 })
       : kind === "attribute" ? attributeCheck(data.attributes, Number(index))
       : kind === "skill" ? skillCheck(data.skills, Number(index))
       : kind === "perception" ? perceptionCheck(data)
       : kind === "astralSense" ? astralSenseCheck(data)
-      : companionAbility && (this.actor.type === "retinue" || data.npcGenerator) && companionAbility.rollable
+      : companionAbility && (actor.type === "retinue" || data.npcGenerator) && companionAbility.rollable
         ? { ...companionAbility, kind: "skill" }
-      : skill ? techniqueCheck(this.actor, skill, mode, settings) : null;
+      : skill ? techniqueCheck(actor, skill, mode, settings) : null;
     if (check && companionPerception) check = { kind: "attribute", name: check.name, value: check.value };
     if (!check || !Number.isInteger(check.value)) return;
     target.disabled = true;
     try {
-      const attackTarget = selectedAttackTarget(this.actor, check);
-      const weaponDamage = kind === "weapon" ? this.actor.items.get(item)?.system.damage : "";
+      const attackTarget = selectedAttackTarget(actor, check);
+      const weaponDamage = kind === "weapon" ? actor.items.get(item)?.system.damage : "";
       const weaponAttack = kind === "weapon";
       const selection = skill || weaponAttack ? getSelection(game, canvas) : null;
-      const canBookTicks = selection?.token?.actor?.uuid === this.actor.uuid;
+      const canBookTicks = selection?.token?.actor?.uuid === actor.uuid;
       const abilityFlag = companionAbility && techniqueFlag(companionAbility);
-      const remembered = abilityFlag && this.actor.getFlag("ucurifunke", "companionAbilityAttributes")?.[abilityFlag];
+      const remembered = abilityFlag && actor.getFlag("ucurifunke", "companionAbilityAttributes")?.[abilityFlag];
       const primary = perceptionAttributes(data.attributes);
       const abilityDefaults = remembered?.map(key => primary.find(row => row.key === key)) ?? check.attributes;
       const fields = kind === "dodge" ? dodgeFields : skill ? techniqueFields(settings, canBookTicks)
@@ -463,19 +471,19 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
           }).filter(Boolean);
           return { ...check, attributes };
         } : undefined;
-      const modifier = await prepareRoll(check, fields, { actor: this.actor, preview });
-      if (!modifier || !this.actor.isOwner) return;
+      const modifier = await prepareRoll(check, fields, { actor: actor, preview });
+      if (!modifier || !actor.isOwner) return;
       let bookTicks = false;
       if (skill) {
         const updated = readTechniqueSettings(modifier.fields);
         bookTicks = canBookTicks && [true, 1, "1", "true", "on"].includes(modifier.fields.bookTicks) && updated.ticks > 0;
         if (bookTicks) assertSameSelection(selection, getSelection(game, canvas));
-        check = techniqueCheck(this.actor, skill, mode, updated);
+        check = techniqueCheck(actor, skill, mode, updated);
         if (Object.keys(updated).some(key => updated[key] !== settings[key])) {
-          await this.actor.update({ ["flags.ucurifunke.techniqueSettings." + techniqueFlag(skill)]: updated });
+          await actor.update({ ["flags.ucurifunke.techniqueSettings." + techniqueFlag(skill)]: updated });
         }
       } else if (kind === "perception" && !companionPerception) {
-        check = perceptionCheck(this.actor.system, [0, 1, 2].map(i => modifier.fields["attribute" + i]));
+        check = perceptionCheck(actor.system, [0, 1, 2].map(i => modifier.fields["attribute" + i]));
         if (!check) throw new Error("Bitte drei gültige Attribute auswählen.");
       } else if (companionAbility) {
         const keys = [0, 1, 2].map(i => modifier.fields["attribute" + i]);
@@ -484,7 +492,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
         if (data.npcGenerator && new Set(keys).size < 2) throw new Error("Drei gleiche Attribute sind bei NSC-Proben nicht erlaubt.");
         check = { ...check, attributes };
         if (keys.some((key, index) => key !== abilityDefaults[index]?.key)) {
-          await this.actor.update({ ["flags.ucurifunke.companionAbilityAttributes." + abilityFlag]: keys });
+          await actor.update({ ["flags.ucurifunke.companionAbilityAttributes." + abilityFlag]: keys });
         }
       } else if (weaponAttack && canBookTicks && fields) {
         bookTicks = [true, 1, "1", "true", "on"].includes(modifier.fields.bookTicks);
@@ -493,13 +501,14 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
         if (bookDodge) assertSameSelection(dodgeSelection, getSelection(game, canvas));
         const situation = dodgeOptions(modifier.fields, bookDodge ? getCombatantInfo(dodgeSelection.combatant).ticks : 0);
         if (!situation) return;
-        check = { ...dodgeCheck(this.actor, situation), ...(bookDodge ? { bookedTicks: 4 } : {}) };
+        check = { ...dodgeCheck(actor, situation), ...(bookDodge ? { bookedTicks: 4 } : {}) };
       }
-      check = applyConditionEffects(this.actor, check, modifier.conditionSituation);
-      if (bookDodge) await addActionTicks(dodgeSelection, 4, { game, canvas });
-      if (bookTicks) await addActionTicks(selection, check.ticks, { game, canvas });
-      if (check.kind === "combat" && !check.title) check = linkAttack(this.actor, check, attackTarget, weaponDamage, bookTicks ? check.ticks : attackTarget ? 0 : undefined);
-      await postRoll(this.actor, check, modifier);
+      check = applyConditionEffects(actor, check, modifier.conditionSituation);
+      let bookedTicks;
+      if (bookDodge) check.bookedTicks = await addActionTicks(dodgeSelection, 4, { game, canvas });
+      if (bookTicks) bookedTicks = await addActionTicks(selection, check.ticks, { game, canvas });
+      if (check.kind === "combat" && !check.title) check = linkAttack(actor, check, attackTarget, weaponDamage, bookTicks ? bookedTicks : attackTarget ? 0 : undefined);
+      await postRoll(actor, check, modifier);
     } catch (error) {
       ui.notifications.error(error.message);
     } finally {

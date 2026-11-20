@@ -1,3 +1,4 @@
+import { effectiveActor } from "./effect-values.js";
 import { focusModifier } from "./combat-focus.js";
 
 const MELEE_MODES = ["AT", "PA"];
@@ -21,6 +22,7 @@ export function readTechniqueSettings(fields) {
 }
 
 export function techniqueCheck(actor, skill, mode, settings) {
+  actor = effectiveActor(actor);
   const modes = skill?.group === "Nahkampf" ? MELEE_MODES : skill?.group === "Fernkampf" ? ["FK"] : [];
   if (!modes.includes(mode) || !Number.isInteger(skill.value)) return null;
   const data = actor.system;

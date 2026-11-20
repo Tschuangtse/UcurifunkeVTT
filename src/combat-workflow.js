@@ -1,3 +1,4 @@
+import { effectiveActor } from "./effect-values.js";
 import { SYSTEM_DIALOG_CLASSES } from "./appearance.js";
 import { addActionTicks, assertSameSelection, getSelection } from "./actions/combat.js";
 import { escapeHtml } from "./check-card.js";
@@ -66,7 +67,7 @@ function canRespond(message) {
   const defense = responses.find(response => response.type === "defense");
   const damage = responses.some(response => response.type === "damage");
   const attacker = foundry.utils.fromUuidSync(attack.attacker);
-  return { attack, token, defender: token.actor, attacker, defense, damage };
+  return { attack, token, defender: effectiveActor(token.actor, token), attacker, defense, damage };
 }
 
 function allowed(state, action) {
@@ -112,8 +113,8 @@ async function respond(message, action) {
     const response = await postRoll(defender, { ...adjusted, opposedQuality: attack.quality, targetName: token.name,
       exchange: { type: "defense", attack: message.id } }, { ...options, mode: "public" });
     if (response) {
-      await queueActionTicks(combatant, 4);
-      await response.update({ content: response.content.replace("</footer>", "</footer><p>Gebuchte Ticks: <strong>4</strong></p>") });
+      const booked = await queueActionTicks(combatant, 4);
+      await response.update({ content: response.content.replace("</footer>", `</footer><p>Gebuchte Ticks: <strong>${booked}</strong></p>`) });
     }
     return response;
   }
@@ -178,8 +179,8 @@ async function respond(message, action) {
     exchange: { type: "defense", attack: message.id } },
     { ...options, mode: "public" });
   if (book && response) {
-    await addActionTicks(selection, ticks, { game, canvas });
-    await response.update({ content: response.content.replace("</footer>", `</footer><p>Gebuchte Ticks: <strong>${ticks}</strong></p>`) });
+    const booked = await addActionTicks(selection, ticks, { game, canvas });
+    await response.update({ content: response.content.replace("</footer>", `</footer><p>Gebuchte Ticks: <strong>${booked}</strong></p>`) });
   }
   return response;
 }

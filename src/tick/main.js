@@ -1,3 +1,4 @@
+import { effectEntries } from "../effect-timeline.js";
 import { t } from "./i18n.js";
 import { clearEvents, getCombatantAndEventsList, isNormalizationAuthority, normalizeTicks } from "./data.js";
 import { TimelineApp } from "./timeline.js";
@@ -55,7 +56,7 @@ async function refreshTimeline({ open = false } = {}) {
   const app = getTimelineApp();
   if (!app) return;
 
-  const hasItems = getCombatantAndEventsList().length > 0;
+  const hasItems = getCombatantAndEventsList().length > 0 || effectEntries(game.combat, {continuous:true}).length > 0;
   if (!hasItems) {
     if (app.rendered) await app.close();
     return;

@@ -1,3 +1,4 @@
+import { actionTickCost } from "../effect-values.js";
 import { SYSTEM_DIALOG_CLASSES } from "../appearance.js";
 import { t } from "./i18n.js";
 import { getCombatantData, normalizeTicks, setCombatantData } from "./data.js";
@@ -57,7 +58,7 @@ export async function beginComplexAction(combatant, { name, duration }) {
   try {
     await setCombatantData(combatant, {
       ...data,
-      ticks: data.ticks + COMPLEX_ACTION_INTERVAL,
+      ticks: data.ticks + actionTickCost(COMPLEX_ACTION_INTERVAL, combatant.token),
       isWaiting: false,
       complexAction: duration > COMPLEX_ACTION_INTERVAL
         ? { name, duration, spent: COMPLEX_ACTION_INTERVAL } : null
@@ -83,7 +84,7 @@ export async function advanceComplexAction(combatant) {
     const spent = action.spent + COMPLEX_ACTION_INTERVAL;
     await setCombatantData(combatant, {
       ...data,
-      ticks: COMPLEX_ACTION_INTERVAL,
+      ticks: actionTickCost(COMPLEX_ACTION_INTERVAL, combatant.token),
       complexAction: spent < action.duration ? { ...action, spent } : null
     });
     if (spent === action.duration) await announceComplexAction(combatant, action.name, "actionFinished");

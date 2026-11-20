@@ -1,0 +1,26 @@
+{
+  "_id": "SlowedFlat000001",
+  "name": "Verlangsamt",
+  "type": "effect",
+  "img": "icons/svg/clockwork.svg",
+  "system": {
+    "description": "Alle Handlungen kosten zusätzlich 2 Ticks.",
+    "kind": "continuous",
+    "interval": 20,
+    "duration": 60,
+    "recurring": true,
+    "permanent": true,
+    "stackable": false,
+    "changes": [
+      {
+        "target": "actionTicks",
+        "mode": "add",
+        "value": 2
+      }
+    ]
+  },
+  "ownership": {
+    "default": 2
+  },
+  "_key": "!items!SlowedFlat000001"
+}

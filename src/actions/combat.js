@@ -13,7 +13,7 @@ export function getSelection(game, canvas) {
   const selected = canvas.tokens?.controlled ?? [];
   if (selected.length !== 1) return { error: "Genau ein Token auswählen." };
   const token = selected[0];
-  if (token.actor?.type === "object") return { error: "Gegenstände können keine Handlungen durchführen." };
+  if (["object", "bodypart"].includes(token.actor?.type)) return { error: "Gegenstände können keine Handlungen durchführen." };
   if (!game.user.isGM && !token.document?.isOwner) return { error: OWNERSHIP_ERROR };
   const sceneId = token.document?.parent?.id ?? canvas.scene.id;
   const combatants = [...(combat.combatants ?? [])].filter(candidate =>
@@ -37,6 +37,6 @@ export async function addActionTicks(expected, ticks, { game, canvas, loadApi = 
   const api = await loadApi();
   // Recheck permissions and identity before persisting.
   assertSameSelection(expected, getSelection(game, canvas));
-  if (ticks === 0) return;
-  await api.queueActionTicks(expected.combatant, ticks);
+  if (ticks === 0) return 0;
+  return api.queueActionTicks(expected.combatant, ticks);
 }

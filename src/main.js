@@ -9,8 +9,12 @@ import "./token-status.js";
 import "./token-light.js";
 import "./object-tokens.js";
 import "./token-footprint.js";
+import "./segments.js";
+import "./effects.js";
 import { UcurifunkeActor } from "./actor.js";
-import { CharacterData, EquipmentData, ObjectData, WeaponData } from "./models.js";
+import { CharacterData, EquipmentData, ObjectData, WeaponData, BodyPartData, EffectData } from "./models.js";
+import { BodyPartSheet } from "./bodypart-sheet.js";
+import { EffectSheet } from "./effect-sheet.js";
 import { ObjectSheet } from "./object-sheet.js";
 import { CharacterSheet, CompanionSheet, importPedipalpus } from "./actor-sheet.js";
 import { renderHiddenCheck } from "./checks.js";
@@ -61,10 +65,17 @@ Hooks.once("init", () => {
   CONFIG.Actor.dataModels.npc = CharacterData;
   CONFIG.Actor.dataModels.retinue = CharacterData;
   CONFIG.Actor.dataModels.object = ObjectData;
+  CONFIG.Actor.dataModels.bodypart = BodyPartData;
   CONFIG.Actor.trackableAttributes ??= {};
   CONFIG.Actor.trackableAttributes.object = { bar: ["structure"], value: [] };
+  CONFIG.Actor.trackableAttributes.bodypart = { bar: ["health"], value: [] };
   CONFIG.Item.dataModels.equipment = EquipmentData;
   CONFIG.Item.dataModels.weapon = WeaponData;
+  CONFIG.Item.dataModels.effect = EffectData;
+  foundry.applications.apps.DocumentSheetConfig.registerSheet(foundry.documents.Actor, game.system.id, BodyPartSheet,
+    { types: ["bodypart"], makeDefault: true, label: "Körperteil" });
+  foundry.applications.apps.DocumentSheetConfig.registerSheet(foundry.documents.Item, game.system.id, EffectSheet,
+    { types: ["effect"], makeDefault: true, label: "Effektvorlage" });
   foundry.applications.apps.DocumentSheetConfig.registerSheet(
     foundry.documents.Actor, game.system.id, CharacterSheet, { types: ["character", "npc"], makeDefault: true }
   );

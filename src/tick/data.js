@@ -1,3 +1,5 @@
+import { effectEntries } from "../effect-timeline.js";
+import { actionTickCost } from "../effect-values.js";
 import { t } from "./i18n.js";
 import { getTimelineApp } from "./state.js";
 import { normalizeComplexAction } from "./complexActionData.js";
@@ -202,7 +204,7 @@ export function getCombatantAndEventsList({ combat = game.combat, forDisplay = t
   let events = getEvents(combat);
   if (forDisplay && !game.user?.isGM) events = events.filter(event => !event.isHidden);
 
-  return [...result, ...events].sort((a, b) => {
+  return [...result, ...events, ...effectEntries(combat, {forDisplay})].sort((a, b) => {
     const tickDifference = asInteger(a.ticks) - asInteger(b.ticks);
     if (tickDifference !== 0) return tickDifference;
     return String(a.name ?? "").localeCompare(String(b.name ?? ""));
@@ -220,7 +222,7 @@ export function normalizeTicks(combat = game.combat) {
     for (const combatant of combat.combatants) {
       const pending = combatant.getFlag(MODULE_ID, "pendingTicks") ?? {};
       const requests = Object.entries(pending).filter(([id, ticks]) =>
-        /^[a-zA-Z0-9]+$/.test(id) && Number.isInteger(ticks) && ticks > 0 && ticks <= 32);
+        /^[a-zA-Z0-9]+$/.test(id) && Number.isInteger(ticks) && ticks > 0 && ticks <= 1000000);
       if (!requests.length) continue;
       const data = getCombatantData(combatant);
       data.ticks += requests.reduce((sum, [, ticks]) => sum + ticks, 0);
@@ -236,6 +238,9 @@ export function normalizeTicks(combat = game.combat) {
 }
 
 export async function queueActionTicks(combatant, ticks) {
+  ticks = actionTickCost(ticks, combatant.token);
+  if (!Number.isSafeInteger(ticks) || ticks < 0 || ticks > 1000000) throw new Error("Ungültige Tickkosten durch Effekte.");
+  if (!ticks) return 0;
   if (!game.users?.activeGM && !game.user?.isGM) {
     throw new Error("Für Tickbuchungen muss eine Spielleitung verbunden sein.");
   }
@@ -247,22 +252,23 @@ export async function queueActionTicks(combatant, ticks) {
   if (isNormalizationAuthority()) await normalizeTicks(combat);
   // Requests remain persisted if the authority disconnects while processing.
   for (let attempt = 0; attempt < 100; attempt++) {
-    if (combatant.getFlag(MODULE_ID, "pendingTicks")?.[id] === undefined) return;
+    if (combatant.getFlag(MODULE_ID, "pendingTicks")?.[id] === undefined) return ticks;
     if (!combat.started || !combat.combatants.has(combatant.id)) break;
     await new Promise(resolve => setTimeout(resolve, 150));
   }
   ui.notifications.warn("Die Tickbuchung wurde vorgemerkt und wartet auf die Spielleitung.");
+  return ticks;
 }
 
 async function normalizeCombat(combat) {
   if (!combat.started || !isNormalizationAuthority()) return;
   const timeline = getCombatantAndEventsList({ combat, forDisplay: false });
-  const active = timeline.filter(item => !item.isWaiting);
+  const baseline = combat.getFlag(MODULE_ID, "tickBaselineEstablished") ?? (Number(combat.getFlag(MODULE_ID, "totalTicks")) > 0);
+  const active = timeline.filter(item => !item.isWaiting && (baseline || !item.isEffect));
   if (!active.length) return;
 
   const normalization = asInteger(active[0].ticks, 0);
   const totalTicks = asInteger(combat.getFlag(MODULE_ID, "totalTicks"), 0);
-  const baseline = combat.getFlag(MODULE_ID, "tickBaselineEstablished") ?? (totalTicks > 0);
   if (normalization === 0 && baseline) return;
 
   const updates = active.filter(item => normalization !== 0 && !item.isEvent).map(item => ({

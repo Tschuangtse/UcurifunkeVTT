@@ -1,1 +1,16 @@
-{"TYPES":{"Actor":{"character":"Charakter","npc":"NSC","retinue":"Gefolge","object":"Gegenstand"},"Item":{"equipment":"Ausrüstung","weapon":"Waffe"}}}
+{
+  "TYPES": {
+    "Actor": {
+      "character": "Charakter",
+      "npc": "NSC",
+      "retinue": "Gefolge",
+      "object": "Gegenstand",
+      "bodypart": "Körperteil"
+    },
+    "Item": {
+      "equipment": "Ausrüstung",
+      "weapon": "Waffe",
+      "effect": "Effektvorlage"
+    }
+  }
+}

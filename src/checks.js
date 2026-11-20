@@ -1,3 +1,4 @@
+import { effectiveActor } from "./effect-values.js";
 import { SYSTEM_DIALOG_CLASSES } from "./appearance.js";
 import { escapeHtml, medianDie, renderCheckCard, skillDice } from "./check-card.js";
 import { postDiceMessage } from "./dice-message.js";
@@ -38,8 +39,14 @@ export function evaluateCheck(check, dice, modifier = 0, confirmation) {
 }
 
 export function weaponCheck(actor, weapon, mode) {
+  actor = effectiveActor(actor);
   const data = weapon?.system;
-  const base = mode === "PA" ? data?.parry : data?.attack;
+  const sourceActor = actor._uqOriginal ?? actor;
+  const baseKey = {AT:"OFF", PA:"DEF", FK:"FKB"}[mode];
+  const read = data => data.derived?.find(row => row.key.toUpperCase() === baseKey)?.value ?? 0;
+  const effectDelta = read(actor.system) - read(sourceActor.system);
+  const rawBase = mode === "PA" ? data?.parry : data?.attack;
+  const base = Number.isInteger(rawBase) ? rawBase + effectDelta : null;
   if (!Number.isInteger(base)) return null;
   const action = { AT: "melee", PA: "parry", FK: "ranged" }[mode];
   const ticks = effectiveTicks(actor, action, weapon.id, weaponTickFields(weapon).find(field => field.action === action)?.source);
@@ -56,21 +63,26 @@ export function weaponCheck(actor, weapon, mode) {
   const original = imported?.[2] ?? (mode === "PA" ? actor.system.defensiveFocus : actor.system.offensiveFocus) ?? 0;
   const focus = focusModifier(actor, mode, original);
   const delta = mode === "FK" ? 0 : focus - original;
-  const breakdown = imported?.length === 4 ? [imported[0], imported[1], focus, imported[3]] : imported;
+  const breakdown = imported?.length === 4 ? [imported[0], imported[1] + effectDelta, focus, imported[3]] : imported;
   return { kind: "combat", name: mode + " · " + weapon.name, mode, weapon: weapon.name,
     technique: data.technique, breakdown, focusDelta: breakdown?.length === 4 ? 0 : delta,
     impairment, joints, ticks, value: base + delta - impairment - joints };
 }
 
 export function dodgeValue(actor) {
+  actor = effectiveActor(actor);
   const data = actor.system;
   const derived = data.derived?.find(row => row.key.toUpperCase() === "AW")?.value;
+  const original = actor._uqOriginal?.system;
+  const bonus = original ? (derived ?? 0) - (original.derived?.find(row => row.key.toUpperCase() === "AW")?.value ?? 0) : 0;
   const defense = data.derived?.find(row => row.key.toUpperCase() === "DEF")?.value;
   const base = Number.isFinite(defense) && Number.isFinite(data.reaction) ? defense + data.reaction : derived;
-  return data.dodgeOverride ?? (Number.isFinite(base) ? Math.round(base) : null);
+  const defenseDelta = original ? (defense ?? 0) - (original.derived?.find(row => row.key.toUpperCase() === "DEF")?.value ?? 0) + data.reaction - original.reaction : 0;
+  return data.dodgeOverride != null ? data.dodgeOverride + bonus + defenseDelta : Number.isFinite(base) ? Math.round(base) + bonus : null;
 }
 
 export function dodgeCheck(actor, { ticks = 0, running = false, posture = 0, cramped = 0 } = {}) {
+  actor = effectiveActor(actor);
   const base = dodgeValue(actor);
   if (!Number.isInteger(base)) return null;
   const focus = -combatFocus(actor);

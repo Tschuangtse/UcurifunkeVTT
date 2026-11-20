@@ -25,13 +25,13 @@ Hooks.on("preCreateToken", token => {
 Hooks.on("drawToken", refreshObjectBar);
 Hooks.on("refreshToken", refreshObjectBar);
 Hooks.on("preCreateCombatant", combatant => {
-  if (combatant.actor?.type !== "object") return;
+  if (!["object", "bodypart"].includes(combatant.actor?.type)) return;
   ui.notifications.warn("Gegenstände können keine Kampfhandlungen durchführen.");
   return false;
 });
 Hooks.on("preCreateActiveEffect", effect => {
-  if (effect.parent?.documentName === "Actor" && effect.parent.type === "object") return false;
+  if (effect.parent?.documentName === "Actor" && ["object", "bodypart"].includes(effect.parent.type)) return false;
 });
 Hooks.on("preCreateItem", item => {
-  if (item.parent?.type === "object") return false;
+  if (["object", "bodypart"].includes(item.parent?.type)) return false;
 });

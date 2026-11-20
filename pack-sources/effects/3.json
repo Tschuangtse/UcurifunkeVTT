@@ -1,0 +1,26 @@
+{
+  "_id": "RegenAE000000001",
+  "name": "Astrale Regeneration",
+  "type": "effect",
+  "img": "icons/svg/aura.svg",
+  "system": {
+    "description": "Stellt bei manueller Auslösung alle 20 Ticks 2 AE wieder her.",
+    "kind": "periodic",
+    "interval": 20,
+    "duration": 60,
+    "recurring": true,
+    "permanent": true,
+    "stackable": false,
+    "changes": [
+      {
+        "target": "AE",
+        "mode": "add",
+        "value": 2
+      }
+    ]
+  },
+  "ownership": {
+    "default": 2
+  },
+  "_key": "!items!RegenAE000000001"
+}

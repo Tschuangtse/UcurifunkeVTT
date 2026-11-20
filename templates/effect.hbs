@@ -1,0 +1,14 @@
+<div class="uq-effect-editor">
+  <label>Name<input name="name" value="{{name}}" required></label>
+  <label>Beschreibung<textarea name="system.description" rows="3">{{data.description}}</textarea></label>
+  <label>Wirkungsart<select name="system.kind"><option value="periodic" {{#unless continuous}}selected{{/unless}}>Wiederkehrend / manuell auslösen</option><option value="continuous" {{#if continuous}}selected{{/if}}>Durchgängig</option></select></label>
+  <fieldset><legend>Vorgaben beim Anwenden</legend><div class="uq-effect-defaults">
+    <label>Intervall (Ticks)<input type="number" name="system.interval" value="{{data.interval}}" min="1" max="1000000" step="1" required></label>
+    <label>Dauer (Ticks)<input type="number" name="system.duration" value="{{data.duration}}" min="1" max="1000000" step="1" required></label>
+    <label><input type="checkbox" name="system.recurring" {{#if data.recurring}}checked{{/if}}>Wiederkehrend</label>
+    <label><input type="checkbox" name="system.permanent" {{#if data.permanent}}checked{{/if}}>Permanent</label>
+    <label><input type="checkbox" name="system.stackable" {{#if data.stackable}}checked{{/if}}>Mehrfachanwendung addiert sich</label>
+  </div></fieldset>
+  <fieldset><legend>Wirkungen</legend><p>Erst absolute Änderungen addieren, dann die Summe der Prozentwerte anwenden. Tickkosten werden aufgerundet.</p><div data-effect-changes></div><button type="button" data-add-change><i class="fa-solid fa-plus" inert></i>Wirkung hinzufügen</button></fieldset>
+  {{#if editable}}<button type="submit"><i class="fa-solid fa-floppy-disk" inert></i>Speichern</button>{{/if}}
+</div>

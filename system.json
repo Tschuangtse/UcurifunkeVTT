@@ -2,7 +2,7 @@
   "id": "ucurifunke",
   "title": "Ucurifunke",
   "description": "Charakterimport aus Pedipalpus, Ucurifunke-Proben und Tickkampf.",
-  "version": "0.1.52",
+  "version": "0.1.53",
   "authors": [
     {
       "name": "Tschuangtse"
@@ -49,14 +49,28 @@
       "character": {},
       "npc": {},
       "retinue": {},
-      "object": {}
+      "object": {},
+      "bodypart": {}
     },
     "Item": {
       "equipment": {},
-      "weapon": {}
+      "weapon": {},
+      "effect": {}
     }
   },
   "url": "https://github.com/Tschuangtse/UcurifunkeVTT",
   "manifest": "https://github.com/Tschuangtse/UcurifunkeVTT/releases/latest/download/system.json",
-  "download": "https://github.com/Tschuangtse/UcurifunkeVTT/releases/download/v0.1.52/ucurifunke-v0.1.52.zip"
+  "download": "https://github.com/Tschuangtse/UcurifunkeVTT/releases/download/v0.1.53/ucurifunke-v0.1.53.zip",
+  "packs": [
+    {
+      "name": "effects",
+      "label": "Ucurifunke · Effekte",
+      "path": "packs/effects",
+      "type": "Item",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER"
+      }
+    }
+  ]
 }

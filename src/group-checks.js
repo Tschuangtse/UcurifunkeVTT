@@ -1,3 +1,4 @@
+import { effectiveActor } from "./effect-values.js";
 import { evaluateCheck, prepareRoll } from "./checks.js";
 import { escapeHtml } from "./check-card.js";
 import { applyConditionEffects } from "./conditions.js";
@@ -17,6 +18,7 @@ export function passesGroupThreshold(quality, threshold) {
 }
 
 export function groupCheck(actor, type) {
+  actor = effectiveActor(actor);
   const data = actor?.system;
   if (!data?.attributes || !data.derived) return null;
   if (type === "perception") {
@@ -28,6 +30,7 @@ export function groupCheck(actor, type) {
 }
 
 function rollableSkills(actor) {
+  actor = effectiveActor(actor);
   const skills = actor?.system?.skills ?? [];
   const checks = new Map();
   const ambiguous = new Set();
@@ -90,7 +93,7 @@ async function chooseGroupSkill(skills) {
 let running = false;
 async function rollGroup(type) {
   if (!game.user.isGM || running) return;
-  const tokens = [...canvas.tokens.controlled].filter(token => type === "shared" || groupCheck(token.actor, type));
+  const tokens = [...canvas.tokens.controlled].filter(token => type === "shared" || groupCheck(effectiveActor(token.actor, token.document), type));
   if (!tokens.length) {
     ui.notifications.warn("Kein ausgewählter Token hat einen passenden Probenwert.");
     return;
@@ -99,7 +102,7 @@ async function rollGroup(type) {
   try {
     let chosen;
     if (type === "shared") {
-      const common = sharedGroupSkills(tokens.map(token => token.actor));
+      const common = sharedGroupSkills(tokens.map(token => effectiveActor(token.actor, token.document)));
       if (!common.length) {
         ui.notifications.warn("Die ausgewählten Token haben keine gemeinsame würfelbare Fähigkeit.");
         return;
@@ -117,10 +120,10 @@ async function rollGroup(type) {
     if (!Number.isSafeInteger(threshold) || threshold < 0) return;
     const rows = [];
     for (const [index, token] of tokens.entries()) {
-      const check = chosen ? chosen.checks[index] : groupCheck(token.actor, type);
+      const check = chosen ? chosen.checks[index] : groupCheck(effectiveActor(token.actor, token.document), type);
       if (!check || token.destroyed) continue;
       let adjusted;
-      try { adjusted = applyConditionEffects(token.actor, check); }
+      try { adjusted = applyConditionEffects(effectiveActor(token.actor, token.document), check); }
       catch (error) {
         rows.push([token.name, "—", error.message]);
         continue;

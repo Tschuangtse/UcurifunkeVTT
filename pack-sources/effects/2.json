@@ -1,0 +1,26 @@
+{
+  "_id": "SlowedRate000001",
+  "name": "Verlangsamt (25 %)",
+  "type": "effect",
+  "img": "icons/svg/clockwork.svg",
+  "system": {
+    "description": "Alle Handlungen kosten 25 % mehr Ticks; aufgerundet.",
+    "kind": "continuous",
+    "interval": 20,
+    "duration": 60,
+    "recurring": true,
+    "permanent": true,
+    "stackable": false,
+    "changes": [
+      {
+        "target": "actionTicks",
+        "mode": "percent",
+        "value": 25
+      }
+    ]
+  },
+  "ownership": {
+    "default": 2
+  },
+  "_key": "!items!SlowedRate000001"
+}

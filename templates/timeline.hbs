@@ -48,7 +48,7 @@
     </div>
   </header>
 
-  <div class="tick-combat-track">
+  <div class="uq-timeline-layout"><div class="tick-combat-track">
     {{#each list}}
       <section class="tick-combat-column">
         <div class="tick-combat-marker" aria-label="{{@root.labels.tick}} {{this.ticks}}">
@@ -56,7 +56,7 @@
         </div>
 
         {{#each this.items}}
-          <article class="tick-combat-card {{#if this.tickBand}}tick-combat-card--{{this.tickBand}}{{/if}} {{#if this.isWaiting}}is-waiting{{/if}} {{#if this.isHidden}}is-hidden{{/if}}" {{#unless this.isEvent}}data-combatant-id="{{this.id}}"{{/unless}}>
+          <article class="tick-combat-card {{#if this.tickBand}}tick-combat-card--{{this.tickBand}}{{/if}} {{#if this.isWaiting}}is-waiting{{/if}} {{#if this.isHidden}}is-hidden{{/if}}" {{#unless this.isEvent}}data-combatant-id="{{this.id}}"{{/unless}} {{#if this.isEffect}}data-effect-token-id="{{this.tokenId}}"{{/if}}>
             <div class="tick-combat-card-heading">
             <button
               type="button"
@@ -87,6 +87,13 @@
               <div class="tick-combat-notes">{{this.notes}}</div>
             {{/if}}
 
+            {{#if this.isEffect}}
+              <small>{{#if this.permanent}}Permanent{{else}}Restdauer: {{this.remaining}} Ticks{{/if}}</small>
+              <div class="tick-combat-card-actions">
+                {{#if this.canRemove}}<button type="button" data-action="triggerEffect" data-token-uuid="{{this.tokenUuid}}" data-effect-id="{{this.effectId}}" data-next-at="{{this.nextAt}}" {{#unless this.canTrigger}}disabled{{/unless}} title="Wirkung auslösen und weiterschieben"><i class="fa-solid fa-forward-step" inert></i></button>
+                <button type="button" data-action="removeEffect" data-token-uuid="{{this.tokenUuid}}" data-effect-id="{{this.effectId}}" aria-label="Effekt entfernen"><i class="fa-solid fa-trash" inert></i></button>{{/if}}
+              </div>
+            {{else}}
             {{#if this.isEvent}}
               {{#if ../../isGM}}
                 <div class="tick-combat-card-actions">
@@ -143,6 +150,7 @@
                 {{/if}}
               {{/if}}
             {{/if}}
+            {{/if}}
           </article>
         {{/each}}
       </section>
@@ -151,4 +159,10 @@
     {{/each}}
   </div>
 
+  {{#if continuousEffects}}<details class="uq-continuous-effects" {{#if continuousOpen}}open{{/if}}><summary>Durchgängige Effekte</summary><div>
+    {{#each continuousEffects}}<article class="tick-combat-card" data-effect-token-id="{{tokenId}}"><strong>{{name}}</strong><p>{{notes}}</p>
+      <small>{{#if permanent}}Permanent{{else}}Restdauer: {{remaining}} Ticks{{/if}}</small>
+      {{#if canRemove}}<button type="button" data-action="removeEffect" data-token-uuid="{{tokenUuid}}" data-effect-id="{{effectId}}" aria-label="Effekt entfernen"><i class="fa-solid fa-trash" inert></i></button>{{/if}}
+    </article>{{/each}}</div></details>{{/if}}
+  </div>
 </section>

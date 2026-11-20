@@ -323,3 +323,12 @@
   align-items: center;
   gap: 0.5rem;
 }
+
+.uq-timeline-layout { display:flex; min-height:0; flex:1; overflow:hidden; gap:.75rem; }
+.uq-timeline-layout > .tick-combat-track { flex:1; min-width:0; }
+.uq-continuous-effects { flex:0 0 240px; min-width:190px; overflow:auto; border-left:1px solid currentColor; padding-left:.65rem; }
+.uq-continuous-effects:not([open]) { flex-basis:2rem; min-width:2rem; writing-mode:vertical-rl; }
+.uq-continuous-effects summary { cursor:pointer; font-weight:bold; margin-bottom:.5rem; }
+.uq-continuous-effects .tick-combat-card { margin-bottom:.5rem; overflow-wrap:anywhere; }
+.uq-continuous-effects p { white-space:pre-wrap; }
+.tick-combat-card small { display:block; margin:.4rem 0; }

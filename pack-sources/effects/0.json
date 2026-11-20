@@ -1,0 +1,26 @@
+{
+  "_id": "RegenLE000000001",
+  "name": "Regeneration I",
+  "type": "effect",
+  "img": "icons/svg/regen.svg",
+  "system": {
+    "description": "Stellt bei manueller Auslösung alle 20 Ticks 4 LE wieder her.",
+    "kind": "periodic",
+    "interval": 20,
+    "duration": 60,
+    "recurring": true,
+    "permanent": true,
+    "stackable": false,
+    "changes": [
+      {
+        "target": "LE",
+        "mode": "add",
+        "value": 4
+      }
+    ]
+  },
+  "ownership": {
+    "default": 2
+  },
+  "_key": "!items!RegenLE000000001"
+}

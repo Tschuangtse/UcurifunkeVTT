@@ -20,7 +20,7 @@ export class ActionDock {
     const game = this.getGame();
     const timeline = getTimelineApp();
     if (!game.user || !game.combat?.started || !timeline?.rendered || timeline.minimized
-      || this.getCanvas()?.tokens?.controlled?.some(token => token.actor?.type === "object")
+      || this.getCanvas()?.tokens?.controlled?.some(token => ["object", "bodypart"].includes(token.actor?.type))
       || !game.settings.get(SETTINGS_SCOPE, "enabled")) {
       this.root?.remove();
       this.root = null;
@@ -164,9 +164,9 @@ export class ActionDock {
       }
       const adjusted = check && applyConditionEffects(actor, check, modifiers.conditionSituation);
       const ticks = parseCost(cost.ticks ?? cost);
-      await this.applyTicks(selection, ticks, { game: this.getGame(), canvas: this.getCanvas() });
+      const booked = await this.applyTicks(selection, ticks, { game: this.getGame(), canvas: this.getCanvas() });
       await saveTickOverride(actor, id, cost.weaponId, ticks, cost.importedTicks);
-      if (adjusted) await postRoll(actor, linkAttack(actor, adjusted, target, weapon?.system.damage, ticks), modifiers);
+      if (adjusted) await postRoll(actor, linkAttack(actor, adjusted, target, weapon?.system.damage, booked ?? ticks), modifiers);
       this.collapse();
     } catch (error) {
       console.error(`${MODULE_ID} | Handlung fehlgeschlagen`, error);

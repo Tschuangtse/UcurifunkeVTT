@@ -1,3 +1,4 @@
+import { validateEffect } from "./effect-rules.js";
 const { ArrayField, BooleanField, NumberField, SchemaField, StringField } = foundry.data.fields;
 const text = () => new StringField({ required: true, initial: "" });
 const number = () => new NumberField({ required: true, nullable: false, initial: 0 });
@@ -6,6 +7,26 @@ const optionalInteger = () => new NumberField({ required: true, integer: true, n
 const flag = () => new BooleanField({ required: true, initial: false });
 const rows = fields => new ArrayField(new SchemaField(fields), { initial: [] });
 const attribute = () => ({ name: text(), key: text(), value: number() });
+
+export class BodyPartData extends foundry.abstract.TypeDataModel {
+  static validateJoint(data) {
+    if (data.health.value > data.health.max) throw new Error("Aktuelle LE dürfen die maximalen LE nicht überschreiten.");
+  }
+  static defineSchema() {
+    return { health: new SchemaField({ value: new NumberField({ required: true, nullable: false, integer: true, min: 0, initial: 10 }),
+      max: new NumberField({ required: true, nullable: false, integer: true, min: 1, max: 1000000, initial: 10 }) }) };
+  }
+}
+
+export class EffectData extends foundry.abstract.TypeDataModel {
+  static validateJoint(data) { validateEffect(data); }
+  static defineSchema() {
+    return { description: text(), kind: new StringField({ required: true, choices: ["periodic", "continuous"], initial: "periodic" }),
+      interval: integer(1, 20), duration: integer(1, 60), recurring: new BooleanField({ initial: true }), permanent: new BooleanField({ initial: true }), stackable: flag(),
+      changes: new ArrayField(new SchemaField({ target: text(), mode: new StringField({ choices: ["add", "percent"], initial: "add" }), value: number() }),
+        { initial: [{ target: "LE", mode: "add", value: 4 }] }) };
+  }
+}
 
 export class ObjectData extends foundry.abstract.TypeDataModel {
   static defineSchema() {
