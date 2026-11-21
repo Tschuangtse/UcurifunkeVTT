@@ -1,7 +1,8 @@
 import { t } from "./i18n.js";
+import { encounterSceneId } from "../combat-scene.js";
 
 export function sceneEncounters(combats, sceneId) {
-  return sceneId ? [...combats].filter(combat => combat.scene?.id === sceneId) : [];
+  return sceneId ? [...combats].filter(combat => encounterSceneId(combat) === sceneId) : [];
 }
 
 export function activeEncounterForScene(combats, sceneId) {

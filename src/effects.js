@@ -6,9 +6,10 @@ import { SYSTEM_DIALOG_CLASSES } from "./appearance.js";
 import { escapeHtml as esc } from "./check-card.js";
 import { normalizeTicks } from "./tick/data.js";
 import { getTimelineApp } from "./tick/state.js";
+import { combatForToken, encounterSceneId, tokensForCombat } from "./combat-scene.js";
 
 let maintenance = Promise.resolve();
-function sceneCombat(token) { return game.combats.find(combat => combat.scene?.id === token.parent?.id && combat.active) ?? null; }
+function sceneCombat(token) { return combatForToken(token); }
 const scheduled = new Set();
 const bool = value => [true, "true", "on", 1, "1"].includes(value);
 
@@ -20,7 +21,7 @@ registerAutomation("effectApply", async request => {
   const allowed = Object.fromEntries(["recurring", "interval", "duration", "permanent"].filter(key => key in (payload.options ?? {})).map(key => [key, payload.options[key]]));
   const definition = validateEffect({ ...template.system.toObject(), ...allowed });
   for (const change of definition.changes) {
-    if (change.target === "actionTicks" ? token.actor.type === "bodypart" : !Number.isFinite(readTarget(token.actor, change.target)))
+    if (["actionTicks","checkPenalty","checkBonus"].includes(change.target) ? token.actor.type === "bodypart" : !Number.isFinite(readTarget(token.actor, change.target)))
       throw new Error(`${token.name} verfügt nicht über den Zielwert ${change.target}.`);
   }
   const combat = sceneCombat(token);
@@ -84,8 +85,8 @@ registerAutomation("effectTrigger", async request => {
   const effect = tokenEffects(token).find(entry => entry.id === payload.id);
   if (!effect) return;
   const combat = game.combats.get(effect.combatId);
-  if (!combat?.started || effect.kind !== "periodic" || effect.nextAt > effectClock(combat)) throw new Error("Der Effekt ist noch nicht fällig.");
   if (payload.expectedNextAt !== effect.nextAt) return;
+  if (!combat?.started || effect.kind !== "periodic" || effect.nextAt > effectClock(combat)) throw new Error("Der Effekt ist noch nicht fällig.");
   let plan = request.plan;
   if (!plan) {
     const deltas = [...new Set(effect.changes.map(row => row.target))].map(target => {
@@ -115,7 +116,18 @@ export async function applyEffectTemplate(token, item) {
       ${source.kind === "periodic" ? `<label>Wiederkehrend<input type="checkbox" name="recurring" ${source.recurring ? "checked" : ""}></label><label>Intervall in Ticks<input type="number" name="interval" min="1" max="1000000" step="1" value="${source.interval}" required></label>` : ""}
       <label>Permanent<input type="checkbox" name="permanent" ${source.permanent ? "checked" : ""}></label>
       <label>Dauer in Ticks<input type="number" name="duration" min="1" max="1000000" step="1" value="${source.duration}" required></label>
-      </div>`, ok: { label: "Anwenden" }
+      </div>`, ok: { label: "Anwenden" }, render: (_event,dialog) => {
+        const form=dialog.element.querySelector("form")??dialog.element;
+        const permanent=form.querySelector('[name="permanent"]'),duration=form.querySelector('[name="duration"]'),interval=form.querySelector('[name="interval"]');
+        const refresh=()=>{
+          duration.readOnly=permanent.checked;
+          duration.min=String(!permanent.checked&&interval?Math.max(1,Number(interval.value)||1):1);
+          duration.setCustomValidity(!permanent.checked&&interval&&Number(duration.value)<Number(interval.value)?"Die Dauer muss mindestens ein Intervall umfassen.":"");
+          const submit=dialog.element.querySelector('[data-action="ok"]');
+          if(submit)submit.disabled=![...form.querySelectorAll("input")].every(input=>input.checkValidity());
+        };
+        form.addEventListener("input",refresh);form.addEventListener("change",refresh);refresh();
+      }
   });
   if (!result) return;
   await requestAutomation("effectApply", token.uuid, { sourceUuid: item.uuid, options: {
@@ -164,7 +176,8 @@ export function scheduleEffectMaintenance(combat) {
     if (!game.combats.has(combat.id)) return;
     const now = effectClock(combat);
     checkedAt = now;
-    for (const token of combat.scene?.tokens ?? []) {
+    if (!combat.scene && encounterSceneId(combat)) await combat.update({scene:encounterSceneId(combat)});
+    for (const token of tokensForCombat(combat)) {
       const effects = tokenEffects(token);
       const next = effects.flatMap(effect => {
         if (!effect.combatId && combat.active) return [{ ...effect, combatId: combat.id, startedAt: now, expiresAt: effect.permanent ? null : now + effect.duration, nextAt: now + (effect.remainingDelay ?? effect.interval) }];
@@ -200,10 +213,11 @@ Hooks.on("dropCanvasData", (_canvas, data) => {
 Hooks.on("updateToken", (_token, changes) => { if (changes.flags?.ucurifunke?.effects || changes.delta) refreshEffectViews(); });
 Hooks.on("updateCombat", combat => { scheduleEffectMaintenance(combat); refreshEffectViews(); });
 Hooks.on("createCombat", scheduleEffectMaintenance);
+Hooks.on("createCombatant", combatant => scheduleEffectMaintenance(combatant.parent));
 Hooks.on("deleteCombat", combat => {
   if (!automationAuthority()) return;
   maintenance = maintenance.catch(console.error).then(() => serializeAutomation(async () => {
-    for (const token of combat.scene?.tokens ?? []) {
+    for (const token of tokensForCombat(combat)) {
       const effects = tokenEffects(token);
       const next = effects.flatMap(effect => {
         if (effect.combatId !== combat.id) return [effect];

@@ -105,7 +105,8 @@ function conditionNotice(check) {
     ...(check.penalties ?? []).filter(([name]) => name === "Überanstrengung (RE)")
       .map(([name, value]) => name + " −" + value)
   ];
-  return penalties.length ? "Zustandsabzüge: " + penalties.join(" · ") : "";
+  const modifiers=(check.effectModifiers??[]).map(row=>row.name+" "+(row.value>0?"+":"")+row.value);
+  return [penalties.length ? "Zustandsabzüge: " + penalties.join(" · ") : "", modifiers.length?"Effekte: "+modifiers.join(" · "):""].filter(Boolean).join(" | ");
 }
 
 export async function prepareRoll(check, fields = "", { allowBlind = true, actor, preview } = {}) {

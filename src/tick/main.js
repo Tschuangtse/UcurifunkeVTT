@@ -1,4 +1,5 @@
 import { effectEntries } from "../effect-timeline.js";
+import { encounterSceneId } from "../combat-scene.js";
 import { t } from "./i18n.js";
 import { clearEvents, getCombatantAndEventsList, isNormalizationAuthority, normalizeTicks } from "./data.js";
 import { TimelineApp } from "./timeline.js";
@@ -210,6 +211,7 @@ Hooks.on("refreshToken", token => refreshTokenHighlight(token));
 Hooks.on("updateToken", () => refreshTimeline());
 
 Hooks.on("preCreateCombat", combat => {
+  if (!combat.scene && globalThis.canvas?.scene) combat.updateSource({ scene: canvas.scene.id });
   const sceneId = combat.scene?.id;
   if (combat.active && activeEncounterForScene(game.combats, sceneId)) combat.updateSource({ active: false });
 });
@@ -245,6 +247,10 @@ Hooks.on("deleteCombat", async () => {
 });
 
 Hooks.on("createCombatant", async combatant => {
+  if (isNormalizationAuthority() && !combatant.parent.scene) {
+    const scene = encounterSceneId(combatant.parent);
+    if (scene) await combatant.parent.update({scene});
+  }
   if (combatant.parent !== game.combat) return;
   await normalizeTicks(combatant.parent);
   await refreshTimeline({ open: true });

@@ -146,7 +146,7 @@ export class TimelineApp extends HandlebarsApplicationMixin(ApplicationV2) {
       language: getLanguage().toUpperCase(),
       list,
       continuousEffects: effectEntries(game.combat, {continuous:true}),
-      continuousOpen: this.element?.querySelector(".uq-continuous-effects")?.open ?? true,
+      continuousOpen: this.element?.querySelector(".uq-continuous-effects")?.open ?? effectEntries(game.combat, {continuous:true}).length > 0,
       isGM: Boolean(game.user?.isGM),
       scale,
       limited: Number(game.settings.get(MODULE_ID, "visibleTickGroups")) === 3,
@@ -191,6 +191,7 @@ export class TimelineApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   fitToTimeline() {
+    if (!this.rendered || !this.element?.isConnected) return;
     // Later data refreshes must preserve a manually resized window.
     if (this._hasInitialSize) return;
     const groups = groupedTimeline().length;

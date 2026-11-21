@@ -58,7 +58,7 @@ export async function beginComplexAction(combatant, { name, duration }) {
   try {
     await setCombatantData(combatant, {
       ...data,
-      ticks: data.ticks + actionTickCost(COMPLEX_ACTION_INTERVAL, combatant.token),
+      ticks: data.ticks + actionTickCost(COMPLEX_ACTION_INTERVAL, combatant.token, "complex"),
       isWaiting: false,
       complexAction: duration > COMPLEX_ACTION_INTERVAL
         ? { name, duration, spent: COMPLEX_ACTION_INTERVAL } : null
@@ -84,7 +84,7 @@ export async function advanceComplexAction(combatant) {
     const spent = action.spent + COMPLEX_ACTION_INTERVAL;
     await setCombatantData(combatant, {
       ...data,
-      ticks: actionTickCost(COMPLEX_ACTION_INTERVAL, combatant.token),
+      ticks: actionTickCost(COMPLEX_ACTION_INTERVAL, combatant.token, "complex"),
       complexAction: spent < action.duration ? { ...action, spent } : null
     });
     if (spent === action.duration) await announceComplexAction(combatant, action.name, "actionFinished");

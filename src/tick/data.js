@@ -237,8 +237,8 @@ export function normalizeTicks(combat = game.combat) {
   return next;
 }
 
-export async function queueActionTicks(combatant, ticks) {
-  ticks = actionTickCost(ticks, combatant.token);
+export async function queueActionTicks(combatant, ticks, {actionId} = {}) {
+  ticks = actionTickCost(ticks, combatant.token, actionId);
   if (!Number.isSafeInteger(ticks) || ticks < 0 || ticks > 1000000) throw new Error("Ungültige Tickkosten durch Effekte.");
   if (!ticks) return 0;
   if (!game.users?.activeGM && !game.user?.isGM) {
@@ -295,6 +295,8 @@ async function normalizeCombat(combat) {
   }, { tickCombatNormalization: true });
 
   const app = getTimelineApp();
-  app?.render();
-  app?.fitToTimeline?.();
+  if (app?.rendered) {
+    await app.render();
+    app.fitToTimeline?.();
+  }
 }

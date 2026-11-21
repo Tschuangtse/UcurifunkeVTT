@@ -1,3 +1,4 @@
+import { validateFilter } from "./effect-filters.js";
 export const PRIMARY_KEYS = ["MU", "KL", "IN", "CH", "FF", "GE", "KO", "KK"];
 export const DERIVED_KEYS = ["OFF", "DEF", "FKB", "AW", "WS", "TK", "GS", "BL", "WA"];
 export const EFFECT_TARGETS = [
@@ -5,7 +6,8 @@ export const EFFECT_TARGETS = [
   ...["LE", "AE", "KE"].map(key => ({ key: "max." + key, label: key + " Maximum", periodic: true })),
   ...[...PRIMARY_KEYS, "gMR", "kMR", "RE"].map(key => ({ key: "attribute." + key, label: "Attribut " + key })),
   ...DERIVED_KEYS.map(key => ({ key: "derived." + key, label: "Abgeleiteter Wert " + key })),
-  { key: "impairment", label: "Beeinträchtigung" }, { key: "actionTicks", label: "Tickkosten aller Handlungen", continuous: true }
+  { key: "impairment", label: "Beeinträchtigung" }, { key: "actionTicks", label: "Tickkosten", continuous: true },
+  {key:"checkPenalty",label:"Proben erschweren",continuous:true}, {key:"checkBonus",label:"Proben erleichtern",continuous:true}
 ];
 
 export function validateEffect(source) {
@@ -21,7 +23,8 @@ export function validateEffect(source) {
     if (!target || kind === "continuous" && target.periodic || kind === "periodic" && target.continuous) throw new Error("Dieser Zielwert passt nicht zur Wirkungsart.");
     const value = Number(change.value);
     if (!["add", "percent"].includes(change.mode) || !Number.isFinite(value) || Math.abs(value) > 100000) throw new Error("Bitte eine gültige Wirkung angeben.");
-    return { target: target.key, mode: change.mode, value };
+    if (["checkPenalty","checkBonus"].includes(target.key) && value < 0) throw new Error("Erschwernis und Erleichterung bitte als positiven Betrag angeben.");
+    return { target: target.key, mode: change.mode, value, ...validateFilter(change) };
   });
   return { kind, interval, duration, changes, recurring: Boolean(source.recurring), permanent: Boolean(source.permanent), stackable: Boolean(source.stackable), description: String(source.description ?? "") };
 }

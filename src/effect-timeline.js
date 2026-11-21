@@ -1,8 +1,9 @@
 import { activeTokenEffects, effectClock, remainingDuration } from "./effect-rules.js";
+import { tokensForCombat } from "./combat-scene.js";
 
 export function effectEntries(combat, { continuous = false, forDisplay = true } = {}) {
   const now = effectClock(combat);
-  const tokens = combat?.scene?.tokens ?? [];
+  const tokens = tokensForCombat(combat);
   return [...tokens].flatMap(token => {
     if (!token.actor || forDisplay && !game.user?.isGM && (token.hidden || !token.actor.visible)) return [];
     return activeTokenEffects(token, combat).filter(effect => effect.combatId === combat.id && (effect.kind === "continuous") === continuous)

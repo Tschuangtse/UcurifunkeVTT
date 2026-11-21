@@ -1,3 +1,4 @@
+import { applyCheckEffects } from "./effect-values.js";
 import { postRoll, prepareRoll } from "./checks.js";
 import { linkAttack, selectedAttackTarget } from "./combat-workflow.js";
 
@@ -49,7 +50,8 @@ export function registerCheckCommands(commands) {
           ui.notifications.warn(`Ungültige Probe. Bitte den vollständigen Befehl /${command} aus Pedipalpus einfügen.`);
           return false;
         }
-        const actor = check.kind === "combat" && foundry.documents.ChatMessage.getSpeakerActor(chatData.speaker);
+        const actor = foundry.documents.ChatMessage.getSpeakerActor(chatData.speaker);
+        if (actor?.isOwner) check = applyCheckEffects(actor,check);
         const target = actor?.isOwner && selectedAttackTarget(actor, check);
         if (target) {
           const weapon = actor.items.find(item => item.type === "weapon" && item.name === check.weapon);

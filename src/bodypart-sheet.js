@@ -13,6 +13,13 @@ export class BodyPartSheet extends api.HandlebarsApplicationMixin(sheets.ActorSh
   }
   _onDropItem(_event, item) { return item.type === "effect" ? applyEffectTemplate(effectToken(this.actor, this.token), item) : false; }
   _onDropActiveEffect() { return false; }
+  _processFormData(event,form,formData) {
+    const data=super._processFormData(event,form,formData),health=data.system?.health;
+    // DocumentSheet validates before Actor.update can queue the linked change.
+    // Clamp here as well so reducing a maximum remains a valid form submission.
+    if(health&&Number.isFinite(health.value)&&Number.isFinite(health.max))health.value=Math.min(health.value,health.max);
+    return data;
+  }
 }
 
 Hooks.on("preCreateActor", (actor, data) => {

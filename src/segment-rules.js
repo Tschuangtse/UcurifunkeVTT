@@ -1,7 +1,9 @@
 export function segmentPosition(part, from, to) {
   const angle = ((to.rotation ?? 0) - (from.rotation ?? 0)) * Math.PI / 180;
-  const x = part.x - from.x, y = part.y - from.y;
-  return { x: to.x + x * Math.cos(angle) - y * Math.sin(angle), y: to.y + x * Math.sin(angle) + y * Math.cos(angle),
+  const pw=part.pixelWidth??0,ph=part.pixelHeight??0;
+  const x = part.x + pw/2 - from.x - (from.pixelWidth??0)/2, y = part.y + ph/2 - from.y - (from.pixelHeight??0)/2;
+  return { x: to.x + (to.pixelWidth??0)/2 + x * Math.cos(angle) - y * Math.sin(angle) - pw/2,
+    y: to.y + (to.pixelHeight??0)/2 + x * Math.sin(angle) + y * Math.cos(angle) - ph/2,
     rotation: ((part.rotation ?? 0) + angle * 180 / Math.PI + 360) % 360,
     elevation: (part.elevation ?? 0) + (to.elevation ?? 0) - (from.elevation ?? 0) };
 }

@@ -58,7 +58,7 @@ export function skillCheck(skills, index) {
   const name = root ? skill.name.slice(root.name.length + SPECIALIZATION_SEPARATOR.length)
     : ["Hobby", "Zauber", "Wunder"].includes(skill.group) || (skill.group === "Rituale" && skill.rollName)
       ? skill.name : "";
-  return name ? { ...skill, kind: "skill", name: skill.rollName || name } : null;
+  return name ? { ...skill, kind: "skill", name: skill.rollName || name, sourceName:skill.name } : null;
 }
 
 export function groupSkills(skills) {

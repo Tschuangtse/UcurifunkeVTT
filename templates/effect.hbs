@@ -1,7 +1,8 @@
 <div class="uq-effect-editor">
+  {{#if systemPack}}<p>Systemvorlagen werden bei Updates ersetzt. Für eigene Änderungen eine Kopie in die Welt übernehmen.</p>{{#if canCopy}}<button type="button" data-copy-effect><i class="fa-solid fa-copy" inert></i>Als eigene Vorlage in die Welt übernehmen</button>{{/if}}{{/if}}
   <label>Name<input name="name" value="{{name}}" required></label>
   <label>Beschreibung<textarea name="system.description" rows="3">{{data.description}}</textarea></label>
-  <label>Wirkungsart<select name="system.kind"><option value="periodic" {{#unless continuous}}selected{{/unless}}>Wiederkehrend / manuell auslösen</option><option value="continuous" {{#if continuous}}selected{{/if}}>Durchgängig</option></select></label>
+  <label>Wirkungsart<select name="system.kind"><option value="periodic" {{#unless continuous}}selected{{/unless}}>Wiederkehrend / manuell auslösen</option><option value="continuous" {{#if continuous}}selected{{/if}}>Durchgängig (auch Proben- und Tickmodifikatoren)</option></select></label>
   <fieldset><legend>Vorgaben beim Anwenden</legend><div class="uq-effect-defaults">
     <label>Intervall (Ticks)<input type="number" name="system.interval" value="{{data.interval}}" min="1" max="1000000" step="1" required></label>
     <label>Dauer (Ticks)<input type="number" name="system.duration" value="{{data.duration}}" min="1" max="1000000" step="1" required></label>
@@ -9,6 +10,6 @@
     <label><input type="checkbox" name="system.permanent" {{#if data.permanent}}checked{{/if}}>Permanent</label>
     <label><input type="checkbox" name="system.stackable" {{#if data.stackable}}checked{{/if}}>Mehrfachanwendung addiert sich</label>
   </div></fieldset>
-  <fieldset><legend>Wirkungen</legend><p>Erst absolute Änderungen addieren, dann die Summe der Prozentwerte anwenden. Tickkosten werden aufgerundet.</p><div data-effect-changes></div><button type="button" data-add-change><i class="fa-solid fa-plus" inert></i>Wirkung hinzufügen</button></fieldset>
+  <fieldset><legend>Wirkungen</legend><p>Absolute Änderungen zuerst, anschließend Prozentwerte; Tickkosten werden aufgerundet. Für Erschwernisse, Erleichterungen und Tickkosten „Durchgängig“ wählen. „Körperlich“ umfasst Körperfertigkeiten, Kampfproben und körperliche Attribute einschließlich RE und kMR.</p><div data-effect-changes></div><button type="button" data-add-change><i class="fa-solid fa-plus" inert></i>Wirkung hinzufügen</button></fieldset>
   {{#if editable}}<button type="submit"><i class="fa-solid fa-floppy-disk" inert></i>Speichern</button>{{/if}}
 </div>

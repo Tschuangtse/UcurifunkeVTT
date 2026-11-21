@@ -77,6 +77,7 @@ const regen={kind:"periodic",interval:20,duration:40,recurring:true,permanent:fa
 
 test("periodic effects never apply automatically and an expiry pulse executes once even with duplicate clicks",async()=>{
   setup();const target=token("patient",actor("patientActor","npc",10,30));const source=template("regen",regen);
+  const anchor=doc("anchor",{name:"anchor",parent:combat,flags:{ucurifunke:{data:JSON.stringify({ticks:0})}}});combat.combatants.set(anchor.id,anchor);
   const id=await requestAutomation("effectApply",target.uuid,{sourceUuid:source.uuid,options:{}});
   await combat.setFlag("ucurifunke","totalTicks",20);
   assert.equal(target.actor.system.energies[0].value,10);
@@ -131,6 +132,19 @@ test("formations spawn distinct groups, move attached parts, and do not move a j
   main.x=300;part.x=400;
   for(const fn of hooks.get("updateToken"))fn(main,{x:300},{updates:[{_id:main.id,x:300},{_id:part.id,x:400}]});
   await new Promise(resolve=>setTimeout(resolve,15));assert.equal(part.x,400);assert.equal(main.getFlag("ucurifunke","segmentGroup").anchor.x,300);
+});
+
+test("animated token coordinates never replace the persisted group destination",async()=>{
+  setup();const source=actor("dragon"),body=actor("wing","bodypart",12,20);game.actors.set(source.id,source);game.actors.set(body.id,body);
+  const main=token("main",source),part=token("part",body);
+  main._source={x:300,y:100,rotation:0,elevation:0,width:1,height:1};main.x=125;
+  part._source={x:200,y:100,rotation:0,elevation:0,width:1,height:1};part.x=175;
+  await main.setFlag("ucurifunke","segmentGroup",{id:"group",initialized:true,anchor:{x:100,y:100,rotation:0,elevation:0},parts:[{id:part.id}]});
+  scene.updateEmbeddedDocuments=async(_type,rows)=>{for(const row of rows)await scene.tokens.get(row._id).update(row);};
+  for(const fn of hooks.get("updateToken"))fn(main,{x:300},{_movement:{main:{}}});
+  await new Promise(resolve=>setTimeout(resolve,15));
+  assert.equal(part.x,400);assert.equal(main.getFlag("ucurifunke","segmentGroup").anchor.x,300);
+  assert.equal(main.getFlag("ucurifunke","segmentMovePlan"),null);
 });
 
 test("periodic body-part damage forwards actual loss while regeneration remains local",async()=>{

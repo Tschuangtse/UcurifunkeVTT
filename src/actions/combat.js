@@ -1,4 +1,5 @@
 import * as tickApi from "../tick/data.js";
+import { actionTickCost } from "../effect-values.js";
 
 export const MODULE_ID = "ucurifunke-quick-combat-actions";
 export const SETTINGS_SCOPE = "ucurifunke";
@@ -31,12 +32,12 @@ export function assertSameSelection(expected, current) {
   }
 }
 
-export async function addActionTicks(expected, ticks, { game, canvas, loadApi = () => tickApi }) {
+export async function addActionTicks(expected, ticks, { game, canvas, actionId, loadApi = () => tickApi }) {
   if (!Number.isInteger(ticks) || ticks < 0 || ticks > 32) throw new Error("Ungültige Tickkosten.");
   assertSameSelection(expected, getSelection(game, canvas));
   const api = await loadApi();
   // Recheck permissions and identity before persisting.
   assertSameSelection(expected, getSelection(game, canvas));
-  if (ticks === 0) return 0;
-  return api.queueActionTicks(expected.combatant, ticks);
+  if (ticks === 0 && actionTickCost(0,expected.token.document,actionId)===0) return 0;
+  return actionId ? api.queueActionTicks(expected.combatant, ticks, {actionId}) : api.queueActionTicks(expected.combatant, ticks);
 }

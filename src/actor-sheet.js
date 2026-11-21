@@ -505,8 +505,8 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       }
       check = applyConditionEffects(actor, check, modifier.conditionSituation);
       let bookedTicks;
-      if (bookDodge) check.bookedTicks = await addActionTicks(dodgeSelection, 4, { game, canvas });
-      if (bookTicks) bookedTicks = await addActionTicks(selection, check.ticks, { game, canvas });
+      if (bookDodge) check.bookedTicks = await addActionTicks(dodgeSelection, 4, { game, canvas, actionId:"dodge" });
+      if (bookTicks) bookedTicks = await addActionTicks(selection, check.ticks, { game, canvas, actionId:{AT:"melee",PA:"parry",FK:"ranged"}[check.mode] });
       if (check.kind === "combat" && !check.title) check = linkAttack(actor, check, attackTarget, weaponDamage, bookTicks ? bookedTicks : attackTarget ? 0 : undefined);
       await postRoll(actor, check, modifier);
     } catch (error) {

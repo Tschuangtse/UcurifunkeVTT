@@ -159,10 +159,10 @@
     {{/each}}
   </div>
 
-  {{#if continuousEffects}}<details class="uq-continuous-effects" {{#if continuousOpen}}open{{/if}}><summary>Durchgängige Effekte</summary><div>
+  <details class="uq-continuous-effects" {{#if continuousOpen}}open{{/if}}><summary>Durchgängige Effekte</summary><div>
     {{#each continuousEffects}}<article class="tick-combat-card" data-effect-token-id="{{tokenId}}"><strong>{{name}}</strong><p>{{notes}}</p>
       <small>{{#if permanent}}Permanent{{else}}Restdauer: {{remaining}} Ticks{{/if}}</small>
       {{#if canRemove}}<button type="button" data-action="removeEffect" data-token-uuid="{{tokenUuid}}" data-effect-id="{{effectId}}" aria-label="Effekt entfernen"><i class="fa-solid fa-trash" inert></i></button>{{/if}}
-    </article>{{/each}}</div></details>{{/if}}
+    </article>{{else}}<p>Keine durchgängigen Effekte.</p>{{/each}}</div></details>
   </div>
 </section>

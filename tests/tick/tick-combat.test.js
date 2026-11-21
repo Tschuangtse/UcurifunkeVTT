@@ -50,6 +50,13 @@ function encounter(ticks, { started = true, events = [], waiting = [] } = {}) {
   return { combat, writes, values: () => combat.combatants.map(item => getCombatantData(item).ticks) };
 }
 
+test("finishing a booking never reopens or positions a closed timeline",async()=>{
+  const {combat}=encounter([3,5]);let renders=0,fits=0;
+  setTimelineApp({rendered:false,render(){renders++;},fitToTimeline(){fits++;}});
+  try{await normalizeTicks(combat);assert.equal(renders,0);assert.equal(fits,0);}
+  finally{setTimelineApp(null);}
+});
+
 test("initiative remains absolute before combat starts", async () => {
   const { combat, values, writes } = encounter([19, 23], { started: false });
   await normalizeTicks();

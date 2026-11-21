@@ -113,7 +113,7 @@ async function respond(message, action) {
     const response = await postRoll(defender, { ...adjusted, opposedQuality: attack.quality, targetName: token.name,
       exchange: { type: "defense", attack: message.id } }, { ...options, mode: "public" });
     if (response) {
-      const booked = await queueActionTicks(combatant, 4);
+      const booked = await queueActionTicks(combatant, 4, {actionId:"dodge"});
       await response.update({ content: response.content.replace("</footer>", `</footer><p>Gebuchte Ticks: <strong>${booked}</strong></p>`) });
     }
     return response;
@@ -179,7 +179,7 @@ async function respond(message, action) {
     exchange: { type: "defense", attack: message.id } },
     { ...options, mode: "public" });
   if (book && response) {
-    const booked = await addActionTicks(selection, ticks, { game, canvas });
+    const booked = await addActionTicks(selection, ticks, { game, canvas, actionId:"parry" });
     await response.update({ content: response.content.replace("</footer>", `</footer><p>Gebuchte Ticks: <strong>${booked}</strong></p>`) });
   }
   return response;

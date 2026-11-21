@@ -7,7 +7,13 @@ import { escapeHtml as esc } from "./check-card.js";
 const scope = "ucurifunke";
 let work = Promise.resolve();
 const enqueue = fn => { work = work.catch(console.error).then(fn).catch(error => console.error("Ucurifunke segments", error)); return work; };
-const anchor = token => ({ x: token.x, y: token.y, rotation: token.rotation, elevation: token.elevation });
+// V14 temporarily interpolates document coordinates while animating a move.
+// The persisted source remains the authoritative destination throughout.
+const anchor = token => { const source=token._source??token,size=token.parent?.grid?.size??100;return { x:source.x,y:source.y,rotation:source.rotation,elevation:source.elevation,pixelWidth:(source.width??1)*size,pixelHeight:(source.height??1)*size }; };
+function bodyInUse(actorId) {
+  return [...game.actors].some(actor=>actor.getFlag(scope,"segmentTemplate")?.parts.some(part=>part.actorId===actorId))
+    || [...game.scenes].some(scene=>[...scene.tokens].some(token=>token.actorId===actorId&&token.getFlag(scope,"segment")));
+}
 
 registerAutomation("partHealth", async request => {
   const token = request.document;
@@ -43,7 +49,7 @@ async function ensureGroup(main) {
       const actor = game.actors.get(part.actorId);
       if (actor?.type !== "bodypart") continue;
       docs.push({ ...part.token, _id: part.id, actorId: actor.id, actorLink: false,
-        x: main.x + part.dx * size, y: main.y + part.dy * size, elevation: main.elevation + (part.de ?? 0),
+        x: anchor(main).x + part.dx * size, y: anchor(main).y + part.dy * size, elevation: anchor(main).elevation + (part.de ?? 0),
         delta: { system: { health: { value: part.max, max: part.max } } },
         flags: { ...part.token.flags, [scope]: { ...part.token.flags?.[scope], segment: { mainId: main.id, groupId: group.id, key: part.key } } } });
     }
@@ -65,7 +71,9 @@ async function moveGroup(main, movedTogether = new Set()) {
     const updates = group.parts.flatMap(part => {
       if (movedTogether.has(part.id)) return [];
       const token = main.parent.tokens.get(part.id);
-      return token ? [{ _id: token.id, ...segmentPosition(token, group.anchor, to) }] : [];
+      const dimensions=token&&anchor(token);
+      const from={...group.anchor,pixelWidth:group.anchor.pixelWidth??to.pixelWidth,pixelHeight:group.anchor.pixelHeight??to.pixelHeight};
+      return token ? [{ _id: token.id, ...segmentPosition({...token._source??token,pixelWidth:dimensions.pixelWidth,pixelHeight:dimensions.pixelHeight}, from, to) }] : [];
     });
     plan = { to, updates };
     await main.setFlag(scope, "segmentMovePlan", plan);
@@ -82,7 +90,7 @@ async function saveFormation(main, ids) {
   for (const token of selected) {
     const belongs = token.actor.getFlag(scope, "segmentTemplateOwner");
     const link = token.getFlag(scope, "segment");
-    if (belongs && belongs !== main.actor.id || link && link.mainId !== main.id) throw new Error(`${token.name} gehört bereits zu einer anderen Gruppe.`);
+    if (belongs && belongs !== main.actor.id && bodyInUse(token.actorId) || link && link.mainId !== main.id) throw new Error(`${token.name} gehört bereits zu einer anderen Gruppe.`);
   }
   const mainActor = game.actors.get(main.actorId);
   // Each placement owns its own LE and damage ledger, including repeated
@@ -97,10 +105,11 @@ async function saveFormation(main, ids) {
   for (const token of selected) {
     const belongs = token.actor.getFlag(scope, "segmentTemplateOwner");
     const link = token.getFlag(scope, "segment");
-    if (belongs && belongs !== main.actor.id || link && link.mainId !== main.id) throw new Error(`${token.name} gehört bereits zu einer anderen Gruppe.`);
+    if (belongs && belongs !== main.actor.id && bodyInUse(token.actorId) || link && link.mainId !== main.id) throw new Error(`${token.name} gehört bereits zu einer anderen Gruppe.`);
     if (token.actorLink) await token.update({ actorLink: false });
     const base = game.actors.get(token.actorId);
-    await base.update({ ownership: main.actor.ownership, [`flags.${scope}.segmentTemplateOwner`]: main.actor.id });
+    await base.update({ ownership: main.actor.toObject?.().ownership??main.actor.ownership }, {diff:false,recursive:false});
+    await base.setFlag(scope,"segmentTemplateOwner",main.actor.id);
     const key = link?.key ?? foundry.utils.randomID();
     await token.setFlag(scope, "segment", { mainId: main.id, groupId, key });
     const source = token.toObject();
@@ -109,10 +118,11 @@ async function saveFormation(main, ids) {
     snapshot.flags = { ...snapshot.flags, [scope]: { ...snapshot.flags?.[scope] } };
     for (const field of ["segment", "effects", "lastTokenLight", "suspendedTokenLight"]) delete snapshot.flags[scope][field];
     records.push({ id: token.id, key, actorId: base.id, token: snapshot, max: token.actor.system.health.max,
-      dx: (token.x - main.x) / main.parent.grid.size, dy: (token.y - main.y) / main.parent.grid.size, de: token.elevation - main.elevation });
+      dx: (anchor(token).x - anchor(main).x) / main.parent.grid.size, dy: (anchor(token).y - anchor(main).y) / main.parent.grid.size, de: anchor(token).elevation - anchor(main).elevation });
   }
   await mainActor.setFlag(scope, "segmentTemplate", { parts: records.map(({ id, ...record }) => record) });
   await main.setFlag(scope, "segmentGroup", { id: groupId, anchor: anchor(main), parts: records, initialized: true });
+  for(const part of old?.parts??[])if(!bodyInUse(part.actorId))await game.actors.get(part.actorId)?.unsetFlag(scope,"segmentTemplateOwner");
 }
 
 export async function openSegments(main) {
@@ -144,8 +154,8 @@ Hooks.on("preCreateToken", (token, _data, options) => {
 });
 Hooks.on("createToken", (token, options) => { if (!options.uqSegmentSpawn) void enqueue(() => ensureGroup(token)); });
 Hooks.on("updateToken", (token, changes, options) => {
-  if (!options.uqSegmentMove && ["x", "y", "rotation", "elevation"].some(key => key in changes)) {
-    const movedTogether = new Set((options.updates ?? []).filter(row => ["x", "y", "rotation", "elevation"].some(key => key in row)).map(row => row._id));
+  if (!options.uqSegmentMove && ["x", "y", "rotation", "elevation", "width", "height"].some(key => key in changes)) {
+    const movedTogether = new Set([...Object.keys(options._movement??{}),...(options.updates ?? []).filter(row => ["x", "y", "rotation", "elevation"].some(key => key in row)).map(row => row._id)]);
     void enqueue(() => moveGroup(token, movedTogether));
   }
 });
@@ -157,7 +167,7 @@ Hooks.on("deleteToken", token => {
 Hooks.on("updateActor", (actor, changes) => {
   if (!automationAuthority() || !changes.ownership) return;
   void enqueue(async () => {
-    for (const part of actor.getFlag(scope, "segmentTemplate")?.parts ?? []) await game.actors.get(part.actorId)?.update({ ownership: actor.ownership });
+    for (const part of actor.getFlag(scope, "segmentTemplate")?.parts ?? []) await game.actors.get(part.actorId)?.update({ ownership: actor.toObject?.().ownership??actor.ownership }, {diff:false,recursive:false});
   });
 });
 Hooks.once("ready", () => { if (automationAuthority()) for (const scene of game.scenes) for (const token of scene.tokens) void enqueue(async () => { await ensureGroup(token); await moveGroup(token); }); });

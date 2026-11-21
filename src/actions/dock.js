@@ -140,7 +140,7 @@ export class ActionDock {
         assertSameSelection(selection, getSelection(this.getGame(), this.getCanvas()));
         const character = actor.isToken ? this.getGame().actors.get(actor.id) ?? actor : actor;
         if (!character.isOwner) throw new Error(OWNERSHIP_ERROR);
-        await this.applyTicks(selection, action.ticks, { game: this.getGame(), canvas: this.getCanvas() });
+        await this.applyTicks(selection, action.ticks, { game: this.getGame(), canvas: this.getCanvas(), actionId: id });
         await character.update({ "system.combatFocus": focus });
         if (character !== actor) await actor.update({ "system.combatFocus": focus });
         this.collapse();
@@ -164,7 +164,7 @@ export class ActionDock {
       }
       const adjusted = check && applyConditionEffects(actor, check, modifiers.conditionSituation);
       const ticks = parseCost(cost.ticks ?? cost);
-      const booked = await this.applyTicks(selection, ticks, { game: this.getGame(), canvas: this.getCanvas() });
+      const booked = await this.applyTicks(selection, ticks, { game: this.getGame(), canvas: this.getCanvas(), actionId: id });
       await saveTickOverride(actor, id, cost.weaponId, ticks, cost.importedTicks);
       if (adjusted) await postRoll(actor, linkAttack(actor, adjusted, target, weapon?.system.damage, booked ?? ticks), modifiers);
       this.collapse();

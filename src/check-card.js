@@ -53,13 +53,14 @@ function renderCombat(check, dice, modifiers, confirmation) {
     ? breakdown.flatMap((value, index) => labels[index] ? [[labels[index], value]] : [])
     : [[check.attackName ? "Hinterlegter Probenwert" : "Basiswert inkl. Waffe",
       check.value + impairment + joints - (check.focusDelta ?? 0) + (check.conditionPenalties ?? [])
-      .reduce((sum, entry) => sum + entry.value, 0)]];
+      .reduce((sum, entry) => sum + entry.value, 0) - (check.effectModifiers??[]).reduce((sum,entry)=>sum+entry.value,0)]];
   rows.push(["Beeinträchtigung", -impairment]);
   for (const [name, value] of check.penalties ?? []) rows.push([escapeHtml(name), -value]);
   if (check.opposedQuality != null) rows.push(["Angriffsqualität", check.opposedQuality]);
   if (check.focusDelta) rows.push(["Kampffokus", check.focusDelta]);
   if (joints) rows.push(["Schlechte Gelenke", -joints]);
   for (const { name, value } of check.conditionPenalties ?? []) rows.push([escapeHtml(name), -value]);
+  for (const { name, value } of check.effectModifiers ?? []) rows.push(["Effekt: "+escapeHtml(name), value]);
   rows.push(["Erschwernis", -modifiers.penalty], ["Erleichterung", modifiers.bonus]);
   const parts = rows.map(([label, value]) => `<div><dt>${label}</dt><dd>${signed(value)}</dd></div>`).join("");
   return {
@@ -87,6 +88,7 @@ export function renderCheckCard(check, dice, modifiers, result, confirmation) {
   return `<article class="ucurifunke-check-card">
     <header>${title}</header>
     <div class="ucurifunke-card-summary">${summary}</div>
+    ${!combat && check.effectModifiers?.length?`<div>Effekte: ${check.effectModifiers.map(row=>escapeHtml(row.name)+" "+signed(row.value)).join(" · ")}</div>`:""}
     ${combat ? "" : `<div>Erschwernis: <strong>${modifiers.penalty}</strong> · Erleichterung: <strong>${modifiers.bonus}</strong> · Netto: <strong>${signed(net)}</strong></div>`}
     ${!combat && check.conditionPenalties?.length ? `<div>Zustandsabzüge: ${check.conditionPenalties
       .map(({ name, value }) => escapeHtml(name) + " −" + value).join(" · ")}</div>` : ""}

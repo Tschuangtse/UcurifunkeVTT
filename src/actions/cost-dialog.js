@@ -117,7 +117,7 @@ export async function requestCost(action, selection) {
       const updatePreview = () => {
         if (!preview) return;
         const base = field.valueAsNumber ?? Number(field.value);
-        const final = actionTickCost(base, selection.token?.document);
+        const final = actionTickCost(base, selection.token?.document, action.id);
         preview.hidden = !Number.isFinite(base) || final === base;
         preview.textContent = "Mit aktiven Effekten: " + final + " Ticks";
       };

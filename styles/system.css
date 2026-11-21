@@ -583,3 +583,9 @@ html[data-ucurifunke-design] .ucurifunke-object-sheet .window-content .ucurifunk
 .uq-effect-defaults { display:grid; grid-template-columns:1fr 1fr; column-gap:1rem; }
 .uq-effect-sheet .uq-effect-defaults label:has(input[type=checkbox]) { flex-direction:row; align-items:center; justify-content:flex-start; gap:.5rem; }
 .uq-effect-sheet input[name=name] { background:var(--uq-input-bg, var(--uq-surface)); color:inherit; }
+
+.uq-effect-sheet [hidden] {display:none !important;}
+.uq-effect-sheet .uq-effect-change {display:block; padding:.65rem; border:1px solid var(--uc-line,currentColor); border-radius:5px;}
+.uq-effect-values {display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1.4fr) 6rem 2rem; gap:.5rem;}
+.uq-effect-filter {display:grid; grid-template-columns:1fr 1fr; gap:.7rem; margin-top:.45rem;}
+.uq-effect-filter label {margin:0; min-width:0;}

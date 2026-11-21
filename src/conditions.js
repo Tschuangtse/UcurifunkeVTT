@@ -1,4 +1,4 @@
-import { effectiveActor } from "./effect-values.js";
+import { effectiveActor, applyCheckEffects } from "./effect-values.js";
 import { CONDITION_CATALOG } from "./condition-catalog.js";
 
 export const conditionKey = name => name.toLocaleLowerCase("de").replaceAll("ä", "ae")
@@ -128,5 +128,5 @@ export function applyConditionEffects(actor, check, situation = {}) {
   const adjusted = combat ? check : adjust(check);
   const value = adjusted.value - penalty;
   const attributes = check.attributes?.map(adjust);
-  return { ...adjusted, value, ...(attributes ? { attributes } : {}), conditionPenalties: penalties };
+  return applyCheckEffects(actor, { ...adjusted, value, ...(attributes ? { attributes } : {}), conditionPenalties: penalties });
 }
