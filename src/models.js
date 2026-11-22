@@ -25,7 +25,8 @@ export class EffectData extends foundry.abstract.TypeDataModel {
       interval: integer(1, 20), duration: integer(1, 60), recurring: new BooleanField({ initial: true }), permanent: new BooleanField({ initial: true }), stackable: flag(),
       changes: new ArrayField(new SchemaField({ target: text(), mode: new StringField({ choices: ["add", "percent"], initial: "add" }), value: number(),
         filterType:new StringField({initial:"all"}), filterValue:text() }),
-        { initial: [{ target: "LE", mode: "add", value: 4 }] }) };
+        // Initial array rows must already include their nested field defaults.
+        { initial: [{ target: "LE", mode: "add", value: 4, filterType: "all", filterValue: "" }] }) };
   }
 }
 
