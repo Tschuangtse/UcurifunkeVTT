@@ -332,3 +332,32 @@
 .uq-continuous-effects .tick-combat-card { margin-bottom:.5rem; overflow-wrap:anywhere; }
 .uq-continuous-effects p { white-space:pre-wrap; }
 .tick-combat-card small { display:block; margin:.4rem 0; }
+
+/* Effect cards use each design's opaque field surface and matching ink. */
+.tick-combat-app .uq-effect-card {
+  background: var(--uc-field, #24232d);
+  color: var(--uc-ink, #f2ece0);
+  border-color: var(--uc-line, #77717e);
+  border-radius: 7px;
+  padding: .65rem;
+  gap: .6rem;
+  opacity: 1;
+}
+.uq-effect-heading { display:flex; align-items:flex-start; gap:.5rem; }
+.uq-effect-heading > i { flex:none; margin-top:.2rem; font-size:.95rem; }
+.uq-effect-heading > div { min-width:0; flex:1; }
+.uq-effect-card .uq-effect-title { font-family:inherit; font-variant:normal; text-transform:none; letter-spacing:normal; margin:0; border:0; color:inherit; font-size:1rem; font-weight:700; line-height:1.3; white-space:normal; overflow:visible; overflow-wrap:anywhere; }
+.uq-effect-card .uq-effect-actor { margin:.25rem 0 0; color:inherit; font-size:.85rem; font-weight:500; line-height:1.35; white-space:normal; overflow-wrap:anywhere; }
+.uq-effect-card .uq-effect-description { font-weight:400; margin:0; color:inherit; font-size:.85rem; line-height:1.45; white-space:pre-wrap; overflow-wrap:anywhere; opacity:1; }
+.uq-effect-meta { display:flex; flex-wrap:wrap; align-items:center; gap:.4rem .6rem; }
+.uq-effect-card .uq-effect-meta small { margin:0; font-size:.8rem; line-height:1.35; }
+.uq-effect-card .uq-effect-duration { display:flex; align-items:center; gap:.35rem; width:max-content; max-width:100%; margin:0; padding:.2rem .4rem; border-radius:4px; background:color-mix(in srgb, currentColor 7%, transparent); color:inherit; font-size:.8rem; line-height:1.4; }
+.uq-effect-card .tick-combat-card-actions { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:.4rem; }
+.uq-effect-card .tick-combat-card-actions button { font-size:.85rem; }
+.uq-effect-footer { display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
+.uq-effect-footer button { flex:none; width:2rem; min-height:2rem; padding:.25rem; }
+.uq-continuous-effects { padding:.65rem; flex-basis:260px; }
+.uq-continuous-effects:not([open]) { padding:.5rem .2rem; }
+.uq-continuous-effects summary { line-height:1.4; }
+
+.tick-combat-card-heading .tick-combat-name {white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.3;text-align:left;height:auto;}

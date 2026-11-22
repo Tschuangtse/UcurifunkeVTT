@@ -8,7 +8,8 @@ export function effectEntries(combat, { continuous = false, forDisplay = true } 
     if (!token.actor || forDisplay && !game.user?.isGM && (token.hidden || !token.actor.visible)) return [];
     return activeTokenEffects(token, combat).filter(effect => effect.combatId === combat.id && (effect.kind === "continuous") === continuous)
       .map(effect => ({ id: `effect:${token.id}:${effect.id}`, effectId: effect.id, tokenId: token.id, tokenUuid: token.uuid,
-        name: `${effect.name} (${token.name})`, isEvent: true, isEffect: true, continuous, isHidden: token.hidden,
+        name: `${effect.name} (${token.name})`, effectName:effect.name, actorName:token.name,
+        isEvent: true, isEffect: true, continuous, isHidden: token.hidden,
         ticks: Math.max(0, (!effect.permanent && effect.nextAt > effect.expiresAt ? effect.expiresAt : effect.nextAt) - now),
         isWaiting: !effect.permanent && effect.nextAt > effect.expiresAt,
         repeating: effect.recurring, ffwd: effect.interval, nextAt: effect.nextAt,
