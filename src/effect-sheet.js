@@ -1,6 +1,7 @@
 import { EFFECT_TARGETS, PRIMARY_KEYS, validateEffect } from "./effect-rules.js";
 import { FILTER_TYPES, allowedFilters, CHECK_CATEGORIES, ACTION_CATEGORIES, ACTION_FILTERS } from "./effect-filters.js";
 import { escapeHtml as esc } from "./check-card.js";
+import { worldEffectCopy } from "./effect-library.js";
 
 const { api, sheets } = foundry.applications;
 const permits = (target, kind) => !(kind === "continuous" && target.periodic || kind === "periodic" && target.continuous);
@@ -27,7 +28,7 @@ export class EffectSheet extends api.HandlebarsApplicationMixin(sheets.ItemSheet
   static PARTS = {main:{template:"systems/ucurifunke/templates/effect.hbs"}};
   async _prepareContext(options) {
     const systemPack=this.item.pack==="ucurifunke.effects";
-    return {...await super._prepareContext(options),name:this.item.name,data:this.item.system,continuous:this.item.system.kind==="continuous",editable:this.isEditable&&!systemPack,systemPack,canCopy:systemPack&&foundry.documents.Item.implementation.canUserCreate(game.user)};
+    return {...await super._prepareContext(options),name:this.item.name,img:this.item.img,data:this.item.system,continuous:this.item.system.kind==="continuous",editable:this.isEditable&&!systemPack,systemPack,canCopy:systemPack&&foundry.documents.Item.implementation.canUserCreate(game.user)};
   }
   async _onRender(context,options) {
     await super._onRender(context,options);
@@ -49,17 +50,21 @@ export class EffectSheet extends api.HandlebarsApplicationMixin(sheets.ItemSheet
     kind.onchange=()=>{rows.innerHTML=[...rows.children].map(row=>rowMarkup(readRow(row),kind.value)).join("");timing();};
     form.querySelector('[name="system.permanent"]').onchange=timing;timing();
     if(!context.editable)for(const input of form.querySelectorAll("input,textarea,select,button[type=submit],[data-add-change],[data-remove-change]"))input.disabled=true;
+    const icon=form.querySelector("[data-effect-icon]");
+    if(icon)icon.onclick=()=>{
+      const input=form.querySelector('[name="img"]');
+      const Picker=foundry.applications.apps.FilePicker.implementation;
+      void new Picker({type:"image",current:input.value,callback:path=>{input.value=path;form.querySelector("[data-effect-preview]").src=path;},document:this.item}).browse();
+    };
+    const image=form.querySelector('[name="img"]');
+    if(image)image.oninput=()=>{form.querySelector("[data-effect-preview]").src=image.value;};
+    const edit=form.querySelector("[data-edit-world-effect]");
+    if(edit)edit.onclick=()=>{form.querySelector('[name="name"]').focus();form.querySelector('[name="name"]').select();};
     const copy=form.querySelector("[data-copy-effect]");
     if(copy)copy.onclick=async()=>{
       try {
-        const existing=game.items.find(item=>item.isOwner&&item.getFlag("ucurifunke","originalEffectSource")===this.item.uuid);
-        let item=existing;
-        if(!item){const source=game.items.fromCompendium(this.item,{clearFolder:true,keepId:false});
-          let folder=game.folders.find(folder=>folder.type==="Item"&&folder.name==="Eigene Effekte");
-          if(!folder&&game.user.isGM)folder=await foundry.documents.Folder.implementation.create({name:"Eigene Effekte",type:"Item"});
-          source.folder=folder?.id??null;source.flags??={};source.flags.ucurifunke={...source.flags.ucurifunke,originalEffectSource:this.item.uuid};
-          item=await foundry.documents.Item.implementation.create(source);
-        }
+        const item=await worldEffectCopy(this.item);
+        await this.close();
         await item.sheet.render({force:true});
       }catch(error){ui.notifications.error(error.message);}
     };

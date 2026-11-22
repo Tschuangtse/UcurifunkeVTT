@@ -12,6 +12,7 @@ import "./token-footprint.js";
 import "./segments.js";
 import "./effects.js";
 import { UcurifunkeActor } from "./actor.js";
+import { UcurifunkeItem } from "./item.js";
 import { CharacterData, EquipmentData, ObjectData, WeaponData, BodyPartData, EffectData } from "./models.js";
 import { BodyPartSheet } from "./bodypart-sheet.js";
 import { EffectSheet } from "./effect-sheet.js";
@@ -61,6 +62,7 @@ Hooks.once("init", () => {
     type: Boolean, default: true });
   registerCheckCommands(foundry.applications.sidebar.tabs.ChatLog.CHAT_COMMANDS);
   CONFIG.Actor.documentClass = UcurifunkeActor;
+  CONFIG.Item.documentClass = UcurifunkeItem;
   CONFIG.Actor.dataModels.character = CharacterData;
   CONFIG.Actor.dataModels.npc = CharacterData;
   CONFIG.Actor.dataModels.retinue = CharacterData;

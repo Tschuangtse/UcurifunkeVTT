@@ -589,3 +589,12 @@ html[data-ucurifunke-design] .ucurifunke-object-sheet .window-content .ucurifunk
 .uq-effect-values {display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1.4fr) 6rem 2rem; gap:.5rem;}
 .uq-effect-filter {display:grid; grid-template-columns:1fr 1fr; gap:.7rem; margin-top:.45rem;}
 .uq-effect-filter label {margin:0; min-width:0;}
+
+.uq-effect-toolbar {position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:.75rem;padding:.6rem;background:var(--uc-field,var(--color-cool-5,#24232d));border:1px solid var(--uc-line,currentColor);border-radius:5px;}
+.uq-effect-toolbar > img {width:48px;height:48px;object-fit:contain;flex:none;border:1px solid var(--uc-line,currentColor);border-radius:5px;}
+.uq-effect-toolbar > div {flex:1;min-width:0;}
+.uq-effect-toolbar small {display:block;margin-top:.25rem;line-height:1.4;}
+.uq-effect-toolbar > button {flex:none;width:auto;}
+.uq-effect-image-field {display:flex;align-items:flex-end;gap:.6rem;}
+.uq-effect-image-field > label {flex:1;min-width:0;}
+.uq-effect-image-field > button {width:auto;flex:none;margin-bottom:.6rem;}

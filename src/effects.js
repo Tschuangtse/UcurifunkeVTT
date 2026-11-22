@@ -26,7 +26,7 @@ registerAutomation("effectApply", async request => {
   }
   const combat = sceneCombat(token);
   const now = effectClock(combat);
-  const effect = request.plan ?? await request.savePlan({ ...definition, id: foundry.utils.randomID(), sourceUuid: template.uuid, name: template.name,
+  const effect = request.plan ?? await request.savePlan({ ...definition, id: foundry.utils.randomID(), sourceUuid: template.uuid, name: template.name,img:template.img??"icons/svg/aura.svg",
     combatId: combat?.id ?? null, startedAt: now, expiresAt: definition.permanent ? null : now + definition.duration,
     nextAt: now + definition.interval });
   if (tokenEffects(token).some(entry => entry.id === effect.id)) return effect.id;
