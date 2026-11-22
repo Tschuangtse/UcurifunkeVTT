@@ -1,7 +1,7 @@
 <div class="uq-effect-editor">
   <header class="uq-effect-toolbar">
     <img src="{{img}}" alt="Effekt-Icon" data-effect-preview>
-    <div><strong>{{#if systemPack}}Systemvorlage{{else}}Vorlage dieser Welt{{/if}}</strong><small>{{#if systemPack}}Bearbeiten öffnet eine dauerhafte Weltvorlage.{{else}}Dauerhaft in dieser Welt gespeichert.{{/if}}</small></div>
+    <div><strong>{{#if systemPack}}Übernommene Vorlage{{else}}Vorlage im Effektkompendium{{/if}}</strong><small>{{#if systemPack}}Bearbeiten öffnet die Vorlage im gemeinsamen Effektkompendium.{{else}}Dauerhaft im Weltkompendium gespeichert.{{/if}}</small></div>
     {{#if systemPack}}{{#if canCopy}}<button type="button" data-copy-effect><i class="fa-solid fa-pen" inert></i> Bearbeiten</button>{{/if}}{{else}}{{#if editable}}<button type="button" data-edit-world-effect><i class="fa-solid fa-pen" inert></i> Bearbeiten</button>{{/if}}{{/if}}
     {{#if editable}}<button type="submit"><i class="fa-solid fa-floppy-disk" inert></i> Speichern</button>{{/if}}
   </header>

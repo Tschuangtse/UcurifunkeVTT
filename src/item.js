@@ -1,19 +1,16 @@
-import { EFFECT_PACK, worldEffectFolder } from "./effect-library.js";
+import { EFFECT_PACK, WORLD_EFFECT_PACK, ensureEffectLibrary } from "./effect-library.js";
 
 export class UcurifunkeItem extends foundry.documents.Item {
   static async createDocuments(data=[],operation={}) {
-    const redirect=operation.pack===EFFECT_PACK&&!operation.parent;
-    if(operation.parent||operation.pack&&!redirect||!data.some(row=>row.type==="effect"))return super.createDocuments(data,operation);
-    const folder=await worldEffectFolder();
-    const prepare=row=>({...row,img:row.img||"icons/svg/aura.svg",folder:redirect?folder?.id??null:row.folder??folder?.id??null});
-    if(!redirect)return super.createDocuments(data.map(row=>row.type==="effect"?prepare(row):row),operation);
-    const {pack,...worldOptions}=operation;const result=[];
-    // Returning a world document lets Foundry's native creation dialog open
-    // the editable world sheet instead of a read-only system-pack document.
+    const redirect=!operation.parent&&(!operation.pack||operation.pack===EFFECT_PACK)&&data.some(row=>row.type==="effect");
+    if(!redirect)return super.createDocuments(data,operation);
+    const pack=await ensureEffectLibrary();
+    if(!pack)throw new Error("Die Spielleitung muss die Effektbibliothek einmal initialisieren.");
+    const result=[];
     for(const row of data){
       if(row.type!=="effect"){result.push(...await super.createDocuments([row],operation));continue;}
-      const source=prepare(row);delete source._id;
-      result.push(...await super.createDocuments([source],{...worldOptions,keepId:false}));
+      const source={...row,img:row.img||"icons/svg/aura.svg"};delete source._id;delete source.folder;
+      result.push(...await super.createDocuments([source],{...operation,pack:WORLD_EFFECT_PACK,keepId:false}));
     }
     return result;
   }

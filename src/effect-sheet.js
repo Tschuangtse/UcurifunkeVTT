@@ -1,7 +1,7 @@
 import { EFFECT_TARGETS, PRIMARY_KEYS, validateEffect } from "./effect-rules.js";
 import { FILTER_TYPES, allowedFilters, CHECK_CATEGORIES, ACTION_CATEGORIES, ACTION_FILTERS } from "./effect-filters.js";
 import { escapeHtml as esc } from "./check-card.js";
-import { worldEffectCopy } from "./effect-library.js";
+import { EFFECT_PACK, worldEffectCopy } from "./effect-library.js";
 
 const { api, sheets } = foundry.applications;
 const permits = (target, kind) => !(kind === "continuous" && target.periodic || kind === "periodic" && target.continuous);
@@ -27,7 +27,7 @@ export class EffectSheet extends api.HandlebarsApplicationMixin(sheets.ItemSheet
   static DEFAULT_OPTIONS = {classes:["ucurifunke-dialog","uq-effect-sheet"],tag:"form",position:{width:760,height:690},window:{resizable:true},form:{closeOnSubmit:false,submitOnChange:false}};
   static PARTS = {main:{template:"systems/ucurifunke/templates/effect.hbs"}};
   async _prepareContext(options) {
-    const systemPack=this.item.pack==="ucurifunke.effects";
+    const systemPack=this.item.pack===EFFECT_PACK||Boolean(this.item.getFlag("ucurifunke","effectLibraryDestination"));
     return {...await super._prepareContext(options),name:this.item.name,img:this.item.img,data:this.item.system,continuous:this.item.system.kind==="continuous",editable:this.isEditable&&!systemPack,systemPack,canCopy:systemPack&&foundry.documents.Item.implementation.canUserCreate(game.user)};
   }
   async _onRender(context,options) {
@@ -70,7 +70,7 @@ export class EffectSheet extends api.HandlebarsApplicationMixin(sheets.ItemSheet
     };
   }
   _processFormData(event,form,formData) {
-    if(this.item.pack==="ucurifunke.effects")throw new Error("Bitte die Vorlage zuerst in die Welt übernehmen.");
+    if(this.item.pack===EFFECT_PACK||this.item.getFlag("ucurifunke","effectLibraryDestination"))throw new Error("Bitte die Vorlage im Effektkompendium bearbeiten.");
     const data=super._processFormData(event,form,formData);data.system.changes=[...form.querySelectorAll("[data-effect-row]")].map(readRow);
     data.system=validateEffect(data.system);return data;
   }
