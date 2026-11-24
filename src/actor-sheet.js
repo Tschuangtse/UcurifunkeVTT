@@ -1,3 +1,5 @@
+import { openManualEditor } from "./manual-editor.js";
+import { canEditValues } from "./manual-values.js";
 import { effectiveActor, effectToken } from "./effect-values.js";
 import { applyEffectTemplate } from "./effects.js";
 import { energyRows } from "./energy.js";
@@ -87,7 +89,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       openCompanion: CharacterSheet.#openCompanion, importRetinue: CharacterSheet.#importRetinue,
       editWeaponTicks: CharacterSheet.#editWeaponTicks, toggleEquipment: CharacterSheet.#toggleEquipment,
       weaponSets: CharacterSheet.#weaponSets, sheetPreferences: CharacterSheet.#sheetPreferences,
-      energy: CharacterSheet.#energy }
+      energy: CharacterSheet.#energy, editValues: CharacterSheet.#editValues }
   };
 
   async _onDropItem(event, item) {
@@ -129,7 +131,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
     const { combatGroups, skillTabs } = partitionSkills(data.skills, companion, data.npcGenerator);
     const visibleTabs = skillTabs.filter(tab => (tab.id !== "magic" || this.actor.getFlag("ucurifunke", "showMagic") !== false)
       && (tab.id !== "clerical" || this.actor.getFlag("ucurifunke", "showClerical") !== false));
-    return { ...context, data, sheetId: this.id, actorName: this.actor.name, actorImage: this.actor.img, energies: energyRows(data),
+    return { ...context, data, sheetId: this.id, actorName: this.actor.name, actorImage: this.actor.img, energies: energyRows(data,{includeEmpty:true}), canEditValues: canEditValues(this.actor),
       combatGroups, skillTabs: visibleTabs.map(tab => ({ ...tab, categoryTabs: tab.id === "munda" && mundaneTabsEnabled() })),
       hasRetinue: Boolean(retinue.length || pending), focus: combatFocus(this.actor),
       focusMin: -2, focusMax: 2,
@@ -146,7 +148,7 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
       conditionSummary: conditionSummary(effects), simpleConditions: conditions.filter(row => !row.staged),
       stagedConditions: conditions.filter(row => row.staged),
       conditionRule: conditions.find(row => row.key === this.#selectedCondition),
-      companion, npcGenerator: data.npcGenerator, companionDetails, retinue, canImportRetinue: Boolean(pending && globalThis.game?.user?.isGM),
+      companion, npcGenerator: data.npcGenerator, detailLabel: companion ? "Gefolgedaten" : this.actor.type === "npc" ? "NSC-Daten" : "Eigenschaften", companionDetails, retinue, canImportRetinue: Boolean(pending && globalThis.game?.user?.isGM),
       pendingRetinue: pendingPlan ? pendingPlan.entries.length + pendingPlan.removed.length : 0,
       canEdit: this.isEditable, canRoll: this.actor.isOwner, canImport: Boolean(pedipalpusImportTarget(this.actor)),
       importLabel: this.actor.type === "npc" ? "NSC aus NSCGenerator importieren" : "Aus Pedipalpus aktualisieren",
@@ -238,6 +240,11 @@ export class CharacterSheet extends api.HandlebarsApplicationMixin(sheets.ActorS
   static async #updatePedipalpus() {
     try { await updatePedipalpusActor(this.actor); }
     catch (error) { ui.notifications.error(error.message); }
+  }
+
+  static async #editValues() {
+    if (!canEditValues(this.actor)) return;
+    try { await openManualEditor(this.actor); } catch(error) { ui.notifications.error(error.message); }
   }
 
   static async #sheetPreferences() { await openAppearanceSettings(this.actor); }

@@ -63,7 +63,7 @@ export class CharacterData extends foundry.abstract.TypeDataModel {
         metalAffinity: flag(), severeIronBan: flag(), penance: flag(), astralRegenerationLevel: integer(0),
         useLeyLines: flag(), ordinationRank: integer(1, 1)
       }),
-      skills: rows({ name: text(), group: text(), rollName: text(), description: text(), value: number(), rollable: flag(), attributes: rows(attribute()) })
+      skills: rows({ name: text(), group: text(), rollName: text(), description: text(), value: number(), rollable: flag(), manual: flag(), attributes: rows(attribute()) })
     };
   }
 }

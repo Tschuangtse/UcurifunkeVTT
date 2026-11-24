@@ -19,7 +19,7 @@ export async function openHealth(actor) {
   if (!actor.isOwner) return;
   const data = actor.system;
   const snapshot=JSON.stringify(data.toObject());
-  const energies=energyRows(data);
+  const energies=energyRows(data,{includeEmpty:true});
   const le=energies.find(row=>row.key==="LE");
   if (!le) return;
   const threshold=data.derived.find(row=>row.key==="WS")?.value ?? 0;
@@ -65,7 +65,7 @@ export async function openHealth(actor) {
 export async function openEnergyValue(actor,key) {
   if (!actor.isOwner || !["AE","KE"].includes(key)) return;
   const snapshot=JSON.stringify(actor.system.toObject());
-  const energies=energyRows(actor.system);
+  const energies=energyRows(actor.system,{includeEmpty:true});
   const row=energies.find(entry=>entry.key===key);
   if (!row) return;
   const result=await DialogV2.prompt({classes:SYSTEM_DIALOG_CLASSES,window:{title:key+" ändern"},
@@ -85,7 +85,7 @@ const select=(label,name,options)=>`<label class="ucurifunke-energy-field"><span
 export async function openRegeneration(actor) {
   if (!actor.isOwner) return;
   const data=actor.system, snapshot=JSON.stringify(data.toObject());
-  const energies=energyRows(data);
+  const energies=energyRows(data,{includeEmpty:true});
   const has=key=>energies.some(row=>row.key===key);
   const defaults=regenerationDefaults(data);
   const box=(label,name)=>checkbox(label,name,defaults[name]);

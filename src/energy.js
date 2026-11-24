@@ -4,12 +4,12 @@ export const ENERGY_KEYS = ["LE", "AE", "KE"];
 const number = v => Number.isFinite(v) ? Math.trunc(v) : 0;
 const bound = (v, min, max) => Math.max(min, Math.min(max, number(Number(v))));
 const key = v => String(v ?? "").toLowerCase().replaceAll("ä","ae").replaceAll("ö","oe").replaceAll("ü","ue").replaceAll("ß","ss");
-export function energyRows(data = {}) {
+export function energyRows(data = {}, { includeEmpty = false } = {}) {
   return ENERGY_KEYS.flatMap(code => {
     const saved = data.energies?.find(r => r.key === code);
     const detail = data.companionDetails?.find(r => r.name === code)?.value.match(/^(-?\d+)\s*\/\s*(\d+)$/);
     const max = Math.max(0, Math.round(saved?.max ?? data.derived?.find(r => r.key === code)?.value ?? Number(detail?.[2] ?? 0)));
-    return saved || max > 0 ? [{ key: code, max, value: saved?.value ?? Number(detail?.[1] ?? max) }] : [];
+    return includeEmpty || saved || max > 0 ? [{ key: code, max, value: saved?.value ?? Number(detail?.[1] ?? max) }] : [];
   });
 }
 export function readDamage(source) {

@@ -55,7 +55,7 @@ export function skillCheck(skills, index) {
   const skill = skills[index];
   if (!skill?.rollable || skill.attributes.length !== 3) return null;
   const root = specializationRoot(skills, index);
-  const name = root ? skill.name.slice(root.name.length + SPECIALIZATION_SEPARATOR.length)
+  const name = skill.manual ? skill.name : root ? skill.name.slice(root.name.length + SPECIALIZATION_SEPARATOR.length)
     : ["Hobby", "Zauber", "Wunder"].includes(skill.group) || (skill.group === "Rituale" && skill.rollName)
       ? skill.name : "";
   return name ? { ...skill, kind: "skill", name: skill.rollName || name, sourceName:skill.name } : null;
@@ -90,7 +90,7 @@ export function partitionSkills(skills, companion = false, npc = false) {
       ...group, rows: group.rows.map(row => ({ ...row, rollable: false, companionAbility: skills[row.index].rollable }))
     }));
     return {
-      combatGroups: groups.filter(group => ["Nahkampf", "Fernkampf"].includes(group.name)),
+      combatGroups: groups.filter(group => ["Nahkampf", "Fernkampf"].includes(group.name)).map(group=>({...group,rows:group.rows.map(row=>({...row,technique:true,ranged:group.name==="Fernkampf"}))})),
       skillTabs: [
         { id: "munda", label: "Mundan", icon: "fa-book-open", groups: select(["Aufgabenbereiche"]) },
         { id: "magic", label: "Magie", icon: "fa-wand-sparkles", groups: select(["Merkmale", "Zauber", "Rituale"]) },

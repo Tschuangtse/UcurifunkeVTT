@@ -97,6 +97,9 @@
       {{#if companion}}<p>{{data.companionKind}}{{#if data.race}} · {{data.race}}{{/if}}</p>
       {{else}}{{#if data.race}}<p>{{data.race}}</p>{{/if}}{{/if}}
     </div>
+    {{#if canEditValues}}
+      <button type="button" class="ucurifunke-roll ucurifunke-header-action" data-action="editValues" title="Spielwerte bearbeiten" aria-label="Spielwerte bearbeiten"><i class="fa-solid fa-pen" aria-hidden="true"></i></button>
+    {{/if}}
     {{#if canImport}}
       <button type="button" class="ucurifunke-roll ucurifunke-header-action" data-action="updatePedipalpus"
         title="{{importLabel}}" aria-label="{{importLabel}}">
@@ -198,7 +201,7 @@
       {{/if}}
       {{#if companionDetails.length}}
         <section class="ucurifunke-overview-group" data-filter-group="Gefolgedaten">
-          <h3>{{#if npcGenerator}}NSC-Daten{{else}}Gefolgedaten{{/if}}</h3>
+          <h3>{{detailLabel}}</h3>
           <dl class="ucurifunke-derived ucurifunke-companion-details">
             {{#each companionDetails}}
               <div class="{{#if fullWidth}}ucurifunke-companion-properties{{/if}}" data-filter-row="{{name}} {{value}}">

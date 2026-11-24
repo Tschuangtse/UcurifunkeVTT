@@ -12,6 +12,14 @@ https://github.com/Tschuangtse/UcurifunkeVTT/releases/latest/download/system.jso
 
 Für eine manuelle Installation den Inhalt des Release-ZIPs nach `Data/systems/ucurifunke` im Foundry-Benutzerdatenordner entpacken. Die Datei `system.json` muss direkt in diesem Ordner liegen. Foundry danach neu starten. Für eine Testwelt mit Ucurifunke sind die separaten Kampfmodule und Ucurifunke Checks nicht erforderlich. TickBasedCombat und Quick Combat Actions in dieser Welt deaktiviert lassen, damit die Bedienelemente nicht doppelt geladen werden.
 
+## Manuelle Akteure anlegen
+
+Charaktere, NSC und Gefolge können vollständig ohne Import angelegt werden. Eine Spielleitung öffnet den Bogen und klickt auf den Stift **Spielwerte bearbeiten** im Kopf. Spieler sehen diesen Button auch bei eigenen Akteuren nicht.
+
+Der Editor bietet Grundwerte (Attribute, abgeleitete Werte, Beeinträchtigung und Rüstung), LE/AE/KE mit aktuellem und maximalem Wert, Regenerationsvorgaben, Fähigkeiten mit Bereich, Gesamtwert, drei Probenattributen und Würfeloption sowie Angriffe, Waffen, Rüstung, Ausrüstung und freie Eigenschaften/Notizen. Einträge lassen sich hinzufügen, ändern und entfernen; erst **Spielwerte speichern** übernimmt die Änderungen. Gesamtwerte werden direkt eingetragen. Abgeleitete Werte werden nicht automatisch aus den Attributen berechnet.
+
+LE, AE und KE sind im Bogen stets sichtbar, auch bei einem Maximum von null. Die bisherigen Dialoge für Schaden und Regeneration bleiben über die Energieleiste erreichbar. Manuelle Änderungen der LE werden mit der Schadensübersicht abgeglichen: bestehende Quellen bleiben soweit möglich erhalten, zusätzlicher Verlust wird als „Manuelle Anpassung“ vermerkt. Für Angriffe können fertige AT/FK- und PA-Probenwerte sowie Schaden, Reichweite, Tickkosten und BE-Toleranz hinterlegt werden.
+
 ## Erster Test
 
 1. Eine Welt mit dem Spielsystem Ucurifunke anlegen. Im Charakterverzeichnis **Pedipalpus importieren** wählen und eine gespeicherte Charakterdatei im JSON-Format öffnen. Der Button erzeugt einen neuen Actor. Über **Daten importieren** im Kontextmenü eines vorhandenen Actors kannst du stattdessen dessen Namen, Spielwerte und Inventar durch die Daten aus der Datei ersetzen.

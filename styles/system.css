@@ -598,3 +598,25 @@ html[data-ucurifunke-design] .ucurifunke-object-sheet .window-content .ucurifunk
 .uq-effect-image-field {display:flex;align-items:flex-end;gap:.6rem;}
 .uq-effect-image-field > label {flex:1;min-width:0;}
 .uq-effect-image-field > button {width:auto;flex:none;margin-bottom:.6rem;}
+
+.uq-manual-editor [hidden] {display:none !important;}
+.uq-manual-editor .dialog-content {display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+.uq-manual-tabs {display:flex;gap:.4rem;flex-wrap:wrap;border-bottom:1px solid var(--uc-line);padding-bottom:.5rem;flex:none;}
+.uq-manual-tabs button {width:auto;flex:1;}
+.uq-manual-tabs button[aria-pressed="true"] {font-weight:bold;border-bottom:3px solid var(--uc-accent,currentColor);}
+.uq-manual-panels {overflow:auto;min-height:0;padding:.65rem .25rem;}
+.uq-manual-grid {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.65rem;}
+.uq-manual-grid label {display:flex;flex-direction:column;gap:.3rem;min-width:0;}
+.uq-manual-grid .uq-manual-check {flex-direction:row;align-items:center;}
+.uq-manual-grid .uq-manual-wide {grid-column:span 2;}
+.uq-manual-grid textarea {width:100%;resize:vertical;}
+.uq-manual-row {display:flex;align-items:flex-start;gap:.6rem;padding:.75rem;margin:.5rem 0;border:1px solid var(--uc-line,currentColor);border-radius:5px;background:var(--uc-field);}
+.uq-manual-row > .uq-manual-grid {flex:1;min-width:0;}
+.uq-manual-row > button {width:2rem;flex:none;}
+.uq-manual-energy {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem;}
+.uq-manual-energy label {display:flex;flex-direction:column;margin-bottom:.7rem;gap:.3rem;}
+@media(max-width:800px){.uq-manual-grid{grid-template-columns:repeat(2,minmax(0,1fr));}.uq-manual-tabs button{flex:auto;}}
+.uq-manual-editor .dialog-form {height:100%;min-height:0;overflow:hidden;}
+.uq-manual-editor .dialog-content {flex:1;}
+.uq-manual-editor :is(input:not([type=checkbox]),select,textarea) {min-height:2rem;border:1px solid var(--uc-line,var(--color-border-light-primary));padding:.3rem .45rem;font:inherit;}
+.uq-manual-tabs button[aria-pressed="true"] {box-shadow:inset 0 -3px 0 var(--uc-accent,var(--uc-trim,#bf965f));}
